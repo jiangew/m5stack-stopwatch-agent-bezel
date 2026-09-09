@@ -67,10 +67,15 @@ request; the writer does not continue its remaining fragments.
 {"method":"host.workspace_mode","params":{"mode":"super","ttl_ms":15000},"id":1}
 {"method":"host.workspace_mode","params":{"mode":"hermes","ttl_ms":15000},"id":2}
 {"method":"host.workspace_mode","params":{"mode":"codex"},"id":3}
+{"method":"host.workspace_mode","params":{"mode":"hermes","ttl_ms":15000,"state":"idle"},"id":4}
+{"method":"host.workspace_mode","params":{"mode":"hermes","ttl_ms":15000,"state":"opening"},"id":5}
+{"method":"host.workspace_mode","params":{"mode":"hermes","ttl_ms":15000,"state":"error"},"id":6}
 ```
 
 These are the only mode/parameter shapes. SUPER/HERMES require exactly integer
-`ttl_ms: 15000`; Codex permits only `mode`. Missing or extra fields, wrong types,
+`ttl_ms: 15000`; Codex permits only `mode`. Only Hermes accepts optional `state`,
+strictly `idle`, `opening` or `error`; omission means the existing active page.
+SUPER/Codex reject `state`. Missing or extra fields, wrong types,
 negative, floating, overflowing or different TTL values yield
 `-32602 Invalid params` without changing or renewing the lease.
 
@@ -83,7 +88,11 @@ exits immediately; otherwise wrap-safe `millis()` expiry restores Codex after
 
 Only real companion `--watch` mode observes exact foreground bundle IDs:
 `com.zarifpour.superconductor` → SUPER, `com.nousresearch.hermes` → HERMES,
-everything else → Codex. Activation requests alone do not select the screen.
+everything else → Codex. Explicit SUPER-left selection is the sole override:
+Hermes idle is displayed without activating the Mac app. A center request shows
+opening, with error after rejection/3 seconds; only actual Hermes foreground
+enables active mode. External foreground events cancel the selection. Attach
+and restart discard pending requests and use the real foreground.
 Entry/attach synchronizes immediately; one 5-second timer renews the current
 directional mode. Leaving sends Codex and stops renewals. Failed exit writes
 retry only failed devices, at most twice at 5-second intervals; success, detach,
@@ -104,10 +113,34 @@ and heartbeats do not randomize. No palette/color RPC or arbitrary text input is
 introduced. Codex swipes may update the hidden palette without changing the
 Codex dashboard; entering a directional screen reuses that palette.
 
-The channel contains only a fixed mode enum, fixed TTL and a wrapping UInt32
+The channel contains only a fixed mode/state enum, fixed TTL and a wrapping UInt32
 request number. It never contains project/session/window/Space/workspace data,
 credentials, prompts or user content. No report payloads or device identifiers
 are logged.
+
+## Device central action over HID
+
+The device sends this fixed newline-terminated event through the existing
+Report 6 fragment channel (not quota GATT or a keyboard Send event):
+
+```json
+{"method":"host.workspace_action","params":{"action":"open_hermes"}}
+```
+
+Only those two top-level keys and the single string action are accepted; extra
+fields, unknown actions and wrong types are ignored. Center events share the
+800ms direction cooldown and cannot bypass a held radial press. Central input
+must begin/end inside the existing square, last under 500ms and never cross
+the swipe threshold. The sleeping-screen wake gesture is consumed. Long holds
+retain power behavior and cannot emit this event.
+
+The MainActor interaction controller accepts center actions only in Hermes
+idle/error. Opening ignores duplicates, and active Hermes ignores center input.
+One request has a 3-second foreground-confirmation deadline and never retries
+automatically. Directions in idle/opening/error are suppressed; left exits to
+Codex. Late launch callbacks are generation-checked; true foreground activation
+still wins. The 5-second writer heartbeat never calls a launch API. A separate
+Desktop KeepAlive LaunchAgent is an installation policy, not this protocol.
 
 ## Host-side direction mapping
 

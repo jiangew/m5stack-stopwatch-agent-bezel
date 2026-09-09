@@ -32,7 +32,8 @@ Companion 身份保持不变。三应用行为需要匹配的源码构建；源�
 
 | 输入 | Codex Micro | SUPER | HERMES |
 | --- | --- | --- | --- |
-| 左实体键 / 右实体键 / 中心短点 | Push to talk / Voice Chat / Send | 无动作¹ | 无动作¹ |
+| 左实体键 / 右实体键 | Push to talk / Voice Chat | 无动作¹ | 无动作¹ |
+| 中心短点 | Send | 无动作¹ | 待启动时启动或重试；操作页无动作 |
 | 左滑 | 进入 SUPER | 进入 HERMES | 进入 Codex |
 | 上滑 | 应用现有映射 | 上一个项目 | 浏览上一个会话 |
 | 下滑 | 应用现有映射 | 下一个项目 | 浏览下一个会话 |
@@ -74,6 +75,32 @@ Next Tab = `Control-Option-Right`。上/下/右仅定向发送给该前台进程
 
 ## Hermes Desktop 工作区
 
+从 SUPER 左滑仅在手表选中 **HERMES / TAP TO OPEN**，Mac 保持原前台，
+不会启动或激活后台 Hermes。短点中央正方形内部才启动客户端，显示 **OPENING**。
+实际确认 Hermes 前台后才启用下面的方向导航。失败或 3 秒未确认时显示
+**TAP TO RETRY**，不自动重试；等待期间忽略重复点按。
+待启动、启动中、失败状态均屏蔽上/下/右，左滑仍进入 Codex。
+Dock、Command-Tab 切换会取消待启动选择；重连或 Companion 重启按真实前台同步。
+
+点按须按下和释放均在中央内部、少于 500ms，且全程未达到滑动阈值，
+与方向操作共享 800ms 防抖。熄屏后第一次点按只亮屏，第二次才启动；
+操作页中央短点无动作，长按电源流程保留。
+
+**Desktop 自动拉起与屏幕心跳不是一回事。** Companion 每 5 秒的 HID 心跳
+只续租屏幕，不启动应用。本机另外安装的 `ai.hermes.desktop` 任务因 `KeepAlive`
+在客户端退出后重复拉起；经批准已备份、卸载并禁用，原 plist 保留供恢复，
+gateway/dashboard 不变。其他安装不一定有这个任务，不应盲目停用其他服务。
+恢复方法见 [Companion 文档](companion/README.md#hermes-desktop-launch-policy)。
+
+此中央启动版本需要匹配的 Companion 与固件，物理验收仍为**待验证**，
+不能用之前的导航验收替代；见 [本轮记录](docs/superpowers/plans/2026-09-09-hermes-tap-launch.md)。
+
+<table><tr><th>待启动</th><th>启动中</th><th>点按重试</th></tr><tr>
+<td><img src="artifacts/hermes-idle-preview.png" alt="HERMES TAP TO OPEN"></td>
+<td><img src="artifacts/hermes-opening-preview.png" alt="HERMES OPENING"></td>
+<td><img src="artifacts/hermes-error-preview.png" alt="HERMES TAP TO RETRY"></td>
+</tr></table>
+
 仅匹配原生桌面应用 `com.nousresearch.hermes`，不是 CLI、网页面板或安装器。
 上滑发送 `Control-Shift-Tab`，下滑发送 `Control-Tab`，保留
 [原生桌面浏览快捷键](https://hermes-agent.nousresearch.com/docs/user-guide/desktop#windows-tabs--panes)。
@@ -102,7 +129,7 @@ SUPER/HERMES 使用四个向外三角形，不绘制独立中心方框。电池�
 配色反馈独立执行 800ms 冷却；重绘、心跳、额度变化和 Dock/Command-Tab 切换不换色。
 换色只是本地输入反馈，不证明 Mac 快捷键执行成功。
 
-屏幕跟随真实前台，心跳 5 秒、连接所有者租约 15 秒。离开两个方向桌面时发送 Codex；
+除手动选中的 Hermes 待启动页外，屏幕跟随真实前台，心跳 5 秒、连接所有者租约 15 秒。离开两个方向桌面时发送 Codex；
 失败时最多再间隔 5 秒重试两次，租约过期或所有者断开则恢复 Codex。
 前台变化不唤醒屏幕；禁用短点和实体控制也不唤醒方向桌面，真实滑动可以唤醒，
 但该次唤醒滑动不同时执行看不见的操作。中央长按及红色电源行为保留。
@@ -205,7 +232,9 @@ Server，并读取 `account/rateLimits/read`。它只通过项目自有额度 GA
 明确绑定的手表发送剩余百分比和 reset 倒计时；兼容 HID 接口不包含账户额度。
 
 在真实 `--watch` 运行中，可选工作区集成还仅通过 vendor HID Report ID 6 发送
-固定的 `codex`、`super` 或 `hermes` 显示模式枚举。它不会发送 API key、token、账户标识、
+固定的 `codex`、`super` 或 `hermes` 显示模式枚举及 Hermes 可选的
+`idle`/`opening`/`error` 状态；中央点按仅发送固定 `open_hermes` 动作。
+它不会发送 API key、token、账户标识、
 提示词、任务文本、音频、项目/会话/窗口/Space 元数据或用户内容；不会抓取 UI、
 使用云中继、检查键盘文本、调用 shell 或 AppleScript、使用私有 Space API，或
 检查 super.engineering 或 Hermes 设置。

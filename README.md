@@ -35,7 +35,8 @@ app” behavior is replaced by this fixed cycle.
 
 | Input | Codex Micro | SUPER | HERMES |
 | --- | --- | --- | --- |
-| Left physical / right physical / center tap | Push to talk / Voice Chat / Send | No action¹ | No action¹ |
+| Left physical / right physical | Push to talk / Voice Chat | No action¹ | No action¹ |
+| Center tap | Send | No action¹ | Launch/retry when waiting; no action when active |
 | Swipe left | Enter SUPER | Enter HERMES | Enter Codex |
 | Swipe up | Existing app mapping | Previous project | Browse previous session |
 | Swipe down | Existing app mapping | Next project | Browse next session |
@@ -85,6 +86,38 @@ Hermes; it does not return to an arbitrary previous app.
 
 ## Hermes Desktop workspace
 
+Left from SUPER selects **HERMES / TAP TO OPEN** on the watch only; it does not
+launch or activate Hermes on the Mac. Tap inside the center square to open the
+exact Desktop app. **OPENING** permits one outstanding request; actual Hermes
+foreground confirmation enables the existing directions below. Rejection or a
+3-second timeout shows **TAP TO RETRY**, with no automatic retry. Up/down/right
+are ignored while waiting, opening or retrying; left always exits to Codex.
+Dock/Command-Tab activation cancels the selection and follows the real app.
+Reconnect and Companion restart also resynchronize from the real foreground.
+
+A tap must start and end inside the square, last less than 500ms and never
+cross the swipe threshold. It shares the 800ms host cooldown with directions.
+The first sleeping-screen tap only wakes; a second tap may open Hermes. Active
+Hermes center taps do nothing. Long-hold power controls remain available.
+
+Desktop auto-launch and display heartbeat are separate: the Companion's
+5-second HID heartbeat never launches an app. A separately installed
+`ai.hermes.desktop` LaunchAgent with `KeepAlive` may repeatedly relaunch the
+client after exit. On the approved local setup that job was backed up, unloaded
+and disabled, retaining its plist for recovery. Gateway/dashboard were left
+unchanged. Do not disable other services or assume this job exists on every Mac.
+See [deployment and rollback](companion/README.md#hermes-desktop-launch-policy).
+
+This central-launch revision requires matching firmware and Companion. Its
+physical acceptance is **pending**, independent of the historical navigation
+acceptance above; see [current evidence](docs/superpowers/plans/2026-09-09-hermes-tap-launch.md).
+
+<table><tr><th>Selected</th><th>Request pending</th><th>Retry on tap</th></tr><tr>
+<td><img src="artifacts/hermes-idle-preview.png" alt="HERMES TAP TO OPEN"></td>
+<td><img src="artifacts/hermes-opening-preview.png" alt="HERMES OPENING"></td>
+<td><img src="artifacts/hermes-error-preview.png" alt="HERMES TAP TO RETRY"></td>
+</tr></table>
+
 Use the exact native app bundle `com.nousresearch.hermes`, not a CLI, web
 dashboard or installer. Up sends `Control-Shift-Tab`, down sends
 `Control-Tab`, retaining the [native Desktop browsing shortcuts](https://hermes-agent.nousresearch.com/docs/user-guide/desktop#windows-tabs--panes).
@@ -124,7 +157,8 @@ Palette feedback has its own 800ms cooldown; redraw, heartbeat, quota updates
 and Dock/Command-Tab changes do not recolor. This is local input feedback, not
 proof that the Mac accepted a shortcut.
 
-The display follows actual foreground activation, with a 5-second heartbeat
+Except for the explicitly selected Hermes waiting page, the display follows
+actual foreground activation, with a 5-second heartbeat
 and a 15-second connection-owned lease. Leaving the two directional apps sends
 Codex; failed Codex writes get at most two further 5-second retries. Losing the
 lease or owner connection restores Codex. Foreground updates never wake the
@@ -256,8 +290,9 @@ GATT service to the explicitly bound watch. The compatible HID interface does
 not include account rate limits.
 
 In a real `--watch` run, the optional workspace integration additionally sends
-only the fixed `codex`, `super` or `hermes` display-mode enum over vendor HID Report ID
-6. It does not send API keys, tokens, account identifiers, prompts, task text,
+only fixed display modes and optional Hermes `idle`/`opening`/`error` state over
+vendor HID Report ID 6; the watch's center action is the fixed `open_hermes` enum.
+It does not send API keys, tokens, account identifiers, prompts, task text,
 audio, project/session/window/Space metadata, or user content. It does not
 scrape UI, use a cloud relay, inspect keyboard text, invoke shell commands or
 AppleScript, use private Space APIs, or inspect super.engineering or Hermes settings.

@@ -64,11 +64,16 @@ modes do not create these controllers.
 | HERMES (`com.nousresearch.hermes`) | Codex | Previous / browse | Next / browse | Open selection |
 
 From any other foreground app, left activates Codex first. This is a fixed
-cycle, not a remembered-return toggle. The companion activates a running app
-or launches the exact bundle ID. A pending activation suppresses additional
-left requests until foreground confirmation, failure, an external app switch,
-or a 3-second timeout. It never skips a missing app or optimistically switches
-the watch screen before the real foreground changes.
+cycle, not a remembered-return toggle. Codex/SUPER activation retains the exact
+bundle policy. SUPER → HERMES is now watch selection only: Mac foreground stays
+unchanged, and the center shows `TAP TO OPEN`. Center tap starts/activates
+`com.nousresearch.hermes` once and shows `OPENING`. Only actual foreground
+confirmation enables navigation; rejection or 3 seconds without confirmation
+shows `TAP TO RETRY`. There is no automatic launch retry. Left can exit all
+Hermes states to Codex, including during a pending launch. Late completion
+callbacks cannot restore stale selection; real foreground notifications win.
+Up/down/right are ignored in waiting/opening/error, even if SUPER remains
+frontmost. External activation, reconnect and restart discard pending selection.
 
 Prepare the applications and permissions:
 
@@ -109,7 +114,8 @@ the foreground identity and PID/bundle pair before delivery. It never posts
 these keys globally or retries navigation commands. Physical acceptance must
 still confirm ChatGPT performs no background action in SUPER/HERMES.
 
-With matching USB-mic firmware, the watch follows the real foreground:
+With matching USB-mic firmware, except for explicit Hermes waiting selection,
+the watch follows the real foreground:
 SUPER and HERMES receive an immediate mode write and a heartbeat every
 5 seconds. All other foreground apps select Codex. Each directional lease is
 15 seconds and each newly attached device is synchronized immediately. A
@@ -126,6 +132,12 @@ Each accepted local four-direction swipe chooses four distinct colors from a
 stay fixed, redraws and heartbeats do not reshuffle colors, and the 800ms local
 visual cooldown does not replace the host decoder's release gate/cooldown.
 
+Hermes idle/error center taps require both endpoints inside the square, under
+500ms and no threshold-crossing movement. A sleeping center tap wakes without
+launching; the next tap can launch. Opening/active center taps are no-ops.
+Center and directions share the host's 800ms cooldown. Long holds never also
+submit a launch. Connection text remains device-link status, not client status.
+
 Foreground changes while asleep do not wake the display. Disabled short taps,
 Agent/Send and the left/right ChatGPT physical buttons do not wake or send HID
 actions in SUPER/HERMES. A swipe used to wake the sleeping screen is consumed
@@ -135,8 +147,9 @@ controls are released on entry and stale Agent transitions are silently
 baselined. Returning to Codex restores existing controls. The USB microphone
 endpoint is unchanged.
 
-The workspace channel sends only fixed `codex`, `super` or `hermes`, a fixed
-TTL for directional modes and a local request number. It does not inspect or
+The workspace channel sends only fixed `codex`, `super` or `hermes`, optional
+Hermes `idle`/`opening`/`error`, a fixed TTL and a local request number. Device
+center input uses only `host.workspace_action` with `open_hermes`. It does not inspect or
 transmit projects, sessions, windows, Spaces, app preferences, credentials or
 user content. Workspace control does not run CLI, shell, AppleScript, UI
 scraping or private Space APIs; the existing Codex App Server quota subprocess
@@ -150,6 +163,29 @@ new cycle/Hermes behavior. Full rollback additionally restores the saved
 USB-mic firmware, only after freshly enumerating the download port and obtaining
 explicit confirmation for that exact port. Never reuse a historical port.
 Space assignments and app shortcuts can be restored manually.
+
+### Hermes Desktop launch policy
+
+The screen heartbeat is not a Desktop watchdog: it only sends HID mode reports,
+never application-launch requests. A separate user LaunchAgent named
+`ai.hermes.desktop` may use `RunAtLoad` and `KeepAlive` to relaunch the client.
+Inspect that exact job before changing anything. With explicit authorization,
+back up its plist to a private directory, verify the copy hash, unload that job
+and disable its label. Keep the original plist. Do not change the Companion
+LaunchAgent, `ai.hermes.gateway` or `ai.hermes.dashboard`.
+
+The approved local installation uses manual Desktop launch. Do not restore
+auto-launch merely because firmware/Companion needs rollback. If explicitly
+restoring the previous launch policy, verify the saved plist matches, enable
+`gui/<uid>/ai.hermes.desktop`, then bootstrap the retained plist into that user
+domain. This intentionally restores its former KeepAlive behavior. Never commit
+private plist arguments, paths, identifiers or environment variables.
+
+For physical acceptance: quit Desktop and check it stays closed; select Hermes
+without changing Mac foreground; center cold-launch and background-activate;
+test repeated tap, timeout/retry, left exit, external switching, sleep, reconnect,
+existing navigation, USB input capture and quota. Build/harness success alone
+does not establish physical acceptance.
 
 Diagnostics (direct workspace probes briefly change the physical screen):
 
