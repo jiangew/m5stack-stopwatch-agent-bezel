@@ -58,6 +58,7 @@ class CodexMicroBle {
   void setBattery(uint8_t percentage, bool charging);
   void sendKey(const char* key, uint8_t action, int8_t agent = -1);
   void sendJoystick(float angle, float distance);
+  void sendOpenHermes();
   bool connected();
   CodexMicroState snapshot();
 

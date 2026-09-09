@@ -414,6 +414,10 @@ void CodexMicroBle::sendKey(const char* key, uint8_t action, int8_t agent) {
   Serial.printf("HID key=%s action=%u\n", key, action);
 }
 
+void CodexMicroBle::sendOpenHermes() {
+  sendJson(R"({"method":"host.workspace_action","params":{"action":"open_hermes"}})");
+}
+
 void CodexMicroBle::sendJoystick(float angle, float distance) {
   StaticJsonDocument<160> message;
   message["method"] = "v.oai.rad";

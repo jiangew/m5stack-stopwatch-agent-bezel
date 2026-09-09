@@ -158,6 +158,28 @@ void testMillisRollover() {
 }  // namespace
 
 int main() {
+  assert(parseParams(R"({"mode":"hermes","ttl_ms":15000,"state":"idle"})") != workspace_mode::Command::Invalid);
+  using namespace workspace_mode;
+  for (const auto* invalid : {
+      R"({"mode":"hermes","ttl_ms":15000,"state":null})",
+      R"({"mode":"hermes","ttl_ms":15000,"state":"active"})",
+      R"({"mode":"super","ttl_ms":15000,"state":"idle"})",
+      R"({"mode":"codex","state":"idle"})",
+      R"({"mode":"hermes","ttl_ms":15000,"state":"idle","extra":1})"}) {
+    assert(parseParams(invalid) == Command::Invalid);
+  }
+  Lease presentation;
+  const auto idle = parseParams(R"({"mode":"hermes","ttl_ms":15000,"state":"idle"})");
+  const auto opening = parseParams(R"({"mode":"hermes","ttl_ms":15000,"state":"opening"})");
+  const auto error = parseParams(R"({"mode":"hermes","ttl_ms":15000,"state":"error"})");
+  assert(presentation.apply(idle, 7, 0));
+  assert(presentation.mode() == Mode::HermesIdle);
+  assert(!presentation.apply(opening, 8, 100));
+  assert(presentation.apply(opening, 7, 100));
+  assert(!presentation.apply(opening, 7, 200));
+  assert(presentation.apply(error, 7, 300));
+  assert(!presentation.expire(15299));
+  assert(presentation.expire(15300));
   testHermesLeaseAndStrictParameters();
   testStrictParsing();
   testOwnershipAndRefresh();

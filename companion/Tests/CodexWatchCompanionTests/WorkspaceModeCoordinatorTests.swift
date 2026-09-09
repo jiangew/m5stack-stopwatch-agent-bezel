@@ -99,6 +99,42 @@ private final class WorkspaceSenderStub: WorkspaceModeSending {
 
 @MainActor
 final class WorkspaceModeCoordinatorTests: XCTestCase {
+    func testSharedInteractionHeartbeatsNeverLaunchAndReconnectDiscardsSelection() {
+        let ws = WorkspaceStub()
+        ws.frontmost = ApplicationIdentity(processIdentifier: 1, bundleIdentifier: "com.zarifpour.superconductor")
+        let observer = ForegroundObserverStub(frontmostBundleIdentifier: ws.frontmost?.bundleIdentifier)
+        let scheduler = SchedulerStub()
+        let interaction = WorkspaceCycleController(workspace: ws, observer: observer, scheduler: scheduler, log: { _ in })
+        let unusedObserver = ForegroundObserverStub(frontmostBundleIdentifier: nil)
+        let coordinator = WorkspaceModeCoordinator(foregroundObserver: unusedObserver, scheduler: scheduler,
+            uptime: { 0 }, log: { _ in }, interaction: interaction)
+        interaction.start(); coordinator.start()
+        let sender = WorkspaceSenderStub(deviceKey: 1)
+        coordinator.attach(sender)
+        interaction.cycle()
+        XCTAssertEqual(sender.modes.last, .hermesIdle)
+        for _ in 0..<100 { scheduler.tasks[0].fire() }
+        XCTAssertEqual(sender.modes.last, .hermesIdle)
+        XCTAssertTrue(ws.launchRequests.isEmpty)
+        XCTAssertTrue(ws.activations.isEmpty)
+        XCTAssertEqual(unusedObserver.startCount, 0)
+        interaction.openHermes()
+        XCTAssertEqual(sender.modes.last, .hermesOpening)
+        ws.launchCompletion?(false)
+        XCTAssertEqual(sender.modes.last, .hermesError)
+        scheduler.tasks[0].fire()
+        XCTAssertEqual(ws.launchRequests.count, 1)
+        coordinator.detach(deviceKey: 1)
+        coordinator.attach(sender)
+        XCTAssertEqual(sender.modes.last, .super)
+        XCTAssertTrue(interaction.allowsNavigation)
+        interaction.cycle()
+        let oldHandler = observer.delayedHandler
+        interaction.stop(); coordinator.stop()
+        oldHandler?("com.nousresearch.hermes")
+        XCTAssertEqual(sender.modes.last, .codex)
+        XCTAssertEqual(ws.launchRequests.count, 1)
+    }
     func testSuperToHermesChangesHeartbeatWithoutDuplicateTimer() {
         let observer = ForegroundObserverStub(frontmostBundleIdentifier: "com.zarifpour.superconductor")
         let scheduler = SchedulerStub()

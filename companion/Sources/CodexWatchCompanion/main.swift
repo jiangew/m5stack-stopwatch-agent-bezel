@@ -667,10 +667,11 @@ private func run() throws {
             log: { fputs("快捷键：\($0)\n", stderr) }
         )
         let coordinator = WorkspaceModeCoordinator(
+            interaction: toggler,
             log: { fputs("屏幕：\($0)\n", stderr) }
         )
-        coordinator.start()
         toggler.start()
+        coordinator.start()
         let listener = HIDShortcutListener(
             eventHandler: { [weak router] event in router?.handle(event) },
             log: { fputs("快捷键：\($0)\n", stderr) },

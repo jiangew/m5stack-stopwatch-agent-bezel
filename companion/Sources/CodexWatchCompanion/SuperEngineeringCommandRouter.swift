@@ -38,8 +38,11 @@ final class WorkspaceCommandRouter {
         switch event {
         case .left:
             toggler.cycle()
+        case .openHermes:
+            toggler.openHermes()
         case .up, .down, .right:
-            guard let target = workspace.frontmost,
+            guard toggler.allowsNavigation,
+                  let target = workspace.frontmost,
                   let profile = WorkspaceAppProfile(bundleIdentifier: target.bundleIdentifier),
                   let command = profile.command(for: event) else {
                 return

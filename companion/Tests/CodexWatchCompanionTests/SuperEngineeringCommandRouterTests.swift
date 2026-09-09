@@ -4,6 +4,9 @@ import XCTest
 @MainActor
 private final class TogglerSpy: WorkspaceCycling {
     var toggleCount = 0
+    var allowsNavigation = true
+    var openCount = 0
+    func openHermes() { openCount += 1 }
 
     func cycle() {
         toggleCount += 1
@@ -39,6 +42,16 @@ private final class RouterLogRecorder {
 
 @MainActor
 final class WorkspaceCommandRouterTests: XCTestCase {
+    func testWaitingSelectionSuppressesUnderlyingSuperAndRoutesCenterWithoutAX() {
+        let fixture = makeFixture(frontmost: superApp, trusted: false)
+        fixture.toggler.allowsNavigation = false
+        for event: CompanionShortcutEvent in [.up, .down, .right] { fixture.router.handle(event) }
+        XCTAssertTrue(fixture.emitter.calls.isEmpty)
+        XCTAssertTrue(fixture.logs.messages.isEmpty)
+        fixture.router.handle(.openHermes); fixture.router.handle(.left)
+        XCTAssertEqual(fixture.toggler.openCount, 1)
+        XCTAssertEqual(fixture.toggler.toggleCount, 1)
+    }
     private let chatGPT = ApplicationIdentity(processIdentifier: 101, bundleIdentifier: "com.openai.chat")
     private let superApp = ApplicationIdentity(
         processIdentifier: 202,

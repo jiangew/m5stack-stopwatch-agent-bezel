@@ -96,9 +96,11 @@ static constexpr std::array<DirectionalControl, 4> kDirectionalControls = {{
 }};
 
 enum class Profile : std::uint8_t { Super, Hermes };
+enum class HermesPresentation : std::uint8_t { Active, Idle, Opening, Error };
 
 struct State {
   Profile profile = Profile::Super;
+  HermesPresentation hermesPresentation = HermesPresentation::Active;
   workspace_palette::Colors borderColors = workspace_palette::kInitialColors;
   std::int8_t batteryPercent = -1;
   bool charging = false;
@@ -194,15 +196,23 @@ void drawCenterPanel(Surface& surface, const State& state) {
                    kCenterSquare.bottom - kCenterSquare.top - 1,
                    kCenterFill);
 
+  const bool pending = state.profile == Profile::Hermes &&
+                       state.hermesPresentation != HermesPresentation::Active;
   surface.loadFont(dashboard::font_data::kSpaceMono46Vlw);
   drawText(surface, state.profile == Profile::Hermes ? "HERMES" : kTitle,
-           kCenterX, 190, middle_center, kText);
+           kCenterX, pending ? 182 : 190, middle_center, kText);
   surface.unloadFont();
 
   surface.loadFont(dashboard::font_data::kSpaceMono18Vlw);
+  if (pending) {
+    const char* prompt = state.hermesPresentation == HermesPresentation::Idle
+        ? "TAP TO OPEN" : (state.hermesPresentation == HermesPresentation::Opening
+        ? "OPENING" : "TAP TO RETRY");
+    drawText(surface, prompt, kCenterX, 222, middle_center, kText);
+  }
   const char* status = state.connected ? "CONNECTED" : "OFFLINE";
   const std::uint16_t statusColor = state.connected ? kConnected : kDanger;
-  drawText(surface, status, kCenterX, 239, middle_center, statusColor);
+  drawText(surface, status, kCenterX, pending ? 247 : 239, middle_center, statusColor);
   surface.unloadFont();
 
   drawCenterBattery(surface, state);

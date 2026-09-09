@@ -5,6 +5,19 @@ enum StopwatchWorkspaceMode: Equatable {
     case codex
     case `super`
     case hermes
+    case hermesIdle, hermesOpening, hermesError
+
+    var awaitingHermes: Bool {
+        self == .hermesIdle || self == .hermesOpening || self == .hermesError
+    }
+
+    static func foreground(_ bundle: String?) -> Self {
+        switch WorkspaceAppProfile(bundleIdentifier: bundle) {
+        case .super: return .super
+        case .hermes: return .hermes
+        default: return .codex
+        }
+    }
 }
 
 @MainActor
@@ -70,6 +83,9 @@ final class WorkspaceModeHIDWriter: WorkspaceModeSending {
             request = #"{"method":"host.workspace_mode","params":{"mode":"super","ttl_ms":15000},"id":\#(requestID)}"# + "\n"
         case .hermes:
             request = #"{"method":"host.workspace_mode","params":{"mode":"hermes","ttl_ms":15000},"id":\#(requestID)}"# + "\n"
+        case .hermesIdle, .hermesOpening, .hermesError:
+            let state = mode == .hermesIdle ? "idle" : (mode == .hermesOpening ? "opening" : "error")
+            request = #"{"method":"host.workspace_mode","params":{"mode":"hermes","ttl_ms":15000,"state":"\#(state)"},"id":\#(requestID)}"# + "\n"
         }
 
         for report in WorkspaceModeHIDReportFramer.reports(payloadBytes: Array(request.utf8)) {

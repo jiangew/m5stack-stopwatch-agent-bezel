@@ -74,6 +74,11 @@ super_workspace::State superPreviewState(const char* scenario) {
   const bool hermes = std::strncmp(scenario, "hermes", 6) == 0;
   if (hermes) state.profile = super_workspace::Profile::Hermes;
   const char* suffix = scenario + (hermes ? 6 : 5);
+  if (hermes) {
+    if (std::strcmp(suffix, "-idle") == 0) state.hermesPresentation = super_workspace::HermesPresentation::Idle;
+    if (std::strcmp(suffix, "-opening") == 0) state.hermesPresentation = super_workspace::HermesPresentation::Opening;
+    if (std::strcmp(suffix, "-error") == 0) state.hermesPresentation = super_workspace::HermesPresentation::Error;
+  }
   if (std::strcmp(suffix, "-battery-0") == 0) {
     state.batteryPercent = 0;
   } else if (std::strcmp(suffix, "-battery-9") == 0) {
@@ -112,6 +117,9 @@ bool validScenario(const char* scenario) {
   const bool super = std::strncmp(scenario, "super", 5) == 0;
   if (hermes || super) {
     const char* suffix = scenario + (hermes ? 6 : 5);
+    if (hermes && (std::strcmp(suffix, "-idle") == 0 ||
+                   std::strcmp(suffix, "-opening") == 0 ||
+                   std::strcmp(suffix, "-error") == 0)) return true;
     for (const auto* known : {"", "-active-up", "-active-right", "-active-down",
                               "-active-left", "-offline", "-charging",
                               "-power-hold", "-unknown-battery", "-colors",

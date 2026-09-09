@@ -1,7 +1,7 @@
 import Foundation
 
 enum CompanionShortcutEvent: Equatable {
-    case left, up, down, right
+    case left, up, down, right, openHermes
 }
 
 enum StopwatchHIDDescriptor {
@@ -60,6 +60,16 @@ struct HIDShortcutDecoder {
         while let newline = receiveBuffer.firstIndex(of: 0x0A) {
             let line = Data(receiveBuffer[..<newline])
             receiveBuffer.removeSubrange(...newline)
+            if let object = try? JSONSerialization.jsonObject(with: line) as? [String: Any],
+               object["method"] as? String == "host.workspace_action" {
+                guard Set(object.keys) == Set(["method", "params"]),
+                      let params = object["params"] as? [String: Any],
+                      Set(params.keys) == Set(["action"]),
+                      params["action"] as? String == "open_hermes",
+                      armed, acceptCooldown(now) else { continue }
+                events.append(.openHermes)
+                continue
+            }
             guard let message = try? JSONDecoder().decode(Message.self, from: line),
                   let event = recognize(message, now: now) else { continue }
             events.append(event)
@@ -84,9 +94,15 @@ struct HIDShortcutDecoder {
         }
         guard abs(message.params.d - 1.0) <= Self.distanceTolerance, armed else { return nil }
         armed = false
-        guard lastAcceptedAt.map({ now - $0 >= Self.cooldown }) ?? true else { return nil }
-        lastAcceptedAt = now
+        guard acceptCooldown(now) else { return nil }
         return event
+    }
+
+    private mutating func acceptCooldown(_ now: TimeInterval) -> Bool {
+        guard now.isFinite,
+              lastAcceptedAt.map({ now - $0 >= Self.cooldown }) ?? true else { return false }
+        lastAcceptedAt = now
+        return true
     }
 
     private func event(for angle: Double) -> CompanionShortcutEvent? {

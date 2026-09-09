@@ -34,6 +34,16 @@ private final class CycleScheduler: WorkspaceModeScheduling {
 final class WorkspaceCycleControllerTests: XCTestCase {
     private let ids = ["com.openai.codex", "com.zarifpour.superconductor", "com.nousresearch.hermes"]
 
+    func testSelectingHermesDoesNotLaunchOrActivate() {
+        let ws = WorkspaceStub(), observer = CycleObserver(), scheduler = CycleScheduler()
+        ws.frontmost = ApplicationIdentity(processIdentifier: 1, bundleIdentifier: ids[1])
+        let controller = WorkspaceCycleController(workspace: ws, observer: observer, scheduler: scheduler, log: { _ in })
+        controller.start(); controller.cycle()
+        XCTAssertTrue(ws.launchRequests.isEmpty)
+        XCTAssertTrue(ws.activations.isEmpty)
+        XCTAssertTrue(scheduler.tasks.isEmpty)
+    }
+
     func testFullCycleUsesActualForegroundAndNeverPreviousApp() {
         let ws = WorkspaceStub(), observer = CycleObserver(), scheduler = CycleScheduler()
         let controller = WorkspaceCycleController(workspace: ws, observer: observer, scheduler: scheduler, log: { _ in })
@@ -44,7 +54,8 @@ final class WorkspaceCycleControllerTests: XCTestCase {
         }
         for (source, destination) in [(ids[0], ids[1]), (ids[1], ids[2]), (ids[2], ids[0])] {
             ws.frontmost = ws.runningByBundleID[source]
-            controller.cycle(); controller.cycle()
+            controller.cycle()
+            if source == ids[1] { controller.openHermes() }
             XCTAssertEqual(ws.activations.last?.bundleIdentifier, destination)
             ws.frontmost = ws.runningByBundleID[destination]
             observer.change(destination)
@@ -52,6 +63,51 @@ final class WorkspaceCycleControllerTests: XCTestCase {
         XCTAssertEqual(ws.activations.map(\.bundleIdentifier), [ids[1], ids[2], ids[0]])
         XCTAssertEqual(scheduler.intervals, [3, 3, 3])
         XCTAssertTrue(scheduler.tasks.allSatisfy(\.cancelled))
+    }
+
+    func testHermesTapTimeoutRequiresExplicitRetryAndIgnoresLateCompletion() {
+        let ws = WorkspaceStub(), observer = CycleObserver(), scheduler = CycleScheduler()
+        ws.frontmost = ApplicationIdentity(processIdentifier: 1, bundleIdentifier: ids[1])
+        let controller = WorkspaceCycleController(workspace: ws, observer: observer, scheduler: scheduler, log: { _ in })
+        controller.start(); controller.cycle()
+        XCTAssertEqual(controller.displayMode, .hermesIdle)
+        XCTAssertFalse(controller.allowsNavigation)
+        controller.openHermes(); controller.openHermes()
+        XCTAssertEqual(ws.launchRequests, [ids[2]])
+        XCTAssertEqual(controller.displayMode, .hermesOpening)
+        let oldCompletion = ws.launchCompletion
+        scheduler.tasks[0].fire()
+        XCTAssertEqual(controller.displayMode, .hermesError)
+        oldCompletion?(true); scheduler.tasks[0].fire()
+        XCTAssertEqual(controller.displayMode, .hermesError)
+        XCTAssertEqual(ws.launchRequests.count, 1)
+        controller.openHermes()
+        oldCompletion?(false)
+        XCTAssertEqual(controller.displayMode, .hermesOpening)
+        ws.frontmost = ApplicationIdentity(processIdentifier: 3, bundleIdentifier: ids[2])
+        observer.change(ids[2])
+        XCTAssertEqual(controller.displayMode, .hermes)
+        XCTAssertTrue(controller.allowsNavigation)
+        controller.openHermes()
+        XCTAssertEqual(ws.launchRequests.count, 2)
+    }
+
+    func testHermesExitAndExternalActivationInvalidatePendingSelection() {
+        let ws = WorkspaceStub(), observer = CycleObserver(), scheduler = CycleScheduler()
+        ws.frontmost = ApplicationIdentity(processIdentifier: 1, bundleIdentifier: ids[1])
+        let controller = WorkspaceCycleController(workspace: ws, observer: observer, scheduler: scheduler, log: { _ in })
+        controller.start(); controller.cycle(); controller.openHermes()
+        let completion = ws.launchCompletion
+        controller.cycle()
+        XCTAssertEqual(ws.launchRequests, [ids[2], ids[0]])
+        completion?(false)
+        XCTAssertFalse(controller.displayMode.awaitingHermes)
+        observer.change(ids[1]); controller.cycle()
+        XCTAssertEqual(controller.displayMode, .hermesIdle)
+        observer.change(ids[1])
+        XCTAssertEqual(controller.displayMode, .super)
+        controller.cycle(); controller.resetToForeground()
+        XCTAssertEqual(controller.displayMode, .super)
     }
 
     func testUnknownForegroundStartsAtCodexAndFailedLaunchCanRetry() {

@@ -103,6 +103,7 @@ final class WorkspaceModeCoordinator {
     static let failureLogInterval: TimeInterval = 60
 
     private let foregroundObserver: ForegroundApplicationObserving
+    private let interaction: WorkspaceCycleController?
     private let scheduler: WorkspaceModeScheduling
     private let uptime: () -> TimeInterval
     private let log: (String) -> Void
@@ -119,17 +120,19 @@ final class WorkspaceModeCoordinator {
 
     init(foregroundObserver: ForegroundApplicationObserving,
          scheduler: WorkspaceModeScheduling,
-         uptime: @escaping () -> TimeInterval, log: @escaping (String) -> Void) {
+         uptime: @escaping () -> TimeInterval, log: @escaping (String) -> Void,
+         interaction: WorkspaceCycleController? = nil) {
         self.foregroundObserver = foregroundObserver
         self.scheduler = scheduler
         self.uptime = uptime
         self.log = log
+        self.interaction = interaction
     }
 
-    convenience init(log: @escaping (String) -> Void) {
+    convenience init(interaction: WorkspaceCycleController? = nil, log: @escaping (String) -> Void) {
         self.init(foregroundObserver: SystemForegroundApplicationObserver(),
                   scheduler: SystemWorkspaceModeScheduler(),
-                  uptime: { ProcessInfo.processInfo.systemUptime }, log: log)
+                  uptime: { ProcessInfo.processInfo.systemUptime }, log: log, interaction: interaction)
     }
 
     var activeDeviceKeys: Set<UInt> { Set(sendersByDevice.keys) }
@@ -139,6 +142,14 @@ final class WorkspaceModeCoordinator {
         started = true
         lifecycle &+= 1
         let epoch = lifecycle
+        if let interaction {
+            interaction.modeDidChange = { [weak self] mode in
+                guard let self, self.started, self.lifecycle == epoch else { return }
+                self.transition(to: mode)
+            }
+            transition(to: interaction.displayMode)
+            return
+        }
         foregroundObserver.start { [weak self] bundleIdentifier in
             guard let self, self.started, self.lifecycle == epoch else { return }
             self.transition(to: self.mode(for: bundleIdentifier))
@@ -148,7 +159,8 @@ final class WorkspaceModeCoordinator {
 
     func attach(_ sender: WorkspaceModeSending) {
         guard started else { return }
-        transition(to: mode(for: foregroundObserver.frontmostBundleIdentifier))
+        interaction?.resetToForeground()
+        transition(to: interaction?.displayMode ?? mode(for: foregroundObserver.frontmostBundleIdentifier))
         sendersByDevice[sender.deviceKey] = sender
         remainingRetries.removeValue(forKey: sender.deviceKey)
         synchronize(sender)
@@ -158,6 +170,7 @@ final class WorkspaceModeCoordinator {
         sendersByDevice.removeValue(forKey: deviceKey)
         remainingRetries.removeValue(forKey: deviceKey)
         if remainingRetries.isEmpty { cancelCodexRetry() }
+        interaction?.resetToForeground()
     }
 
     func stop() {
@@ -170,6 +183,7 @@ final class WorkspaceModeCoordinator {
         cancelHeartbeat()
         cancelCodexRetry()
         foregroundObserver.stop()
+        interaction?.modeDidChange = nil
         sendersByDevice.removeAll()
         desiredMode = .codex
     }

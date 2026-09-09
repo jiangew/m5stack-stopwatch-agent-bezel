@@ -10,11 +10,20 @@ namespace workspace_mode {
 
 constexpr std::uint32_t kLeaseMs = 15000;
 
-enum class Mode : std::uint8_t { Codex, Super, Hermes };
-enum class Command : std::uint8_t { Invalid, Codex, Super, Hermes };
+enum class Mode : std::uint8_t { Codex, Super, Hermes, HermesIdle, HermesOpening, HermesError };
+enum class Command : std::uint8_t { Invalid, Codex, Super, Hermes, HermesIdle, HermesOpening, HermesError };
+
+constexpr bool isHermes(Mode mode) {
+  return mode == Mode::Hermes || mode == Mode::HermesIdle ||
+         mode == Mode::HermesOpening || mode == Mode::HermesError;
+}
+
+constexpr bool awaitingHermes(Mode mode) {
+  return isHermes(mode) && mode != Mode::Hermes;
+}
 
 constexpr bool isDirectional(Mode mode) {
-  return mode == Mode::Super || mode == Mode::Hermes;
+  return mode == Mode::Super || isHermes(mode);
 }
 
 constexpr bool silencesAgentTransitions(Mode previous, Mode next) {
@@ -31,12 +40,22 @@ inline Command parse(JsonObjectConst params) {
   }
   const bool super = std::strcmp(mode, "super") == 0;
   const bool hermes = std::strcmp(mode, "hermes") == 0;
-  if ((!super && !hermes) || params.size() != 2) {
+  const bool hasState = params.containsKey("state");
+  if ((!super && !hermes) || (hasState && !hermes) ||
+      params.size() != (hasState ? 3u : 2u)) {
     return Command::Invalid;
   }
 
   const JsonVariantConst ttl = params["ttl_ms"];
   if (!ttl.is<JsonInteger>() || ttl.as<JsonInteger>() != kLeaseMs) {
+    return Command::Invalid;
+  }
+  if (hasState) {
+    if (!params["state"].is<const char*>()) return Command::Invalid;
+    const char* state = params["state"].as<const char*>();
+    if (std::strcmp(state, "idle") == 0) return Command::HermesIdle;
+    if (std::strcmp(state, "opening") == 0) return Command::HermesOpening;
+    if (std::strcmp(state, "error") == 0) return Command::HermesError;
     return Command::Invalid;
   }
   return super ? Command::Super : Command::Hermes;
@@ -54,7 +73,14 @@ class Lease {
       return false;
     }
 
-    const Mode requested = command == Command::Super ? Mode::Super : Mode::Hermes;
+    Mode requested = Mode::Hermes;
+    switch (command) {
+      case Command::Super: requested = Mode::Super; break;
+      case Command::HermesIdle: requested = Mode::HermesIdle; break;
+      case Command::HermesOpening: requested = Mode::HermesOpening; break;
+      case Command::HermesError: requested = Mode::HermesError; break;
+      default: break;
+    }
     const bool changed = mode_ != requested;
     mode_ = requested;
     ownerConnectionId_ = connectionId;

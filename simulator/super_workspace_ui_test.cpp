@@ -88,6 +88,29 @@ void testSharedRendererDoesNotCoverTriangleBases() {
   assert(!contains("BACK") && !contains("TAB"));
 }
 
+void testPendingHermesShowsPromptWithoutLosingConnectionOrBattery() {
+  using namespace super_workspace;
+  for (auto item : {std::make_pair(HermesPresentation::Idle, "TAP TO OPEN"),
+                    std::make_pair(HermesPresentation::Opening, "OPENING"),
+                    std::make_pair(HermesPresentation::Error, "TAP TO RETRY")}) {
+    State state;
+    state.profile = Profile::Hermes;
+    state.hermesPresentation = item.first;
+    state.connected = true;
+    state.batteryPercent = 100;
+    RecordingSurface surface;
+    render(surface, state);
+    auto has = [&](const char* text) {
+      return std::find(surface.texts.begin(), surface.texts.end(), text) != surface.texts.end();
+    };
+    assert(has("HERMES") && has(item.second) && has("CONNECTED") && has("100%"));
+    for (const auto& draw : surface.textDraws) {
+      if (draw.text == item.second) assert(draw.x == 233 && draw.y == 222);
+      if (draw.text == "CONNECTED") assert(draw.x == 233 && draw.y == 247);
+    }
+  }
+}
+
 template <typename T, typename = void>
 struct HasProjectName : std::false_type {};
 template <typename T>
@@ -220,6 +243,7 @@ void testNoUserContentOrCodexTelemetryFields() {
 }  // namespace
 
 int main() {
+  testPendingHermesShowsPromptWithoutLosingConnectionOrBattery();
   testBatteryAndLabelAreCenteredAsOneMeasuredGroup();
   testSharedRendererDoesNotCoverTriangleBases();
   testDirectionalGeometryAndPalette();

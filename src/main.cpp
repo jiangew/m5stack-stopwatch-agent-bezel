@@ -20,6 +20,7 @@
 #include <esp_system.h>
 #include "UsbMic.h"
 #include "WorkspaceInputPolicy.h"
+#include "WorkspaceCenterTap.h"
 #endif
 
 namespace {
@@ -94,6 +95,9 @@ bool touchAgentPressed = false;
 bool touchSendPressed = false;
 #if defined(CODEX_STOPWATCH_USB_MIC)
 bool touchPowerHoldCandidate = false;
+workspace_input::CenterTap workspaceCenterTap;
+int workspaceTouchEndX = 0;
+int workspaceTouchEndY = 0;
 #endif
 bool touchTracking = false;
 bool voiceTapBannerVisible = false;
@@ -458,8 +462,14 @@ super_workspace::PowerOverlay superPowerOverlay() {
 
 super_workspace::State superWorkspaceState() {
   super_workspace::State ui;
-  ui.profile = state.workspaceMode == workspace_mode::Mode::Hermes
+  ui.profile = workspace_mode::isHermes(state.workspaceMode)
                    ? super_workspace::Profile::Hermes : super_workspace::Profile::Super;
+  switch (state.workspaceMode) {
+    case workspace_mode::Mode::HermesIdle: ui.hermesPresentation = super_workspace::HermesPresentation::Idle; break;
+    case workspace_mode::Mode::HermesOpening: ui.hermesPresentation = super_workspace::HermesPresentation::Opening; break;
+    case workspace_mode::Mode::HermesError: ui.hermesPresentation = super_workspace::HermesPresentation::Error; break;
+    default: break;
+  }
   ui.borderColors = workspacePalette.colors();
   ui.batteryPercent = batteryPercent;
   ui.charging = charging;
@@ -582,6 +592,7 @@ void clearTouchCandidate() {
   touchSendPressed = false;
 #if defined(CODEX_STOPWATCH_USB_MIC)
   touchPowerHoldCandidate = false;
+  workspaceCenterTap.cancel();
 #endif
   activeTouchAgent = -1;
 }
@@ -597,6 +608,7 @@ void beginTouchGesture(int x, int y) {
                 dashboard::sendAtPoint(x, y) ? 1 : 0);
 #if defined(CODEX_STOPWATCH_USB_MIC)
   if (directionalWorkspaceActive()) {
+    workspaceCenterTap.begin(x, y, millis(), !deskSleeping);
     if (dashboard::sendAtPoint(x, y) && workspace_input::allowed(
             state.workspaceMode,
             workspace_input::Control::CenterPowerHold)) {
@@ -613,6 +625,9 @@ void beginTouchGesture(int x, int y) {
 }
 
 void updateTouchGesture(int x, int y) {
+#if defined(CODEX_STOPWATCH_USB_MIC)
+  workspaceCenterTap.move(x, y, kSwipeThresholdPx);
+#endif
   if (!touchTracking || touchPowerHoldConsumed ||
       activeSwipe != touch_gesture::Direction::None) {
     return;
@@ -647,7 +662,10 @@ void updateTouchGesture(int x, int y) {
   drawScreen();
 }
 
-void finishTouchGesture() {
+void finishTouchGesture(int x, int y) {
+#if !defined(CODEX_STOPWATCH_USB_MIC)
+  (void)x; (void)y;
+#endif
   if (!touchTracking) return;
   touchTracking = false;
 
@@ -673,6 +691,13 @@ void finishTouchGesture() {
 
 #if defined(CODEX_STOPWATCH_USB_MIC)
   if (directionalWorkspaceActive()) {
+    const bool tap = workspaceCenterTap.finish(x, y, millis(), kSwipeThresholdPx);
+    const bool canOpen = state.workspaceMode == workspace_mode::Mode::HermesIdle ||
+                         state.workspaceMode == workspace_mode::Mode::HermesError;
+    if (tap && canOpen && noteActivity()) {
+      codex.sendOpenHermes();
+      startHaptic(kTouchHapticIntensity, kTouchHapticDurationMs);
+    }
     clearTouchCandidate();
     return;
   }
@@ -882,7 +907,7 @@ void handleWorkspaceModeTransition(workspace_mode::Mode previous,
   clearTouchCandidate();
   stopHaptic();
   Serial.printf("WORKSPACE mode=%s\n",
-                next == workspace_mode::Mode::Hermes ? "hermes" :
+                workspace_mode::isHermes(next) ? "hermes" :
                 next == workspace_mode::Mode::Super ? "super" : "codex");
 }
 #endif
@@ -1116,7 +1141,16 @@ void loop() {
   if (touch.wasPressed()) {
 #if defined(CODEX_STOPWATCH_USB_MIC)
     if (!workspace_input::touchDownWakes(state.workspaceMode)) {
-      beginTouchGesture(touchX, touchY);
+      if (workspace_mode::isHermes(state.workspaceMode) && deskSleeping &&
+          workspace_input::inCenter(touchX, touchY)) {
+        // Track a consumed wake gesture so a sustained hold can still reach
+        // the existing power flow, but its release can never launch Hermes.
+        beginTouchGesture(touchX, touchY);
+        noteActivity();
+        startHaptic(kButtonHapticIntensity, kWakeHapticDurationMs);
+      } else {
+        beginTouchGesture(touchX, touchY);
+      }
     } else
 #endif
     if (noteActivity()) {
@@ -1128,11 +1162,24 @@ void loop() {
     }
   }
   if (touchTracking && touch.isPressed()) {
+#if defined(CODEX_STOPWATCH_USB_MIC)
+    // getDetail() holds its coordinates still below the library's flick
+    // threshold. Use the last converted sensor sample for strict tap bounds.
+    auto point = M5.Touch.getTouchPointRaw();
+    M5.Display.convertRawXY(&point, 1);
+    workspaceTouchEndX = point.x;
+    workspaceTouchEndY = point.y;
+    workspaceCenterTap.move(point.x, point.y, kSwipeThresholdPx);
+#endif
     updateTouchGesture(touchX, touchY);
     updateTouchPowerHold();
   }
   if (touch.wasReleased()) {
-    finishTouchGesture();
+#if defined(CODEX_STOPWATCH_USB_MIC)
+    finishTouchGesture(workspaceTouchEndX, workspaceTouchEndY);
+#else
+    finishTouchGesture(touchX, touchY);
+#endif
   }
 
   // Physical validation on the C152 enclosure: BtnA/GPIO2 is the left key and

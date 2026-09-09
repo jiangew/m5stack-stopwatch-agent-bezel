@@ -20,6 +20,27 @@ private final class ListenerOutputDeviceStub: StopwatchHIDOutputDevice {
 
 @MainActor
 final class HIDShortcutDecoderTests: XCTestCase {
+    func testWorkspaceActionIsStrictFragmentedAndSharesDirectionCooldown() {
+        var decoder = HIDShortcutDecoder()
+        func consume(_ json: String, _ time: TimeInterval) -> [CompanionShortcutEvent] {
+            WorkspaceModeHIDReportFramer.reports(payloadBytes: Array((json + "\n").utf8)).flatMap {
+                decoder.consume(reportID: 6, bytes: $0, now: time)
+            }
+        }
+        let valid = #"{"method":"host.workspace_action","params":{"action":"open_hermes"}}"#
+        XCTAssertEqual(consume(valid, 1).count, 1)
+        XCTAssertEqual(consume(valid, 1.5), [])
+        XCTAssertEqual(decoder.consume(reportID: 6, bytes: radial(angle: 0.5, distance: 1), now: 1.6), [])
+        _ = decoder.consume(reportID: 6, bytes: radial(angle: 0.5, distance: 0), now: 1.7)
+        for invalid in [
+            #"{"method":"host.workspace_action","params":{"action":"other"}}"#,
+            #"{"method":"host.workspace_action","params":{"action":"open_hermes","extra":1}}"#,
+            #"{"method":"host.workspace_action","params":{"action":true}}"#,
+            #"{"method":"host.workspace_action","params":{"action":"open_hermes"},"id":1}"#
+        ] { XCTAssertEqual(consume(invalid, 2), []) }
+        XCTAssertEqual(consume(valid, 2).count, 1)
+        XCTAssertEqual(decoder.consume(reportID: 6, bytes: radial(angle: 0.5, distance: 1), now: 2.9), [.left])
+    }
     func testInvalidatedCallbackContextIgnoresDelayedDelivery() {
         var delivered: [HIDShortcutCallbackAction] = []
         let session = HIDShortcutCallbackSession { delivered.append($0) }

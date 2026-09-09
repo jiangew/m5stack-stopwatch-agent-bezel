@@ -3,10 +3,20 @@ import Foundation
 @MainActor
 protocol WorkspaceCycling: AnyObject {
     func cycle()
+    func openHermes()
+    var allowsNavigation: Bool { get }
+}
+
+extension WorkspaceCycling {
+    func openHermes() {}
+    var allowsNavigation: Bool { true }
 }
 
 @MainActor
 final class WorkspaceCycleController: WorkspaceCycling {
+    private(set) var displayMode = StopwatchWorkspaceMode.codex
+    var modeDidChange: ((StopwatchWorkspaceMode) -> Void)?
+    var allowsNavigation: Bool { !displayMode.awaitingHermes }
     private let workspace: WorkspaceApplications
     private let observer: ForegroundApplicationObserving
     private let scheduler: WorkspaceModeScheduling
@@ -32,6 +42,7 @@ final class WorkspaceCycleController: WorkspaceCycling {
         started = true
         lifecycleGeneration &+= 1
         let lifecycle = lifecycleGeneration
+        resetToForeground()
         observer.start { [weak self] bundle in
             guard let self, self.started, self.lifecycleGeneration == lifecycle else { return }
             self.foregroundChanged(bundle)
@@ -43,19 +54,50 @@ final class WorkspaceCycleController: WorkspaceCycling {
         lifecycleGeneration &+= 1
         generation &+= 1
         clearPending()
+        setMode(.codex)
         observer.stop()
     }
 
     func cycle() {
-        guard started, pending == nil else { return }
+        guard started else { return }
+        if displayMode.awaitingHermes {
+            clearPending()
+            generation &+= 1
+            setMode(.foreground(workspace.frontmost?.bundleIdentifier))
+            requestActivation(WorkspaceAppProfile.codex.bundleIdentifier)
+            return
+        }
+        guard pending == nil else { return }
         let origin = workspace.frontmost?.bundleIdentifier
         let target = (WorkspaceAppProfile(bundleIdentifier: origin)?.next ?? .codex).bundleIdentifier
+        if target == WorkspaceAppProfile.hermes.bundleIdentifier {
+            setMode(.hermesIdle)
+            return
+        }
+        requestActivation(target)
+    }
+
+    func openHermes() {
+        guard started, displayMode == .hermesIdle || displayMode == .hermesError else { return }
+        setMode(.hermesOpening)
+        requestActivation(WorkspaceAppProfile.hermes.bundleIdentifier)
+    }
+
+    func resetToForeground() {
+        generation &+= 1
+        clearPending()
+        setMode(.foreground(workspace.frontmost?.bundleIdentifier))
+    }
+
+    private func requestActivation(_ target: String) {
+        let origin = workspace.frontmost?.bundleIdentifier
         generation &+= 1
         let request = generation
         pending = (request, origin, target)
         timeout = scheduler.scheduleRepeating(every: 3) { [weak self] in
             guard let self, self.started, self.pending?.generation == request else { return }
             self.clearPending()
+            if self.displayMode == .hermesOpening { self.setMode(.hermesError) }
             self.log("桌面切换等待超时；保持真实前台")
         }
         if let identity = workspace.runningApplication(bundleIdentifier: target) {
@@ -71,16 +113,28 @@ final class WorkspaceCycleController: WorkspaceCycling {
         guard started, pending?.generation == request else { return }
         if !accepted {
             clearPending()
+            if displayMode == .hermesOpening { setMode(.hermesError) }
             log("找不到或无法激活目标桌面应用")
         } else {
             // Successful submission alone is not proof of a foreground change.
-            foregroundChanged(workspace.frontmost?.bundleIdentifier)
+            if workspace.frontmost?.bundleIdentifier == pending?.target {
+                foregroundChanged(workspace.frontmost?.bundleIdentifier)
+            }
         }
     }
 
     private func foregroundChanged(_ bundle: String?) {
-        guard let pending else { return }
-        if bundle == pending.target || bundle != pending.origin { clearPending() }
+        // A real activation supersedes selection, even if it reactivates the
+        // origin app. Submission callbacks never synthesize this notification.
+        generation &+= 1
+        clearPending()
+        setMode(.foreground(bundle))
+    }
+
+    private func setMode(_ mode: StopwatchWorkspaceMode) {
+        guard displayMode != mode else { return }
+        displayMode = mode
+        modeDidChange?(mode)
     }
 
     private func clearPending() {
