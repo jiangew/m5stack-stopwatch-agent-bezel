@@ -59,5 +59,12 @@ into this record.
   than the touch library's sub-threshold filtered coordinates.
 - Installed Companion backup signature and executable hash verified. Old
   temporary firmware backup was missing; the stale main-directory binary was
-  rejected as a recovery candidate. Rebuild recovery from `f7ea349` before install.
+  rejected as a recovery candidate. Recovery rebuilt successfully from `f7ea349`
+  with both USB-mic build stages passing; this is a source-rebuilt recovery
+  image, not a byte-for-byte readback of installed flash.
+- New firmware SHA-256:
+  `5c5c0321e368da08f62c20dc49249cd4d92d9c63c96e3fbd9afcdecef6abeab0`.
+- All 31 tracked firmware build inputs match the release mirror exactly.
+- Candidate Companion signed and verified; installed Companion and original
+  LaunchAgent remain unchanged pending paired installation/flash.
 - New installation, flashing and physical acceptance remain pending.
