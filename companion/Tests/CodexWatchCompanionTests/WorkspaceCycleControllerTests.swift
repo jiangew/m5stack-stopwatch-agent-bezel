@@ -44,6 +44,26 @@ final class WorkspaceCycleControllerTests: XCTestCase {
         XCTAssertTrue(scheduler.tasks.isEmpty)
     }
 
+    func testRunningHermesTapReopensOnceAndWaitsForRealForeground() {
+        let ws = WorkspaceStub(), observer = CycleObserver(), scheduler = CycleScheduler()
+        ws.frontmost = ApplicationIdentity(processIdentifier: 1, bundleIdentifier: ids[1])
+        let hermes = ApplicationIdentity(processIdentifier: 3, bundleIdentifier: ids[2])
+        ws.runningByBundleID[ids[2]] = hermes
+        ws.activatable.insert(hermes)
+        let controller = WorkspaceCycleController(workspace: ws, observer: observer, scheduler: scheduler, log: { _ in })
+        controller.start(); controller.cycle()
+        controller.openHermes(); controller.openHermes()
+        XCTAssertEqual(ws.launchRequests, [ids[2]])
+        XCTAssertTrue(ws.activations.isEmpty)
+        XCTAssertEqual(controller.displayMode, .hermesOpening)
+        ws.launchCompletion?(true)
+        XCTAssertEqual(controller.displayMode, .hermesOpening)
+        ws.frontmost = hermes; observer.change(ids[2])
+        XCTAssertEqual(controller.displayMode, .hermes)
+        controller.openHermes()
+        XCTAssertEqual(ws.launchRequests, [ids[2]])
+    }
+
     func testFullCycleUsesActualForegroundAndNeverPreviousApp() {
         let ws = WorkspaceStub(), observer = CycleObserver(), scheduler = CycleScheduler()
         let controller = WorkspaceCycleController(workspace: ws, observer: observer, scheduler: scheduler, log: { _ in })
@@ -56,11 +76,15 @@ final class WorkspaceCycleControllerTests: XCTestCase {
             ws.frontmost = ws.runningByBundleID[source]
             controller.cycle()
             if source == ids[1] { controller.openHermes() }
-            XCTAssertEqual(ws.activations.last?.bundleIdentifier, destination)
+            if destination == ids[2] {
+                XCTAssertEqual(ws.launchRequests, [ids[2]])
+            } else {
+                XCTAssertEqual(ws.activations.last?.bundleIdentifier, destination)
+            }
             ws.frontmost = ws.runningByBundleID[destination]
             observer.change(destination)
         }
-        XCTAssertEqual(ws.activations.map(\.bundleIdentifier), [ids[1], ids[2], ids[0]])
+        XCTAssertEqual(ws.activations.map(\.bundleIdentifier), [ids[1], ids[0]])
         XCTAssertEqual(scheduler.intervals, [3, 3, 3])
         XCTAssertTrue(scheduler.tasks.allSatisfy(\.cancelled))
     }

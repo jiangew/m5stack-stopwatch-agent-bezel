@@ -46,6 +46,7 @@ final class NSWorkspaceApplications: WorkspaceApplications {
         }
         let configuration = NSWorkspace.OpenConfiguration()
         configuration.activates = true
+        configuration.createsNewApplicationInstance = false
         workspace.openApplication(at: url, configuration: configuration) { application, _ in
             DispatchQueue.main.async {
                 MainActor.assumeIsolated {

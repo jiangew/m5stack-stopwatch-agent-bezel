@@ -80,7 +80,7 @@ final class WorkspaceCycleController: WorkspaceCycling {
     func openHermes() {
         guard started, displayMode == .hermesIdle || displayMode == .hermesError else { return }
         setMode(.hermesOpening)
-        requestActivation(WorkspaceAppProfile.hermes.bundleIdentifier)
+        requestActivation(WorkspaceAppProfile.hermes.bundleIdentifier, reopen: true)
     }
 
     func resetToForeground() {
@@ -89,7 +89,7 @@ final class WorkspaceCycleController: WorkspaceCycling {
         setMode(.foreground(workspace.frontmost?.bundleIdentifier))
     }
 
-    private func requestActivation(_ target: String) {
+    private func requestActivation(_ target: String, reopen: Bool = false) {
         let origin = workspace.frontmost?.bundleIdentifier
         generation &+= 1
         let request = generation
@@ -100,7 +100,9 @@ final class WorkspaceCycleController: WorkspaceCycling {
             if self.displayMode == .hermesOpening { self.setMode(.hermesError) }
             self.log("桌面切换等待超时；保持真实前台")
         }
-        if let identity = workspace.runningApplication(bundleIdentifier: target) {
+        // A Hermes central tap must request reopening, not merely activate a
+        // running process whose last window may have been closed.
+        if !reopen, let identity = workspace.runningApplication(bundleIdentifier: target) {
             completeRequest(request, accepted: workspace.activate(identity))
         } else {
             workspace.launchAndActivate(bundleIdentifier: target) { [weak self] accepted in
