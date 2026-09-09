@@ -65,6 +65,14 @@ into this record.
 - New firmware SHA-256:
   `5c5c0321e368da08f62c20dc49249cd4d92d9c63c96e3fbd9afcdecef6abeab0`.
 - All 31 tracked firmware build inputs match the release mirror exactly.
-- Candidate Companion signed and verified; installed Companion and original
-  LaunchAgent remain unchanged pending paired installation/flash.
-- New installation, flashing and physical acceptance remain pending.
+- USB-mic upload completed after fresh exact-port confirmation; all four
+  uploader write hashes verified. Post-upload firmware hash matches the release.
+- Matching Companion executable installed and signature verified; original
+  LaunchAgent plist is byte-identical to backup and its job is running.
+- Fresh startup reports missing Input Monitoring, so shortcut listening is
+  currently unavailable. Reauthorize the installed app and restart the original
+  job before testing navigation; do not infer Accessibility success yet.
+- Device still enumerates as the download interface after uploader reset.
+  Manual reset/reconnect and normal UAC/BLE boot verification remain pending.
+- Physical central launch, navigation, audio, sleep and reconnect acceptance
+  remain unverified for this revision.
