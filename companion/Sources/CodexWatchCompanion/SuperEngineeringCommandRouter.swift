@@ -18,6 +18,7 @@ final class WorkspaceCommandRouter {
     private let emitter: ProcessTargetedKeyEmitting
     private let accessibility: AccessibilityTrustChecking
     private let log: (String) -> Void
+    private let diagnose: (NavigationDiagnosticStage) -> Void
     private var didWarnAboutAccessibility = false
 
     init(
@@ -25,13 +26,15 @@ final class WorkspaceCommandRouter {
         toggler: WorkspaceCycling,
         emitter: ProcessTargetedKeyEmitting,
         accessibility: AccessibilityTrustChecking,
-        log: @escaping (String) -> Void
+        log: @escaping (String) -> Void,
+        diagnose: @escaping (NavigationDiagnosticStage) -> Void = { _ in }
     ) {
         self.workspace = workspace
         self.toggler = toggler
         self.emitter = emitter
         self.accessibility = accessibility
         self.log = log
+        self.diagnose = diagnose
     }
 
     func handle(_ event: CompanionShortcutEvent) {
@@ -45,25 +48,34 @@ final class WorkspaceCommandRouter {
             // Native reports belong to Codex and must not become dedicated keys.
             return
         case let .navigation(origin, direction):
-            guard toggler.selectedProfile == origin.profile else { return }
+            guard toggler.selectedProfile == origin.profile else {
+                diagnose(.selectionRejected)
+                return
+            }
             if direction == .left {
                 toggler.cycle()
                 return
             }
-            guard toggler.allowsNavigation,
-                  let target = workspace.frontmost,
+            guard toggler.allowsNavigation else {
+                diagnose(.waitingRejected)
+                return
+            }
+            guard let target = workspace.frontmost,
                   let profile = WorkspaceAppProfile(bundleIdentifier: target.bundleIdentifier),
                   profile == origin.profile,
                   let command = profile.command(for: direction.nativeEvent) else {
+                diagnose(.foregroundRejected)
                 return
             }
             guard accessibility.isTrusted else {
+                diagnose(.accessibilityRejected)
                 if !didWarnAboutAccessibility {
                     didWarnAboutAccessibility = true
                     log("辅助功能权限未开启；super.engineering / Hermes 导航不可用")
                 }
                 return
             }
+            diagnose(.accessibilityAllowed)
             guard emitter.emit(command, to: target) else {
                 log("super.engineering 导航按键发送失败")
                 return

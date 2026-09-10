@@ -650,8 +650,10 @@ private func run() throws {
     var shortcutRouter: WorkspaceCommandRouter?
     var shortcutListener: HIDShortcutListener?
     var workspaceModeCoordinator: WorkspaceModeCoordinator?
+    var navigationDiagnosticSignal: NavigationDiagnosticSignal?
     if options.startsHIDShortcutListener,
        options.startsWorkspaceModeCoordinator {
+        let diagnostics = NavigationDiagnostics(log: { fputs("\($0)\n", stderr) })
         let workspace = NSWorkspaceApplications()
         let toggler = WorkspaceCycleController(
             workspace: workspace,
@@ -662,9 +664,10 @@ private func run() throws {
         let router = WorkspaceCommandRouter(
             workspace: workspace,
             toggler: toggler,
-            emitter: SystemProcessTargetedKeyEmitter(),
+            emitter: SystemProcessTargetedKeyEmitter(diagnose: { diagnostics.record($0) }),
             accessibility: SystemAccessibilityTrustChecker(),
-            log: { fputs("快捷键：\($0)\n", stderr) }
+            log: { fputs("快捷键：\($0)\n", stderr) },
+            diagnose: { diagnostics.record($0) }
         )
         let coordinator = WorkspaceModeCoordinator(
             interaction: toggler,
@@ -673,7 +676,10 @@ private func run() throws {
         toggler.start()
         coordinator.start()
         let listener = HIDShortcutListener(
-            eventHandler: { [weak router] event in router?.handle(event) },
+            eventHandler: { [weak router] event in
+                diagnostics.recordInput(event)
+                router?.handle(event)
+            },
             log: { fputs("快捷键：\($0)\n", stderr) },
             workspaceSenderMatched: { [weak coordinator] sender in
                 coordinator?.attach(sender)
@@ -684,6 +690,9 @@ private func run() throws {
         )
         do {
             try listener.start()
+            let diagnosticSignal = NavigationDiagnosticSignal(diagnostics: diagnostics)
+            diagnosticSignal.start()
+            navigationDiagnosticSignal = diagnosticSignal
             workspaceCycleController = toggler
             shortcutRouter = router
             shortcutListener = listener
@@ -695,6 +704,8 @@ private func run() throws {
         }
     }
     defer {
+        navigationDiagnosticSignal?.stop()
+        navigationDiagnosticSignal = nil
         workspaceCycleController?.stop()
         workspaceCycleController = nil
         workspaceModeCoordinator?.stop()

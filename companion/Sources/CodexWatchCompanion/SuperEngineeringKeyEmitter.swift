@@ -52,8 +52,9 @@ final class SystemProcessTargetedKeyEmitter: ProcessTargetedKeyEmitting {
     private let frontmostIdentity: FrontmostIdentity
     private let identityForProcess: IdentityForProcess
     private let poster: ProcessKeySequencePosting
+    private let diagnose: (NavigationDiagnosticStage) -> Void
 
-    convenience init() {
+    convenience init(diagnose: @escaping (NavigationDiagnosticStage) -> Void = { _ in }) {
         self.init(
             frontmostIdentity: {
                 Self.identity(for: NSWorkspace.shared.frontmostApplication)
@@ -61,18 +62,21 @@ final class SystemProcessTargetedKeyEmitter: ProcessTargetedKeyEmitting {
             identityForProcess: { processIdentifier in
                 Self.identity(for: NSRunningApplication(processIdentifier: processIdentifier))
             },
-            poster: CoreGraphicsProcessKeySequencePoster()
+            poster: CoreGraphicsProcessKeySequencePoster(),
+            diagnose: diagnose
         )
     }
 
     init(
         frontmostIdentity: @escaping FrontmostIdentity,
         identityForProcess: @escaping IdentityForProcess,
-        poster: ProcessKeySequencePosting
+        poster: ProcessKeySequencePosting,
+        diagnose: @escaping (NavigationDiagnosticStage) -> Void = { _ in }
     ) {
         self.frontmostIdentity = frontmostIdentity
         self.identityForProcess = identityForProcess
         self.poster = poster
+        self.diagnose = diagnose
     }
 
     func emit(
@@ -81,7 +85,10 @@ final class SystemProcessTargetedKeyEmitter: ProcessTargetedKeyEmitting {
     ) -> Bool {
         guard identity.bundleIdentifier == command.profile.bundleIdentifier,
               frontmostIdentity() == identity,
-              identityForProcess(identity.processIdentifier) == identity else { return false }
+              identityForProcess(identity.processIdentifier) == identity else {
+            diagnose(.identityRejected)
+            return false
+        }
 
         let keyCode: CGKeyCode
         let flags: CGEventFlags
@@ -108,13 +115,15 @@ final class SystemProcessTargetedKeyEmitter: ProcessTargetedKeyEmitting {
         // Hermes commits its session picker when Control is released. Clearing
         // this flag is essential for a modifier-up event; never use Return.
         let keyUpFlags: CGEventFlags = command == .confirmHermesSelection ? [] : flags
-        return poster.post(
+        let submitted = poster.post(
             [
                 ProcessKeyStroke(keyCode: keyCode, keyDown: true, flags: flags),
                 ProcessKeyStroke(keyCode: keyCode, keyDown: false, flags: keyUpFlags),
             ],
             to: identity.processIdentifier
         )
+        diagnose(submitted ? .submitted : .submissionFailed)
+        return submitted
     }
 
     private static func identity(for application: NSRunningApplication?) -> ApplicationIdentity? {
