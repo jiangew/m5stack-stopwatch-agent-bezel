@@ -18,6 +18,7 @@
 #include "HostRpcRequest.h"
 #if defined(CODEX_STOPWATCH_USB_MIC)
 #include "WorkspaceMode.h"
+#include "WorkspaceNavigation.h"
 #endif
 
 struct ThreadLight {
@@ -58,6 +59,9 @@ class CodexMicroBle {
   void setBattery(uint8_t percentage, bool charging);
   void sendKey(const char* key, uint8_t action, int8_t agent = -1);
   void sendJoystick(float angle, float distance);
+#if defined(CODEX_STOPWATCH_USB_MIC)
+  void sendNavigation(const workspace_navigation::Event& event);
+#endif
   void sendOpenHermes();
   bool connected();
   CodexMicroState snapshot();

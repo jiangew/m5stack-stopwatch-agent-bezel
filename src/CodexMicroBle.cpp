@@ -430,6 +430,16 @@ void CodexMicroBle::sendJoystick(float angle, float distance) {
   sendJson(json);
 }
 
+#if defined(CODEX_STOPWATCH_USB_MIC)
+void CodexMicroBle::sendNavigation(const workspace_navigation::Event& event) {
+  StaticJsonDocument<384> message;
+  workspace_navigation::write(message.to<JsonObject>(), event);
+  String json;
+  serializeJson(message, json);
+  sendJson(json);
+}
+#endif
+
 bool CodexMicroBle::connected() {
   if (stateMutex_ == nullptr) {
     return false;

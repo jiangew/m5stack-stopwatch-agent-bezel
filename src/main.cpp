@@ -96,6 +96,7 @@ bool touchSendPressed = false;
 #if defined(CODEX_STOPWATCH_USB_MIC)
 bool touchPowerHoldCandidate = false;
 workspace_input::CenterTap workspaceCenterTap;
+workspace_navigation::Gesture navigationGesture;
 int workspaceTouchEndX = 0;
 int workspaceTouchEndY = 0;
 #endif
@@ -624,6 +625,26 @@ void beginTouchGesture(int x, int y) {
   }
 }
 
+void sendSwipePress(touch_gesture::Direction direction) {
+#if defined(CODEX_STOPWATCH_USB_MIC)
+  workspace_navigation::Event event;
+  if (navigationGesture.begin(state.workspaceMode, direction, event)) {
+    codex.sendNavigation(event);
+  }
+#else
+  codex.sendJoystick(touch_gesture::normalizedAngle(direction), 1.0f);
+#endif
+}
+
+void sendSwipeRelease() {
+#if defined(CODEX_STOPWATCH_USB_MIC)
+  workspace_navigation::Event event;
+  if (navigationGesture.end(event)) codex.sendNavigation(event);
+#else
+  codex.sendJoystick(touch_gesture::normalizedAngle(activeSwipe), 0.0f);
+#endif
+}
+
 void updateTouchGesture(int x, int y) {
 #if defined(CODEX_STOPWATCH_USB_MIC)
   workspaceCenterTap.move(x, y, kSwipeThresholdPx);
@@ -655,7 +676,7 @@ void updateTouchGesture(int x, int y) {
   workspacePalette.acceptSwipe(millis(), [] { return esp_random(); });
 #endif
   const float angle = touch_gesture::normalizedAngle(direction);
-  codex.sendJoystick(angle, 1.0f);
+  sendSwipePress(direction);
   startHaptic(kSwipeHapticIntensity, kSwipeHapticDurationMs);
   Serial.printf("SWIPE direction=%s angle=%.2f action=press\n",
                 touch_gesture::name(direction), angle);
@@ -680,7 +701,7 @@ void finishTouchGesture(int x, int y) {
   if (activeSwipe != touch_gesture::Direction::None) {
     const touch_gesture::Direction direction = activeSwipe;
     const float angle = touch_gesture::normalizedAngle(direction);
-    codex.sendJoystick(angle, 0.0f);
+    sendSwipeRelease();
     Serial.printf("SWIPE direction=%s angle=%.2f action=release\n",
                   touch_gesture::name(direction), angle);
     activeSwipe = touch_gesture::Direction::None;
@@ -868,7 +889,7 @@ void releaseControlsForPowerOff() {
     voiceClickReleasePending = false;
   }
   if (activeSwipe != touch_gesture::Direction::None) {
-    codex.sendJoystick(touch_gesture::normalizedAngle(activeSwipe), 0.0f);
+    sendSwipeRelease();
     activeSwipe = touch_gesture::Direction::None;
   }
   rightPressed = false;
@@ -895,7 +916,7 @@ void handleWorkspaceModeTransition(workspace_mode::Mode previous,
     voiceClickReleasePending = false;
   }
   if (activeSwipe != touch_gesture::Direction::None) {
-    codex.sendJoystick(touch_gesture::normalizedAngle(activeSwipe), 0.0f);
+    sendSwipeRelease();
     activeSwipe = touch_gesture::Direction::None;
   }
   rightPressed = false;
@@ -1119,6 +1140,14 @@ void loop() {
 #if defined(CODEX_STOPWATCH_USB_MIC)
   CodexMicroState latest = codex.snapshot();
   shouldRedraw = latest.dirty;
+  if (state.connectionEpoch != latest.connectionEpoch ||
+      (state.connected && !latest.connected)) {
+    // A reconnect must not inherit an old gesture or release it to a new peer.
+    navigationGesture.reset();
+    activeSwipe = touch_gesture::Direction::None;
+    touchTracking = false;
+    workspaceCenterTap.cancel();
+  }
   const workspace_mode::Mode previousWorkspaceMode = state.workspaceMode;
   handleWorkspaceModeTransition(previousWorkspaceMode, latest.workspaceMode);
   state = latest;
