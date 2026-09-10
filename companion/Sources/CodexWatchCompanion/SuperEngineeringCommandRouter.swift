@@ -37,14 +37,24 @@ final class WorkspaceCommandRouter {
     func handle(_ event: CompanionShortcutEvent) {
         switch event {
         case .left:
+            guard toggler.selectedProfile == .codex else { return }
             toggler.cycle()
         case .openHermes:
             toggler.openHermes()
         case .up, .down, .right:
+            // Native reports belong to Codex and must not become dedicated keys.
+            return
+        case let .navigation(origin, direction):
+            guard toggler.selectedProfile == origin.profile else { return }
+            if direction == .left {
+                toggler.cycle()
+                return
+            }
             guard toggler.allowsNavigation,
                   let target = workspace.frontmost,
                   let profile = WorkspaceAppProfile(bundleIdentifier: target.bundleIdentifier),
-                  let command = profile.command(for: event) else {
+                  profile == origin.profile,
+                  let command = profile.command(for: direction.nativeEvent) else {
                 return
             }
             guard accessibility.isTrusted else {

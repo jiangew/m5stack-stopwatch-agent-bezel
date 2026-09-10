@@ -5,11 +5,13 @@ protocol WorkspaceCycling: AnyObject {
     func cycle()
     func openHermes()
     var allowsNavigation: Bool { get }
+    var selectedProfile: WorkspaceAppProfile { get }
 }
 
 extension WorkspaceCycling {
     func openHermes() {}
     var allowsNavigation: Bool { true }
+    var selectedProfile: WorkspaceAppProfile { .codex }
 }
 
 @MainActor
@@ -17,6 +19,13 @@ final class WorkspaceCycleController: WorkspaceCycling {
     private(set) var displayMode = StopwatchWorkspaceMode.codex
     var modeDidChange: ((StopwatchWorkspaceMode) -> Void)?
     var allowsNavigation: Bool { !displayMode.awaitingHermes }
+    var selectedProfile: WorkspaceAppProfile {
+        switch displayMode {
+        case .codex: return .codex
+        case .super: return .super
+        case .hermes, .hermesIdle, .hermesOpening, .hermesError: return .hermes
+        }
+    }
     private let workspace: WorkspaceApplications
     private let observer: ForegroundApplicationObserving
     private let scheduler: WorkspaceModeScheduling

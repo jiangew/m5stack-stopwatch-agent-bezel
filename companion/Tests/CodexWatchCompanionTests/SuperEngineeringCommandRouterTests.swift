@@ -5,6 +5,7 @@ import XCTest
 private final class TogglerSpy: WorkspaceCycling {
     var toggleCount = 0
     var allowsNavigation = true
+    var selectedProfile = WorkspaceAppProfile.codex
     var openCount = 0
     func openHermes() { openCount += 1 }
 
@@ -42,13 +43,34 @@ private final class RouterLogRecorder {
 
 @MainActor
 final class WorkspaceCommandRouterTests: XCTestCase {
+    func testStaleSourceAndMismatchedForegroundAreIgnoredIncludingNativeLeft() {
+        let fixture = makeFixture(frontmost: superApp, trusted: true)
+        fixture.router.handle(.navigation(.hermes, .up))
+        fixture.router.handle(.navigation(.hermes, .left))
+        fixture.router.handle(.left)
+        XCTAssertEqual(fixture.toggler.toggleCount, 0)
+        XCTAssertTrue(fixture.emitter.calls.isEmpty)
+        fixture.toggler.selectedProfile = .hermes
+        fixture.router.handle(.navigation(.hermes, .up))
+        fixture.router.handle(.navigation(.super, .down))
+        XCTAssertTrue(fixture.emitter.calls.isEmpty)
+        XCTAssertTrue(fixture.logs.messages.isEmpty)
+    }
+    func testNativeDirectionsCannotBeForwardedToDedicatedApps() {
+        let fixture = makeFixture(frontmost: superApp, trusted: true)
+        fixture.router.handle(.up); fixture.router.handle(.down); fixture.router.handle(.right)
+        XCTAssertTrue(fixture.emitter.calls.isEmpty)
+    }
     func testWaitingSelectionSuppressesUnderlyingSuperAndRoutesCenterWithoutAX() {
         let fixture = makeFixture(frontmost: superApp, trusted: false)
         fixture.toggler.allowsNavigation = false
-        for event: CompanionShortcutEvent in [.up, .down, .right] { fixture.router.handle(event) }
+        fixture.toggler.selectedProfile = .hermes
+        for direction: WorkspaceSwipeDirection in [.up, .down, .right] {
+            fixture.router.handle(.navigation(.hermes, direction))
+        }
         XCTAssertTrue(fixture.emitter.calls.isEmpty)
         XCTAssertTrue(fixture.logs.messages.isEmpty)
-        fixture.router.handle(.openHermes); fixture.router.handle(.left)
+        fixture.router.handle(.openHermes); fixture.router.handle(.navigation(.hermes, .left))
         XCTAssertEqual(fixture.toggler.openCount, 1)
         XCTAssertEqual(fixture.toggler.toggleCount, 1)
     }
@@ -61,7 +83,9 @@ final class WorkspaceCommandRouterTests: XCTestCase {
     func testHermesNavigationUsesOnlyExactForegroundTarget() {
         let hermes = ApplicationIdentity(processIdentifier: 303, bundleIdentifier: "com.nousresearch.hermes")
         let fixture = makeFixture(frontmost: hermes, trusted: true)
-        fixture.router.handle(.up); fixture.router.handle(.down); fixture.router.handle(.right)
+        fixture.router.handle(.navigation(.hermes, .up))
+        fixture.router.handle(.navigation(.hermes, .down))
+        fixture.router.handle(.navigation(.hermes, .right))
         XCTAssertEqual(fixture.emitter.calls, [
             .init(command: .previousHermesTab, identity: hermes),
             .init(command: .nextHermesTab, identity: hermes),
@@ -92,9 +116,9 @@ final class WorkspaceCommandRouterTests: XCTestCase {
     func testNavigationUsesExactForegroundIdentityForEveryCommand() {
         let fixture = makeFixture(frontmost: superApp, trusted: true)
 
-        fixture.router.handle(.up)
-        fixture.router.handle(.down)
-        fixture.router.handle(.right)
+        fixture.router.handle(.navigation(.super, .up))
+        fixture.router.handle(.navigation(.super, .down))
+        fixture.router.handle(.navigation(.super, .right))
 
         XCTAssertEqual(fixture.emitter.calls, [
             .init(command: .previousProject, identity: superApp),
@@ -107,9 +131,9 @@ final class WorkspaceCommandRouterTests: XCTestCase {
     func testAccessibilityWarningOccursOnceAndLeftStillWorks() {
         let fixture = makeFixture(frontmost: superApp, trusted: false)
 
-        fixture.router.handle(.up)
-        fixture.router.handle(.down)
-        fixture.router.handle(.left)
+        fixture.router.handle(.navigation(.super, .up))
+        fixture.router.handle(.navigation(.super, .down))
+        fixture.router.handle(.navigation(.super, .left))
 
         XCTAssertTrue(fixture.emitter.calls.isEmpty)
         XCTAssertEqual(fixture.toggler.toggleCount, 1)
@@ -120,7 +144,7 @@ final class WorkspaceCommandRouterTests: XCTestCase {
         let fixture = makeFixture(frontmost: superApp, trusted: true)
         fixture.emitter.result = false
 
-        fixture.router.handle(.right)
+        fixture.router.handle(.navigation(.super, .right))
 
         XCTAssertEqual(fixture.emitter.calls, [.init(command: .nextTab, identity: superApp)])
         XCTAssertEqual(fixture.toggler.toggleCount, 0)
@@ -139,6 +163,7 @@ final class WorkspaceCommandRouterTests: XCTestCase {
         let workspace = WorkspaceStub()
         workspace.frontmost = frontmost
         let toggler = TogglerSpy()
+        toggler.selectedProfile = WorkspaceAppProfile(bundleIdentifier: frontmost.bundleIdentifier) ?? .codex
         let emitter = EmitterSpy()
         let logs = RouterLogRecorder()
         let router = WorkspaceCommandRouter(

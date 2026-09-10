@@ -20,6 +20,55 @@ private final class ListenerOutputDeviceStub: StopwatchHIDOutputDevice {
 
 @MainActor
 final class HIDShortcutDecoderTests: XCTestCase {
+    func testDedicatedNavigationRejectsMalformedShapesAndPreservesOrigin() {
+        var decoder = HIDShortcutDecoder()
+        func consume(_ json: String, _ time: Double) -> [CompanionShortcutEvent] {
+            WorkspaceModeHIDReportFramer.reports(payloadBytes: Array((json + "\n").utf8)).flatMap {
+                decoder.consume(reportID: 6, bytes: $0, now: time)
+            }
+        }
+        let valid = #"{"method":"host.workspace_navigation","params":{"workspace":"hermes","direction":"up","phase":"press"}}"#
+        for invalid in [
+            valid.replacingOccurrences(of: "\"hermes\"", with: "true"),
+            valid.replacingOccurrences(of: "\"up\"", with: "1"),
+            valid.replacingOccurrences(of: "\"press\"", with: "null"),
+            valid.replacingOccurrences(of: "\"phase\":\"press\"", with: "\"extra\":\"press\""),
+            valid.replacingOccurrences(of: "\"phase\":\"press\"", with: "\"phase\":\"press\",\"extra\":1"),
+            valid.replacingOccurrences(of: "\"params\":", with: "\"id\":1,\"params\":")
+        ] { XCTAssertEqual(consume(invalid, 1), []) }
+        XCTAssertEqual(consume(valid, 1), [.navigation(.hermes, .up)])
+        // A native release cannot release the dedicated latch.
+        _ = decoder.consume(reportID: 6, bytes: radial(angle: 0.75, distance: 0), now: 2)
+        XCTAssertEqual(consume(valid, 2), [])
+        _ = consume(valid.replacingOccurrences(of: "press", with: "release"), 2)
+        XCTAssertEqual(consume(valid, 2), [.navigation(.hermes, .up)])
+        _ = consume(valid.replacingOccurrences(of: "press", with: "release"), 2.1)
+        XCTAssertEqual(consume(valid, 2.2), [])
+        XCTAssertEqual(consume(valid, 3), [])
+        _ = consume(valid.replacingOccurrences(of: "press", with: "release"), 3)
+        XCTAssertEqual(consume(valid, 3), [.navigation(.hermes, .up)])
+        decoder.reset()
+        XCTAssertEqual(consume(valid.replacingOccurrences(of: "hermes", with: "super"), 1), [.navigation(.super, .up)])
+    }
+    func testDedicatedNavigationRequiresMatchingReleaseAndStrictFields() {
+        var decoder = HIDShortcutDecoder()
+        func consume(_ workspace: String, _ direction: String, _ phase: String, _ time: Double) -> [CompanionShortcutEvent] {
+            let json = "{\"method\":\"host.workspace_navigation\",\"params\":{\"workspace\":\"\(workspace)\",\"direction\":\"\(direction)\",\"phase\":\"\(phase)\"}}\n"
+            return WorkspaceModeHIDReportFramer.reports(payloadBytes: Array(json.utf8)).flatMap {
+                decoder.consume(reportID: 6, bytes: $0, now: time)
+            }
+        }
+        XCTAssertEqual(consume("hermes", "up", "press", 1).count, 1)
+        XCTAssertEqual(consume("hermes", "up", "press", 2).count, 0)
+        XCTAssertEqual(consume("super", "up", "release", 2).count, 0)
+        XCTAssertEqual(consume("hermes", "down", "release", 2).count, 0)
+        XCTAssertEqual(consume("hermes", "up", "press", 3).count, 0)
+        XCTAssertEqual(consume("hermes", "up", "release", 3).count, 0)
+        XCTAssertEqual(consume("codex", "up", "press", 4).count, 0)
+        XCTAssertEqual(consume("hermes", "bad", "press", 4).count, 0)
+        XCTAssertEqual(consume("hermes", "up", "bad", 4).count, 0)
+        XCTAssertEqual(consume("super", "right", "press", 4).count, 1)
+    }
     func testWorkspaceActionIsStrictFragmentedAndSharesDirectionCooldown() {
         var decoder = HIDShortcutDecoder()
         func consume(_ json: String, _ time: TimeInterval) -> [CompanionShortcutEvent] {

@@ -2,6 +2,26 @@ import Foundation
 
 enum CompanionShortcutEvent: Equatable {
     case left, up, down, right, openHermes
+    case navigation(WorkspaceNavigationOrigin, WorkspaceSwipeDirection)
+}
+
+enum WorkspaceNavigationOrigin: String {
+    case `super`, hermes
+
+    var profile: WorkspaceAppProfile { self == .super ? .super : .hermes }
+}
+
+enum WorkspaceSwipeDirection: String {
+    case left, up, down, right
+
+    var nativeEvent: CompanionShortcutEvent {
+        switch self {
+        case .left: return .left
+        case .up: return .up
+        case .down: return .down
+        case .right: return .right
+        }
+    }
 }
 
 enum StopwatchHIDDescriptor {
@@ -30,7 +50,8 @@ struct HIDShortcutDecoder {
     }
 
     private var receiveBuffer: [UInt8] = []
-    private var armed = true
+    private var activePress: CompanionShortcutEvent?
+    private var armed: Bool { activePress == nil }
     private var lastAcceptedAt: TimeInterval?
 
     mutating func consume(reportID: Int, bytes: [UInt8], now: TimeInterval) -> [CompanionShortcutEvent] {
@@ -61,6 +82,22 @@ struct HIDShortcutDecoder {
             let line = Data(receiveBuffer[..<newline])
             receiveBuffer.removeSubrange(...newline)
             if let object = try? JSONSerialization.jsonObject(with: line) as? [String: Any],
+               object["method"] as? String == "host.workspace_navigation" {
+                guard Set(object.keys) == Set(["method", "params"]),
+                      let params = object["params"] as? [String: Any],
+                      Set(params.keys) == Set(["workspace", "direction", "phase"]),
+                      let workspace = params["workspace"] as? String,
+                      let origin = WorkspaceNavigationOrigin(rawValue: workspace),
+                      let name = params["direction"] as? String,
+                      let direction = WorkspaceSwipeDirection(rawValue: name),
+                      let phase = params["phase"] as? String,
+                      phase == "press" || phase == "release" else { continue }
+                if let event = recognizePress(.navigation(origin, direction), pressed: phase == "press", now: now) {
+                    events.append(event)
+                }
+                continue
+            }
+            if let object = try? JSONSerialization.jsonObject(with: line) as? [String: Any],
                object["method"] as? String == "host.workspace_action" {
                 guard Set(object.keys) == Set(["method", "params"]),
                       let params = object["params"] as? [String: Any],
@@ -79,7 +116,7 @@ struct HIDShortcutDecoder {
 
     mutating func reset() {
         receiveBuffer.removeAll(keepingCapacity: true)
-        armed = true
+        activePress = nil
         lastAcceptedAt = nil
     }
 
@@ -89,11 +126,19 @@ struct HIDShortcutDecoder {
               message.params.d.isFinite,
               let event = event(for: message.params.a) else { return nil }
         if abs(message.params.d) <= Self.distanceTolerance {
-            armed = true
+            return recognizePress(event, pressed: false, now: now)
+        }
+        guard abs(message.params.d - 1.0) <= Self.distanceTolerance else { return nil }
+        return recognizePress(event, pressed: true, now: now)
+    }
+
+    private mutating func recognizePress(_ event: CompanionShortcutEvent, pressed: Bool, now: TimeInterval) -> CompanionShortcutEvent? {
+        if !pressed {
+            if activePress == event { activePress = nil }
             return nil
         }
-        guard abs(message.params.d - 1.0) <= Self.distanceTolerance, armed else { return nil }
-        armed = false
+        guard armed else { return nil }
+        activePress = event
         guard acceptCooldown(now) else { return nil }
         return event
     }
