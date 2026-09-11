@@ -1,6 +1,6 @@
 # Paced workspace navigation and Hermes selection ownership
 
-Status: interaction approved in conversation; written implementation design awaiting review.
+Status: Approved. User reviewed the written design before implementation.
 
 ## Evidence and scope
 
