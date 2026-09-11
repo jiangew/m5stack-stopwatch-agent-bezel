@@ -22,6 +22,28 @@ swift build -c release
 
 No prebuilt companion binary is distributed by this project.
 
+### Versioned local app packaging
+
+From a clean repository checkout, build the release executable from that checkout,
+then run from the repository root:
+
+```sh
+bash scripts/package_companion.sh companion/.build/release/codex-watch-companion /private/tmp/CodexWatchCompanion-candidate.app
+```
+
+The output must not already exist. This packages version **0.1.1**, build **2**,
+with `AgentBezelSourceCommit` and UTC `AgentBezelBuildTimestamp` in Info.plist,
+then ad-hoc signs and verifies the candidate. It does not install or restart it.
+The caller must supply the release executable built from the recorded checkout;
+the packaging fixture test is not executable provenance validation.
+
+Installation preserves the original app directory's creation time and updates
+its modification time after signature verification. Finder shows the release
+version and installation modification time; custom commit/build metadata is read
+from Info.plist. Future newly packaged releases must increment the build number;
+reinstalling the same artifact keeps it. Metadata changes require re-signing and
+can require permission reauthorization even with an unchanged bundle identifier.
+
 ## Bind a StopWatch safely
 
 First run demo discovery. It writes synthetic data only and prints the
@@ -114,6 +136,22 @@ the foreground identity and PID/bundle pair before delivery. It never posts
 these keys globally or retries navigation commands. Physical acceptance must
 still confirm ChatGPT performs no background action in SUPER/HERMES.
 
+Companion 0.1.1 requires matching USB-mic firmware for dedicated directions.
+SUPER/HERMES send `host.workspace_navigation` with fixed source, direction and
+press/release fields instead of native `v.oai.rad`, which remains Codex-only.
+The source must match both selected workspace and actual foreground before keys
+are sent. A gesture releases through its original event family across a mode
+change. Do not use gestures during a mixed-version installation interval.
+Keep Codex up/down/right bindings; removing them is not the isolation fix.
+
+For a bounded navigation trace, first verify the exact running Companion is the
+new diagnostic-capable build, then send `SIGUSR1` to that process only. It logs
+at most 120 fixed `NAV` stage records for five minutes, once per process lifetime;
+repeated signals cannot extend it. Never signal an old build or another process.
+No LaunchAgent edits, second watch, key-event tap or content collection is needed.
+`submitted` does not prove the target app responded; require physical observation.
+See [protocol and diagnostic limits](../docs/COMPANION_PROTOCOL.md#bounded-navigation-diagnostics).
+
 With matching USB-mic firmware, except for explicit Hermes waiting selection,
 the watch follows the real foreground:
 SUPER and HERMES receive an immediate mode write and a heartbeat every
@@ -149,7 +187,8 @@ endpoint is unchanged.
 
 The workspace channel sends only fixed `codex`, `super` or `hermes`, optional
 Hermes `idle`/`opening`/`error`, a fixed TTL and a local request number. Device
-center input uses only `host.workspace_action` with `open_hermes`. It does not inspect or
+center input uses only `host.workspace_action` with `open_hermes`.
+Dedicated direction input uses only fixed workspace/direction/phase enums. It does not inspect or
 transmit projects, sessions, windows, Spaces, app preferences, credentials or
 user content. Workspace control does not run CLI, shell, AppleScript, UI
 scraping or private Space APIs; the existing Codex App Server quota subprocess
@@ -158,8 +197,8 @@ is unchanged.
 For rollback, stop the original LaunchAgent, restore the backed-up signed
 Companion app, verify its signature and restart that same agent, preserving its
 configuration. Without renewals the new firmware returns to Codex within
-15 seconds. Older companions may still select SUPER, but do not support the
-new cycle/Hermes behavior. Full rollback additionally restores the saved
+15 seconds. Older companions do not understand the dedicated navigation event;
+restore a matched Companion/firmware pair. Full rollback additionally restores the saved
 USB-mic firmware, only after freshly enumerating the download port and obtaining
 explicit confirmation for that exact port. Never reuse a historical port.
 Space assignments and app shortcuts can be restored manually.

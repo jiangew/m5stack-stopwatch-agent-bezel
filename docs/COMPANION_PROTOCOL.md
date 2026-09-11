@@ -41,8 +41,9 @@ HID. Payloads are UTF-8 JSON and must be no larger than 512 bytes.
    first matching advertiser.
 6. Refresh at most once per minute unless the App Server sends a change event.
 
-Agent status and all button actions deliberately stay on the native Codex Micro
-HID channel.
+Agent status and Codex controls stay on the existing HID channel. Dedicated
+workspace directions use project-owned messages on that same transport, not quota
+GATT and not native Codex radial messages.
 
 ## Foreground workspace mode over HID
 
@@ -144,14 +145,51 @@ Desktop KeepAlive LaunchAgent is an installation policy, not this protocol.
 
 ## Host-side direction mapping
 
-The HERMES `OPEN` label is not a new RPC. Radial input still carries the same
-directions; only the Mac's exact-foreground application profile maps Hermes
+In the matching USB-mic firmware and Companion 0.1.1, SUPER and all HERMES states
+send only this dedicated event for each direction press/release:
+
+```json
+{"method":"host.workspace_navigation","params":{"workspace":"hermes","direction":"up","phase":"press"}}
+{"method":"host.workspace_navigation","params":{"workspace":"hermes","direction":"up","phase":"release"}}
+```
+
+Exactly `method` and `params` are accepted. Params must contain exactly the three
+string fields: workspace (`super`/`hermes`), direction (`left`/`up`/`down`/`right`),
+phase (`press`/`release`). Unknown, missing, extra or wrong-type fields are ignored.
+Framing remains newline-delimited Report 6. Each press latches its source and
+direction; a matching release rearms the per-device decoder, including after a
+mode transition. A wrong-source/direction release cannot rearm it. Center actions
+share the 800ms cooldown. Disconnect clears that device's latch.
+
+Codex retains native `v.oai.rad` directions. Dedicated workspace presses never
+also send native radial input; a prior Codex press still receives its native
+release when switching modes. Native up/down/right are never forwarded to
+SUPER/Hermes. Dedicated directions require matching selected and actual foreground
+profiles and Accessibility; left cycles the matching selected workspace, including
+waiting Hermes. This fixes a native-event leakage path, but must still be physically
+verified to cause no background Codex action. Install and roll back matched pairs:
+old firmware with new Companion cannot provide dedicated navigation.
+
+The Mac's exact-foreground application profile maps Hermes
 right to a Control press/release (virtual key 59, Control flag on press and no
 flags on release). CoreGraphics represents this modifier pair as `flagsChanged`
 events, delivered only to the validated target PID. It does not send Return or
 Command-T, read the picker, or carry a selected session identifier. Up/down keep
 their existing Control-Shift-Tab / Control-Tab chords. See
 [physical acceptance and protocol limits](superpowers/plans/2026-09-04-hermes-open-physical-acceptance.md).
+
+### Bounded navigation diagnostics
+
+Only real watch mode installs a `SIGUSR1` handler. After verifying that the running
+process is this diagnostic-capable version, send that signal to its exact PID to
+enable at most 120 fixed `NAV` records over 300 seconds. Repeated triggers do not
+extend or replenish the budget. Never signal an older Companion (the signal may
+terminate it), start a second watch, or change LaunchAgent arguments for tracing.
+Records identify input origin/direction, rejection stage or submission outcome;
+they contain no raw reports, arbitrary app names, PIDs, device identifiers or
+user content. `submitted` proves only local API submission, not Hermes receipt.
+Hermes failure after submission requires separate investigation, not a mapping
+change or global-key fallback.
 
 ## Optional maintenance request
 

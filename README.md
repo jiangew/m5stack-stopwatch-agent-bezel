@@ -86,6 +86,14 @@ Hermes; it does not return to an arbitrary previous app.
 
 ## Hermes Desktop workspace
 
+**Matching versions required:** Companion 0.1.1 and its USB-mic firmware separate
+SUPER/HERMES direction events from Codex's native radial events. Keep Codex's
+up/down/right bindings: dedicated workspaces use `host.workspace_navigation`
+instead. Install/roll back both components together and physically verify no
+background Codex action. Hermes API submission alone is not navigation acceptance.
+Local packaged apps now show version 0.1.1; build/commit metadata and a bounded,
+opt-in navigation trace are described in the [Companion guide](companion/README.md).
+
 Left from SUPER selects **HERMES / TAP TO OPEN** on the watch only; it does not
 launch or activate Hermes on the Mac. Tap inside the center square to open the
 exact Desktop app. **OPENING** permits one outstanding request; actual Hermes
@@ -292,6 +300,8 @@ not include account rate limits.
 In a real `--watch` run, the optional workspace integration additionally sends
 only fixed display modes and optional Hermes `idle`/`opening`/`error` state over
 vendor HID Report ID 6; the watch's center action is the fixed `open_hermes` enum.
+Dedicated directions carry only fixed workspace/direction/phase enums on that
+same HID transport, not project or session data.
 It does not send API keys, tokens, account identifiers, prompts, task text,
 audio, project/session/window/Space metadata, or user content. It does not
 scrape UI, use a cloud relay, inspect keyboard text, invoke shell commands or

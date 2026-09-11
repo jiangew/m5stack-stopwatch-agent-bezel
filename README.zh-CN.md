@@ -75,6 +75,12 @@ Next Tab = `Control-Option-Right`。上/下/右仅定向发送给该前台进程
 
 ## Hermes Desktop 工作区
 
+**必须使用匹配版本：** Companion 0.1.1 与对应 USB-mic 固件将 SUPER/HERMES
+方向事件改为专属 `host.workspace_navigation`，不再同时发送 Codex 原生方向事件。
+Codex 上/下/右绑定保持不变；安装和回滚应成套进行，并实测 Codex 无后台动作。
+Hermes 按键接口提交成功不等于导航验收通过。新打包应用显示版本 0.1.1，构建号、
+源码提交及默认关闭的限时导航诊断详见 [Companion 文档](companion/README.md)。
+
 从 SUPER 左滑仅在手表选中 **HERMES / TAP TO OPEN**，Mac 保持原前台，
 不会启动或激活后台 Hermes。短点中央正方形内部才启动客户端，显示 **OPENING**。
 实际确认 Hermes 前台后才启用下面的方向导航。失败或 3 秒未确认时显示
@@ -234,6 +240,7 @@ Server，并读取 `account/rateLimits/read`。它只通过项目自有额度 GA
 在真实 `--watch` 运行中，可选工作区集成还仅通过 vendor HID Report ID 6 发送
 固定的 `codex`、`super` 或 `hermes` 显示模式枚举及 Hermes 可选的
 `idle`/`opening`/`error` 状态；中央点按仅发送固定 `open_hermes` 动作。
+专属方向事件仅携带固定的桌面、方向、按下/释放枚举，不含项目或会话数据。
 它不会发送 API key、token、账户标识、
 提示词、任务文本、音频、项目/会话/窗口/Space 元数据或用户内容；不会抓取 UI、
 使用云中继、检查键盘文本、调用 shell 或 AppleScript、使用私有 Space API，或
