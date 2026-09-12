@@ -43,7 +43,7 @@ before exit. Forced termination and revoked permissions remain delivery limits.
 Review adjustments: preserve a single CoreGraphics event source, require explicit
 cancel implementations, and distinguish permission loss from identity rejection.
 No blocking standards or spec findings remain in the reviewed implementation;
-installed physical behavior is pending and must not be inferred from tests.
+physical behavior must be recorded separately and not inferred from tests.
 
 ## Installation / acceptance
 
@@ -52,10 +52,19 @@ up privately and verified. Candidate/installed executable equality, strict code
 signature, version 0.1.2/build 3, preserved outer creation time and unchanged
 original LaunchAgent configuration all passed. Modification time was updated.
 The original service restarted as one instance and logged HID connection.
-An Input Monitoring startup warning remains; actual delivery must be checked
-before requesting reauthorization. No permissions were reset and no firmware
-was flashed. Diagnostic tools and all prior backups remain intact.
+The initial startup reported an Input Monitoring warning and later an
+Accessibility rejection. After the user re-added Companion Accessibility and the
+original service was restarted, HID connected without a new Input Monitoring
+warning. No permissions were reset and no firmware was flashed. Diagnostic
+tools and all prior backups remain intact.
 
-Unverified for installed 0.1.2: SUPER all directions; Hermes repeated selection
-and right-open; no background Codex actions; central launch; foreground/cycle,
-disconnect/reconnect and service-stop cleanup; heartbeat, quota and USB microphone.
+The user then confirmed both requested navigation groups worked normally:
+SUPER up/down project selection and right tab switching; Hermes down/down/up
+selection followed by right to open. These are user-observed physical passes.
+The post-restart log slice contains no Accessibility warning, but contains no
+NAV stage records either, so per-gesture submission traces are not claimed.
+
+Still unverified in this final 0.1.2 round: no background Codex actions; separate
+cold/background central-launch regression; foreground/cycle cleanup, disconnect/
+reconnect and service-stop cleanup; heartbeat, quota and USB microphone. Earlier
+diagnostic or firmware acceptance does not substitute for these checks.
