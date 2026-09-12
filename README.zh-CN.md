@@ -78,7 +78,10 @@ Next Tab = `Control-Option-Right`。上/下/右仅定向发送给该前台进程
 **必须使用匹配版本：** Companion 0.1.1 与对应 USB-mic 固件将 SUPER/HERMES
 方向事件改为专属 `host.workspace_navigation`，不再同时发送 Codex 原生方向事件。
 Codex 上/下/右绑定保持不变；安装和回滚应成套进行，并实测 Codex 无后台动作。
-Hermes 按键接口提交成功不等于导航验收通过。新打包应用显示版本 0.1.1，构建号、
+Hermes 按键接口提交成功不等于导航验收通过。Companion 0.1.2（build 3）新增
+非阻塞的 30 毫秒按键间隔；Hermes 上下保留选择列表，右滑释放 Control 后打开。
+此次只更新 Companion，沿用已有专属方向事件固件，无需重刷；临时诊断工具的
+成功结果不能代替新版安装后的实机验收。新打包应用显示版本 0.1.2，构建号、
 源码提交及默认关闭的限时导航诊断详见 [Companion 文档](companion/README.md)。
 
 从 SUPER 左滑仅在手表选中 **HERMES / TAP TO OPEN**，Mac 保持原前台，

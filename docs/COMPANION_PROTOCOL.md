@@ -170,12 +170,17 @@ waiting Hermes. This fixes a native-event leakage path, but must still be physic
 verified to cause no background Codex action. Install and roll back matched pairs:
 old firmware with new Companion cannot provide dedicated navigation.
 
-The Mac's exact-foreground application profile maps Hermes
-right to a Control press/release (virtual key 59, Control flag on press and no
-flags on release). CoreGraphics represents this modifier pair as `flagsChanged`
-events, delivered only to the validated target PID. It does not send Return or
-Command-T, read the picker, or carry a selected session identifier. Up/down keep
-their existing Control-Shift-Tab / Control-Tab chords. See
+Companion 0.1.2 retains Control across Hermes up/down selection and maps right
+to release of that owned Control (virtual key 59, no flags on release). Without
+owned selection, right is a no-op. Modifier transitions use `flagsChanged` events;
+complete sequences are paced at least 30 ms apart on the main RunLoop. SUPER
+releases all modifiers after each command. Each action validates foreground, PID,
+bundle ID, launch time and Accessibility. Cleanup releases only owned keys to
+the original still-valid process; normal SIGTERM/SIGINT attempts cleanup before
+exit. Forced termination and revoked permission cannot guarantee delivery.
+No firmware or wire-protocol changes are needed for this update. It does not send
+Return or Command-T, read the picker, or carry a selected session identifier.
+Up/down keep their existing Control-Shift-Tab / Control-Tab chords. See
 [physical acceptance and protocol limits](superpowers/plans/2026-09-04-hermes-open-physical-acceptance.md).
 
 ### Bounded navigation diagnostics
@@ -187,7 +192,9 @@ extend or replenish the budget. Never signal an older Companion (the signal may
 terminate it), start a second watch, or change LaunchAgent arguments for tracing.
 Records identify input origin/direction, rejection stage or submission outcome;
 they contain no raw reports, arbitrary app names, PIDs, device identifiers or
-user content. `submitted` proves only local API submission, not Hermes receipt.
+user content. `sequence_accepted` records acceptance for scheduling and
+`sequence_busy` records ignored overlapping input. `submitted` marks completion
+of local API submissions, not Hermes receipt.
 Hermes failure after submission requires separate investigation, not a mapping
 change or global-key fallback.
 

@@ -10,6 +10,12 @@
 
 ## Global Constraints
 
+Progress (2026-09-12): Tasks 1 and 2 implemented and committed. Task 3 automated
+verification passed except the documented XCTest environment limitation;
+installation and user-observed acceptance remain pending. Detailed evidence:
+`2026-09-12-paced-navigation-verification.md`. The step lists below preserve the
+original execution checklist; this progress summary is the current status.
+
 Approved spec: `../specs/2026-09-11-paced-workspace-navigation-design.md`.
 Continue existing isolated branch from `a525d1c`; no firmware, protocol, mappings,
 LaunchAgent changes, merge, push, global events, content reads or TCC resets.

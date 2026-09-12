@@ -31,7 +31,7 @@ then run from the repository root:
 bash scripts/package_companion.sh companion/.build/release/codex-watch-companion /private/tmp/CodexWatchCompanion-candidate.app
 ```
 
-The output must not already exist. This packages version **0.1.1**, build **2**,
+The output must not already exist. This packages version **0.1.2**, build **3**,
 with `AgentBezelSourceCommit` and UTC `AgentBezelBuildTimestamp` in Info.plist,
 then ad-hoc signs and verifies the candidate. It does not install or restart it.
 The caller must supply the release executable built from the recorded checkout;
@@ -127,16 +127,20 @@ Accessibility warns once and disables only SUPER/HERMES navigation; left
 activation, display synchronization, quota and USB microphone remain separate.
 Hermes uses its native picker/Tab navigation, not sidebar project-tree order.
 The companion does not inspect picker state or read session/project data. A
-Control confirmation is not retried and does not hold Control across gestures.
+Control is retained across Hermes up/down gestures and released by right to open
+the selection. Right without an owned selection is a no-op; no confirmation is retried.
 Test right both with and without the picker after installation; native keyboard
 confirmation alone does not prove process-targeted delivery or physical swipe.
 Up/down/right are companion no-ops in Codex and all other applications.
-Navigation uses fixed process-targeted CoreGraphics down/up pairs, revalidating
-the foreground identity and PID/bundle pair before delivery. It never posts
+Navigation uses complete fixed process-targeted CoreGraphics sequences, paced at
+least 30 ms apart without blocking the main RunLoop. Each action revalidates
+Accessibility, foreground identity, PID, bundle ID and application launch time. It never posts
 these keys globally or retries navigation commands. Physical acceptance must
 still confirm ChatGPT performs no background action in SUPER/HERMES.
 
-Companion 0.1.1 requires matching USB-mic firmware for dedicated directions.
+Companion 0.1.2 uses the same dedicated-direction firmware as 0.1.1; this pacing
+update does not require reflashing. Versions before the dedicated-direction
+firmware still require a matched upgrade.
 SUPER/HERMES send `host.workspace_navigation` with fixed source, direction and
 press/release fields instead of native `v.oai.rad`, which remains Codex-only.
 The source must match both selected workspace and actual foreground before keys
@@ -150,6 +154,15 @@ at most 120 fixed `NAV` stage records for five minutes, once per process lifetim
 repeated signals cannot extend it. Never signal an old build or another process.
 No LaunchAgent edits, second watch, key-event tap or content collection is needed.
 `submitted` does not prove the target app responded; require physical observation.
+`sequence_accepted` means scheduling was accepted; `sequence_busy` means the new
+command was ignored, not queued. `submitted` marks a completed sequence of API
+submissions, not application receipt.
+
+Left-cycle, foreground change and HID attach/removal cancel queued strokes and
+release owned keys to the original still-valid process only. Such Control release
+may commit an existing Hermes picker. Normal watch termination (SIGTERM/SIGINT)
+attempts release before exiting; forced termination or revoked permission cannot
+guarantee delivery. No global fallback or automatic permission reset is used.
 See [protocol and diagnostic limits](../docs/COMPANION_PROTOCOL.md#bounded-navigation-diagnostics).
 
 With matching USB-mic firmware, except for explicit Hermes waiting selection,

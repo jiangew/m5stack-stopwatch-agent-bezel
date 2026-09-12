@@ -91,7 +91,12 @@ SUPER/HERMES direction events from Codex's native radial events. Keep Codex's
 up/down/right bindings: dedicated workspaces use `host.workspace_navigation`
 instead. Install/roll back both components together and physically verify no
 background Codex action. Hermes API submission alone is not navigation acceptance.
-Local packaged apps now show version 0.1.1; build/commit metadata and a bounded,
+Companion 0.1.2 (build 3) adds nonblocking 30 ms key pacing. Hermes up/down retains
+the picker selection; right releases Control to open it. This Companion-only
+update uses the existing dedicated-direction firmware. Installation acceptance
+for this version must be performed separately from the successful diagnostic probes.
+
+Local packaged apps now show version 0.1.2; build/commit metadata and a bounded,
 opt-in navigation trace are described in the [Companion guide](companion/README.md).
 
 Left from SUPER selects **HERMES / TAP TO OPEN** on the watch only; it does not
