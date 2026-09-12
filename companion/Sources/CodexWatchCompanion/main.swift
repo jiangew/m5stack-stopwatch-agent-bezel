@@ -651,6 +651,8 @@ private func run() throws {
     var shortcutListener: HIDShortcutListener?
     var workspaceModeCoordinator: WorkspaceModeCoordinator?
     var navigationDiagnosticSignal: NavigationDiagnosticSignal?
+    var navigationLifecycle: WorkspaceNavigationLifecycle?
+    var watchTermination: WatchTerminationSignal?
     if options.startsHIDShortcutListener,
        options.startsWorkspaceModeCoordinator {
         let diagnostics = NavigationDiagnostics(log: { fputs("\($0)\n", stderr) })
@@ -661,10 +663,12 @@ private func run() throws {
             scheduler: SystemWorkspaceModeScheduler(),
             log: { fputs("快捷键：\($0)\n", stderr) }
         )
+        let keyEmitter = SystemProcessTargetedKeyEmitter(diagnose: { diagnostics.record($0) })
+        let keyLifecycle = WorkspaceNavigationLifecycle(observer: SystemForegroundApplicationObserver(), emitter: keyEmitter)
         let router = WorkspaceCommandRouter(
             workspace: workspace,
             toggler: toggler,
-            emitter: SystemProcessTargetedKeyEmitter(diagnose: { diagnostics.record($0) }),
+            emitter: keyEmitter,
             accessibility: SystemAccessibilityTrustChecker(),
             log: { fputs("快捷键：\($0)\n", stderr) },
             diagnose: { diagnostics.record($0) }
@@ -675,16 +679,19 @@ private func run() throws {
         )
         toggler.start()
         coordinator.start()
+        keyLifecycle.start()
         let listener = HIDShortcutListener(
             eventHandler: { [weak router] event in
                 diagnostics.recordInput(event)
                 router?.handle(event)
             },
             log: { fputs("快捷键：\($0)\n", stderr) },
-            workspaceSenderMatched: { [weak coordinator] sender in
+            workspaceSenderMatched: { [weak coordinator, weak keyLifecycle] sender in
+                keyLifecycle?.cancel()
                 coordinator?.attach(sender)
             },
-            workspaceSenderRemoved: { [weak coordinator] deviceKey in
+            workspaceSenderRemoved: { [weak coordinator, weak keyLifecycle] deviceKey in
+                keyLifecycle?.cancel()
                 coordinator?.detach(deviceKey: deviceKey)
             }
         )
@@ -693,17 +700,33 @@ private func run() throws {
             let diagnosticSignal = NavigationDiagnosticSignal(diagnostics: diagnostics)
             diagnosticSignal.start()
             navigationDiagnosticSignal = diagnosticSignal
+            navigationLifecycle = keyLifecycle
             workspaceCycleController = toggler
             shortcutRouter = router
             shortcutListener = listener
             workspaceModeCoordinator = coordinator
+            let termination = WatchTerminationSignal {
+                keyLifecycle.stop()
+                diagnosticSignal.stop()
+                toggler.stop()
+                coordinator.stop()
+                listener.stop()
+                exit(EXIT_SUCCESS)
+            }
+            termination.start()
+            watchTermination = termination
         } catch {
+            keyLifecycle.stop()
             toggler.stop()
             coordinator.stop()
             fputs("快捷键不可用：\(error.localizedDescription)\n", stderr)
         }
     }
     defer {
+        watchTermination?.stop()
+        watchTermination = nil
+        navigationLifecycle?.stop()
+        navigationLifecycle = nil
         navigationDiagnosticSignal?.stop()
         navigationDiagnosticSignal = nil
         workspaceCycleController?.stop()

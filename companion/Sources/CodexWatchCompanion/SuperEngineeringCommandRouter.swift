@@ -41,6 +41,7 @@ final class WorkspaceCommandRouter {
         switch event {
         case .left:
             guard toggler.selectedProfile == .codex else { return }
+            emitter.cancel()
             toggler.cycle()
         case .openHermes:
             toggler.openHermes()
@@ -53,10 +54,12 @@ final class WorkspaceCommandRouter {
                 return
             }
             if direction == .left {
+                emitter.cancel()
                 toggler.cycle()
                 return
             }
             guard toggler.allowsNavigation else {
+                emitter.cancel()
                 diagnose(.waitingRejected)
                 return
             }
@@ -65,9 +68,11 @@ final class WorkspaceCommandRouter {
                   profile == origin.profile,
                   let command = profile.command(for: direction.nativeEvent) else {
                 diagnose(.foregroundRejected)
+                emitter.cancel()
                 return
             }
             guard accessibility.isTrusted else {
+                emitter.cancel()
                 diagnose(.accessibilityRejected)
                 if !didWarnAboutAccessibility {
                     didWarnAboutAccessibility = true

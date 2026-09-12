@@ -203,7 +203,8 @@ final class SystemProcessTargetedKeyEmitter: ProcessTargetedKeyEmitting {
               !application.isTerminated else { return nil }
         return ApplicationIdentity(
             processIdentifier: application.processIdentifier,
-            bundleIdentifier: bundleIdentifier
+            bundleIdentifier: bundleIdentifier,
+            launchDate: application.launchDate
         )
     }
 }

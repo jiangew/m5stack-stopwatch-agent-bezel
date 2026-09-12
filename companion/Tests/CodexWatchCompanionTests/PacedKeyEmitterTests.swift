@@ -121,4 +121,16 @@ import XCTest
         f.poster.result = true; XCTAssertTrue(f.send(.nextTab)); f.clock.drain()
         XCTAssertEqual(f.poster.strokes.count,6); f.emitter.stop()
     }
+    func testRealRunLoopRemainsResponsiveWhileSequenceIsPending() {
+        let f = KeyFixture()
+        let emitter = SystemProcessTargetedKeyEmitter(frontmostIdentity:{f.target},identityForProcess:{_ in f.target},poster:f.poster,trusted:{true})
+        XCTAssertTrue(emitter.emit(.nextTab,to:f.target))
+        XCTAssertEqual(f.poster.strokes.count,1)
+        var serviced = false
+        let timer = Timer(timeInterval:0.005,repeats:false) { _ in serviced = true }
+        RunLoop.main.add(timer,forMode:.common)
+        RunLoop.main.run(until:Date().addingTimeInterval(0.3))
+        XCTAssertTrue(serviced); XCTAssertEqual(f.poster.strokes.count,6)
+        emitter.stop()
+    }
 }

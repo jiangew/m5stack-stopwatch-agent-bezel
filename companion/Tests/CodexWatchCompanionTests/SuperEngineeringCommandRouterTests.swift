@@ -22,6 +22,8 @@ private final class EmitterSpy: ProcessTargetedKeyEmitting {
     }
 
     var calls: [Call] = []
+    var cancellations = 0
+    func cancel() { cancellations += 1 }
     var result = true
 
     func emit(
@@ -43,6 +45,16 @@ private final class RouterLogRecorder {
 
 @MainActor
 final class WorkspaceCommandRouterTests: XCTestCase {
+    func testAcceptedCycleAndDeniedNavigationCancelOwnedKeys() {
+        let f = makeFixture(frontmost: superApp, trusted: true)
+        f.toggler.selectedProfile = .super
+        f.router.handle(.navigation(.super,.left))
+        XCTAssertEqual(f.emitter.cancellations,1)
+        let denied = makeFixture(frontmost: superApp, trusted:false)
+        denied.toggler.selectedProfile = .super
+        denied.router.handle(.navigation(.super,.up))
+        XCTAssertEqual(denied.emitter.cancellations,1)
+    }
     func testStaleSourceAndMismatchedForegroundAreIgnoredIncludingNativeLeft() {
         let fixture = makeFixture(frontmost: superApp, trusted: true)
         fixture.router.handle(.navigation(.hermes, .up))

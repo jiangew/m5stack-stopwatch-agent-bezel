@@ -4,6 +4,13 @@ import Foundation
 struct ApplicationIdentity: Equatable, Hashable {
     let processIdentifier: pid_t
     let bundleIdentifier: String
+    let launchDate: Date?
+
+    init(processIdentifier: pid_t, bundleIdentifier: String, launchDate: Date? = nil) {
+        self.processIdentifier = processIdentifier
+        self.bundleIdentifier = bundleIdentifier
+        self.launchDate = launchDate
+    }
 }
 
 @MainActor
@@ -60,7 +67,8 @@ final class NSWorkspaceApplications: WorkspaceApplications {
         guard let application, let bundleIdentifier = application.bundleIdentifier else { return nil }
         return ApplicationIdentity(
             processIdentifier: application.processIdentifier,
-            bundleIdentifier: bundleIdentifier
+            bundleIdentifier: bundleIdentifier,
+            launchDate: application.launchDate
         )
     }
 }

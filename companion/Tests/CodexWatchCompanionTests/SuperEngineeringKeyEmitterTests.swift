@@ -32,4 +32,15 @@ import XCTest
             XCTAssertEqual(poster.count,0); emitter.stop()
         }
     }
+    func testSameBundleReusingPIDCannotReceiveOldSelectionRelease() {
+        let original = ApplicationIdentity(processIdentifier:202,bundleIdentifier:"com.nousresearch.hermes",launchDate:Date(timeIntervalSince1970:1))
+        var actual = original
+        let poster = GuardPoster()
+        let emitter = SystemProcessTargetedKeyEmitter(frontmostIdentity:{original},identityForProcess:{_ in actual},poster:poster,trusted:{true})
+        XCTAssertTrue(emitter.emit(.nextHermesTab,to:original))
+        XCTAssertEqual(poster.count,1)
+        actual = ApplicationIdentity(processIdentifier:202,bundleIdentifier:"com.nousresearch.hermes",launchDate:Date(timeIntervalSince1970:2))
+        emitter.stop()
+        XCTAssertEqual(poster.count,1)
+    }
 }
