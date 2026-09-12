@@ -13,6 +13,7 @@ enum NavigationDiagnosticStage: String {
     case identityRejected = "identity_rejected"
     case submissionFailed = "submission_failed"
     case submitted
+    case sequenceAccepted = "sequence_accepted", sequenceBusy = "sequence_busy"
 }
 
 @MainActor
