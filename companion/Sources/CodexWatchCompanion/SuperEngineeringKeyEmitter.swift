@@ -26,14 +26,15 @@ protocol ProcessTargetedKeyEmitting: AnyObject {
 }
 
 extension ProcessTargetedKeyEmitting {
-    func cancel() {}
     func stop() { cancel() }
 }
 
 @MainActor
 final class CoreGraphicsProcessKeySequencePoster: ProcessKeySequencePosting {
+    private let source = CGEventSource(stateID: .hidSystemState)
+
     func post(_ strokes: [ProcessKeyStroke], to processIdentifier: pid_t) -> Bool {
-        guard let source = CGEventSource(stateID: .hidSystemState) else { return false }
+        guard let source else { return false }
         var events: [CGEvent] = []
         events.reserveCapacity(strokes.count)
         for stroke in strokes {
@@ -148,9 +149,10 @@ final class SystemProcessTargetedKeyEmitter: ProcessTargetedKeyEmitting {
 
     @discardableResult private func advance() -> Bool {
         guard let owner else { return true }
-        guard identityForProcess(owner.processIdentifier) == owner, trusted() else {
+        guard identityForProcess(owner.processIdentifier) == owner else {
             diagnose(.identityRejected); forget(); return false
         }
+        guard trusted() else { diagnose(.accessibilityRejected); forget(); return false }
         if !cleaning, frontmostIdentity() != owner { cancel(); return false }
         guard !pending.isEmpty else { return true }
         let now = uptime()
