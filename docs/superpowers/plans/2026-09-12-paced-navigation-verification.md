@@ -47,9 +47,14 @@ installed physical behavior is pending and must not be inferred from tests.
 
 ## Installation / acceptance
 
-Pending. Back up and verify the current signed app before replacing Companion,
-preserve configuration and outer creation time, then verify 0.1.2/build 3 metadata.
-Only reauthorize if required. Keep diagnostic tools and existing backups.
+Installed on 2026-09-12 from source `ecf1bbd`. The previous signed app was backed
+up privately and verified. Candidate/installed executable equality, strict code
+signature, version 0.1.2/build 3, preserved outer creation time and unchanged
+original LaunchAgent configuration all passed. Modification time was updated.
+The original service restarted as one instance and logged HID connection.
+An Input Monitoring startup warning remains; actual delivery must be checked
+before requesting reauthorization. No permissions were reset and no firmware
+was flashed. Diagnostic tools and all prior backups remain intact.
 
 Unverified for installed 0.1.2: SUPER all directions; Hermes repeated selection
 and right-open; no background Codex actions; central launch; foreground/cycle,

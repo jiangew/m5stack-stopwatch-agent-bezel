@@ -12,7 +12,7 @@
 
 Progress (2026-09-12): Tasks 1 and 2 implemented and committed. Task 3 automated
 verification passed except the documented XCTest environment limitation;
-installation and user-observed acceptance remain pending. Detailed evidence:
+installation completed; user-observed acceptance remains pending. Detailed evidence:
 `2026-09-12-paced-navigation-verification.md`. The step lists below preserve the
 original execution checklist; this progress summary is the current status.
 
