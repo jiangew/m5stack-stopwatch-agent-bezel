@@ -10,8 +10,8 @@ namespace workspace_mode {
 
 constexpr std::uint32_t kLeaseMs = 15000;
 
-enum class Mode : std::uint8_t { Codex, Super, Hermes, HermesIdle, HermesOpening, HermesError };
-enum class Command : std::uint8_t { Invalid, Codex, Super, Hermes, HermesIdle, HermesOpening, HermesError };
+enum class Mode : std::uint8_t { Codex, Super, Hermes, HermesIdle, HermesOpening, HermesError, Home };
+enum class Command : std::uint8_t { Invalid, Codex, Super, Hermes, HermesIdle, HermesOpening, HermesError, Home, CodexLeased };
 
 constexpr bool isHermes(Mode mode) {
   return mode == Mode::Hermes || mode == Mode::HermesIdle ||
@@ -27,7 +27,8 @@ constexpr bool isDirectional(Mode mode) {
 }
 
 constexpr bool silencesAgentTransitions(Mode previous, Mode next) {
-  return isDirectional(previous) || isDirectional(next);
+  return previous == Mode::Home || next == Mode::Home ||
+         isDirectional(previous) || isDirectional(next);
 }
 
 inline Command parse(JsonObjectConst params) {
@@ -35,8 +36,15 @@ inline Command parse(JsonObjectConst params) {
   if (!modeValue.is<const char*>()) return Command::Invalid;
 
   const char* mode = modeValue.as<const char*>();
+  if (std::strcmp(mode, "home") == 0) {
+    return params.size() == 1 ? Command::Home : Command::Invalid;
+  }
   if (std::strcmp(mode, "codex") == 0) {
-    return params.size() == 1 ? Command::Codex : Command::Invalid;
+    if (params.size() == 1) return Command::Codex;
+    const JsonVariantConst ttl = params["ttl_ms"];
+    return params.size() == 2 && ttl.is<JsonInteger>() &&
+                   ttl.as<JsonInteger>() == kLeaseMs
+               ? Command::CodexLeased : Command::Invalid;
   }
   const bool super = std::strcmp(mode, "super") == 0;
   const bool hermes = std::strcmp(mode, "hermes") == 0;
@@ -63,18 +71,30 @@ inline Command parse(JsonObjectConst params) {
 
 class Lease {
  public:
+  explicit Lease(Mode fallback = Mode::Codex)
+      : fallback_(fallback), mode_(fallback), needsHomeSync_(fallback == Mode::Home) {}
+
   bool apply(Command command, std::uint16_t connectionId,
              std::uint32_t nowMs) {
     if (command == Command::Invalid) return false;
-    if (command == Command::Codex) return clear();
+    if (fallback_ == Mode::Codex) {
+      if (command == Command::Home || command == Command::CodexLeased) return false;
+      if (command == Command::Codex) return clear();
+    } else {
+      if (ownerValid_ && ownerConnectionId_ != connectionId) return false;
+      if (needsHomeSync_ && command != Command::Home) return false;
+    }
 
-    if (mode_ != Mode::Codex &&
+    if (fallback_ == Mode::Codex && mode_ != Mode::Codex &&
         (!ownerValid_ || ownerConnectionId_ != connectionId)) {
       return false;
     }
 
     Mode requested = Mode::Hermes;
     switch (command) {
+      case Command::Home: requested = Mode::Home; break;
+      case Command::Codex:
+      case Command::CodexLeased: requested = Mode::Codex; break;
       case Command::Super: requested = Mode::Super; break;
       case Command::HermesIdle: requested = Mode::HermesIdle; break;
       case Command::HermesOpening: requested = Mode::HermesOpening; break;
@@ -86,6 +106,7 @@ class Lease {
     ownerConnectionId_ = connectionId;
     ownerValid_ = true;
     refreshedAtMs_ = nowMs;
+    needsHomeSync_ = false;
     return changed;
   }
 
@@ -95,7 +116,7 @@ class Lease {
   }
 
   bool expire(std::uint32_t nowMs) {
-    if (mode_ == Mode::Codex ||
+    if (!ownerValid_ || (fallback_ == Mode::Codex && mode_ == Mode::Codex) ||
         static_cast<std::uint32_t>(nowMs - refreshedAtMs_) < kLeaseMs) {
       return false;
     }
@@ -103,18 +124,23 @@ class Lease {
   }
 
   Mode mode() const { return mode_; }
+  bool needsHomeSync() const { return needsHomeSync_; }
+  bool hostReady() const { return ownerValid_ && !needsHomeSync_; }
 
  private:
   bool clear() {
-    const bool changed = mode_ != Mode::Codex;
-    mode_ = Mode::Codex;
+    const bool changed = mode_ != fallback_;
+    mode_ = fallback_;
     ownerConnectionId_ = 0;
     ownerValid_ = false;
     refreshedAtMs_ = 0;
+    needsHomeSync_ = fallback_ == Mode::Home;
     return changed;
   }
 
-  Mode mode_ = Mode::Codex;
+  Mode fallback_;
+  Mode mode_;
+  bool needsHomeSync_;
   std::uint16_t ownerConnectionId_ = 0;
   bool ownerValid_ = false;
   std::uint32_t refreshedAtMs_ = 0;

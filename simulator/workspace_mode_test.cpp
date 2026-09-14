@@ -63,7 +63,7 @@ void testStrictParsing() {
   assert(parseParams(R"({})") == Command::Invalid);
   assert(parseParams(R"({"mode":"super"})") == Command::Invalid);
   assert(parseParams(R"({"mode":"codex","ttl_ms":15000})") ==
-         Command::Invalid);
+         Command::CodexLeased);
   assert(parseParams(
              R"({"mode":"super","ttl_ms":15000,"label":"SUPER"})") ==
          Command::Invalid);

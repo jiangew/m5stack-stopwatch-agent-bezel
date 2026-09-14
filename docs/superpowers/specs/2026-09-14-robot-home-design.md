@@ -1,7 +1,6 @@
 # Robot home for C152 USB-mic
 
-Status: Written design for review. Visual appearance and startup/disconnect
-behavior were approved by the user; this document defines device integration.
+Status: Approved by the user on 2026-09-14, including device integration.
 Baseline: `f3be5a4`. Work serially on `codex/robot-home`.
 
 ## User experience
