@@ -64,7 +64,39 @@ selection followed by right to open. These are user-observed physical passes.
 The post-restart log slice contains no Accessibility warning, but contains no
 NAV stage records either, so per-gesture submission traces are not claimed.
 
-Still unverified in this final 0.1.2 round: no background Codex actions; separate
-cold/background central-launch regression; foreground/cycle cleanup, disconnect/
-reconnect and service-stop cleanup; heartbeat, quota and USB microphone. Earlier
-diagnostic or firmware acceptance does not substitute for these checks.
+## Subsequent user-observed acceptance (2026-09-14)
+
+- Left/cycle and Command-Tab away from Hermes selection and back: normal,
+  with no stuck Control; no background Codex actions were observed.
+- Travel shutdown and reconnect during selection: mode and navigation recovered
+  without stuck keys or repeated actions.
+- Service-exit/recovery cleanup: user confirmed normal after an explicit
+  clarification of this test. The agent's attempted process inspection was
+  blocked before any signal was sent; agent-observed termination/restart evidence
+  is therefore not claimed.
+- Hermes cold launch, background-window restoration, repeated central taps and
+  subsequent navigation: user confirmed normal.
+- USB microphone: user confirmed a normal short recording/playback and deletion
+  of the temporary recording after the requested cleanup steps. No audio was
+  read, transcribed, uploaded or retained in this record.
+
+Initial final-check attempts were blocked by approval-service capacity before
+execution. A subsequent read-only retry on 2026-09-14 succeeded:
+
+- Original service running with exactly one Companion process; strict installed
+  app signature verification passed and the original plist hash matched the
+  installation baseline. No service or configuration was changed.
+- One new quota-write success appeared during the observation window, with no
+  new quota failure or workspace-output failure log entries.
+- Since the preceding navigation acceptance log checkpoint, there were 76 quota
+  failure/retry messages and two HID attach/detach pairs, but no workspace-mode
+  output-failure messages. Later successful writes demonstrate recovery, not an
+  error-free historical run. Disconnect tests may overlap this interval; no
+  specific cause is inferred from these counters.
+- Successful workspace heartbeats are intentionally silent. User-observed mode
+  synchronization plus no logged workspace-output failures is the available
+  evidence; individual heartbeat deliveries are not independently traced.
+
+The service run count and process identity still matched the earlier snapshot.
+Consequently the user-reported service-exit result above is not corroborated by
+an agent-observed exit/restart. This remains a distinct evidence limitation.
