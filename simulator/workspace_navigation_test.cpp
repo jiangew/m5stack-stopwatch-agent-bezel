@@ -19,6 +19,11 @@ static std::string json(const Event& event) {
 }
 
 int main() {
+  for(auto direction:{Direction::Up,Direction::Down,Direction::Right}){
+    Gesture home;Event event{};assert(!home.begin(Mode::Home,direction,event));
+  }
+  {Gesture home;Event event{};assert(home.begin(Mode::Home,Direction::Left,event));
+   assert(json(event)=="{\"method\":\"host.workspace_navigation\",\"params\":{\"workspace\":\"home\",\"direction\":\"left\",\"phase\":\"press\"}}");}
   for (auto mode : {Mode::Codex, Mode::Super, Mode::Hermes,
                     Mode::HermesIdle, Mode::HermesOpening, Mode::HermesError}) {
     for (auto direction : {Direction::Up, Direction::Down, Direction::Left,

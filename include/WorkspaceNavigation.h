@@ -7,7 +7,7 @@
 namespace workspace_navigation {
 
 enum class Family : std::uint8_t { Native, Dedicated };
-enum class Workspace : std::uint8_t { Super, Hermes };
+enum class Workspace : std::uint8_t { Super, Hermes, Home };
 
 struct Event {
   Family family = Family::Native;
@@ -21,7 +21,9 @@ class Gesture {
   bool begin(workspace_mode::Mode mode, touch_gesture::Direction direction,
              Event& event) {
     if (active_ || direction == touch_gesture::Direction::None) return false;
-    origin_ = {workspace_mode::isDirectional(mode) ? Family::Dedicated : Family::Native,
+    if (mode == workspace_mode::Mode::Home && direction != touch_gesture::Direction::Left) return false;
+    origin_ = {mode != workspace_mode::Mode::Codex ? Family::Dedicated : Family::Native,
+               mode == workspace_mode::Mode::Home ? Workspace::Home :
                workspace_mode::isHermes(mode) ? Workspace::Hermes : Workspace::Super,
                direction, true};
     active_ = true;
@@ -63,7 +65,7 @@ inline void write(JsonObject message, const Event& event) {
     params["a"] = touch_gesture::normalizedAngle(event.direction);
     params["d"] = event.pressed ? 1.0f : 0.0f;
   } else {
-    params["workspace"] = event.workspace == Workspace::Super ? "super" : "hermes";
+    params["workspace"] = event.workspace == Workspace::Home ? "home" : event.workspace == Workspace::Super ? "super" : "hermes";
     params["direction"] = directionName(event.direction);
     params["phase"] = event.pressed ? "press" : "release";
   }

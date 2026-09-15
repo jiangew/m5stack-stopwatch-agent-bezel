@@ -43,7 +43,8 @@ struct CodexMicroState {
   uint32_t lastHostRpcAtMs = 0;
   uint32_t connectionEpoch = 0;
 #if defined(CODEX_STOPWATCH_USB_MIC)
-  workspace_mode::Mode workspaceMode = workspace_mode::Mode::Codex;
+  workspace_mode::Mode workspaceMode = workspace_mode::Mode::Home;
+  bool workspaceHostReady = false;
 #endif
   bool dirty = true;
 };
@@ -143,7 +144,9 @@ class CodexMicroBle {
   connection_health::ConnectionSet connections_;
   std::atomic<bool> connectionEventLost_{false};
 #if defined(CODEX_STOPWATCH_USB_MIC)
-  workspace_mode::Lease workspaceLease_;
+  workspace_mode::Lease workspaceLease_{workspace_mode::Mode::Home};
+  uint32_t lastHomeSyncMs_ = 0;
+  bool homeSyncSent_ = false;
   PeerAddress hostRpcPeerAddress_ = {};
   uint32_t hostRpcPeerEpoch_ = 0;
   bool hostRpcPeerValid_ = false;

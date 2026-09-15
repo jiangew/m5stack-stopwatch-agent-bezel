@@ -21,6 +21,7 @@
 #include "UsbMic.h"
 #include "WorkspaceInputPolicy.h"
 #include "WorkspaceCenterTap.h"
+#include "RobotHomeUi.h"
 #endif
 
 namespace {
@@ -96,6 +97,8 @@ bool touchSendPressed = false;
 #if defined(CODEX_STOPWATCH_USB_MIC)
 bool touchPowerHoldCandidate = false;
 workspace_input::CenterTap workspaceCenterTap;
+robot_home::Tap robotTap;
+robot_home::Animation robotAnimation;
 workspace_navigation::Gesture navigationGesture;
 int workspaceTouchEndX = 0;
 int workspaceTouchEndY = 0;
@@ -429,7 +432,7 @@ float currentPowerHoldProgress() {
 
 #if defined(CODEX_STOPWATCH_USB_MIC)
 bool directionalWorkspaceActive() {
-  return workspace_mode::isDirectional(state.workspaceMode);
+  return state.workspaceMode != workspace_mode::Mode::Codex;
 }
 
 workspace_input::Control controlForSwipe(
@@ -509,8 +512,18 @@ dashboard::State dashboardState() {
 void drawScreen() {
   if (deskSleeping) return;
 #if defined(CODEX_STOPWATCH_USB_MIC)
+  if(state.workspaceMode==workspace_mode::Mode::Home && renderedWorkspaceModeValid &&
+     renderedWorkspaceMode==workspace_mode::Mode::Home &&
+     powerOverlay==dashboard::PowerOverlay::None && millis()-lastDrawMs<50)return;
   if (directionalWorkspaceActive()) {
-    super_workspace::render(canvas, superWorkspaceState());
+    if (state.workspaceMode == workspace_mode::Mode::Home) {
+      robot_home::State ui;
+      ui.nowMs=millis();ui.mood=robotAnimation.mood(ui.nowMs);
+      ui.batteryPercent=batteryPercent;ui.charging=charging;
+      ui.connected=state.workspaceHostReady;
+      ui.powerOverlay=superPowerOverlay();ui.powerHoldProgress=currentPowerHoldProgress();
+      robot_home::render(canvas,ui);
+    } else super_workspace::render(canvas, superWorkspaceState());
     renderedHealthValid = false;
     renderedWorkspaceModeValid = true;
     renderedWorkspaceMode = state.workspaceMode;
@@ -594,6 +607,7 @@ void clearTouchCandidate() {
 #if defined(CODEX_STOPWATCH_USB_MIC)
   touchPowerHoldCandidate = false;
   workspaceCenterTap.cancel();
+  robotTap.cancel();
 #endif
   activeTouchAgent = -1;
 }
@@ -609,7 +623,9 @@ void beginTouchGesture(int x, int y) {
                 dashboard::sendAtPoint(x, y) ? 1 : 0);
 #if defined(CODEX_STOPWATCH_USB_MIC)
   if (directionalWorkspaceActive()) {
+    workspaceTouchEndX=x;workspaceTouchEndY=y;
     workspaceCenterTap.begin(x, y, millis(), !deskSleeping);
+    robotTap.begin(x,y,millis(),!deskSleeping);
     if (dashboard::sendAtPoint(x, y) && workspace_input::allowed(
             state.workspaceMode,
             workspace_input::Control::CenterPowerHold)) {
@@ -648,6 +664,7 @@ void sendSwipeRelease() {
 void updateTouchGesture(int x, int y) {
 #if defined(CODEX_STOPWATCH_USB_MIC)
   workspaceCenterTap.move(x, y, kSwipeThresholdPx);
+  robotTap.move(x,y,kSwipeThresholdPx);
 #endif
   if (!touchTracking || touchPowerHoldConsumed ||
       activeSwipe != touch_gesture::Direction::None) {
@@ -673,6 +690,19 @@ void updateTouchGesture(int x, int y) {
   clearTouchCandidate();
   activeSwipe = direction;
 #if defined(CODEX_STOPWATCH_USB_MIC)
+  if (state.workspaceMode == workspace_mode::Mode::Home) {
+    switch(direction) {
+      case touch_gesture::Direction::Up:robotAnimation.react(robot_home::Mood::Surprise,millis());break;
+      case touch_gesture::Direction::Down:robotAnimation.react(robot_home::Mood::Sleep,millis());break;
+      case touch_gesture::Direction::Right:robotAnimation.random(millis(),esp_random());break;
+      case touch_gesture::Direction::Left:
+        if(state.workspaceHostReady)sendSwipePress(direction);
+        else robotAnimation.react(robot_home::Mood::Connect,millis());
+        break;
+      default:break;
+    }
+    return;
+  }
   workspacePalette.acceptSwipe(millis(), [] { return esp_random(); });
 #endif
   const float angle = touch_gesture::normalizedAngle(direction);
@@ -712,6 +742,11 @@ void finishTouchGesture(int x, int y) {
 
 #if defined(CODEX_STOPWATCH_USB_MIC)
   if (directionalWorkspaceActive()) {
+    if (state.workspaceMode == workspace_mode::Mode::Home) {
+      if(robotTap.finish(x,y,millis(),kSwipeThresholdPx)&&noteActivity())
+        robotAnimation.react(robot_home::Mood::Happy,millis());
+      clearTouchCandidate();return;
+    }
     const bool tap = workspaceCenterTap.finish(x, y, millis(), kSwipeThresholdPx);
     const bool canOpen = state.workspaceMode == workspace_mode::Mode::HermesIdle ||
                          state.workspaceMode == workspace_mode::Mode::HermesError;
@@ -923,13 +958,15 @@ void handleWorkspaceModeTransition(workspace_mode::Mode previous,
   voiceTapBannerVisible = false;
   touchTracking = false;
   touchPowerHoldConsumed = false;
+  robotAnimation.react(robot_home::Mood::Idle,millis());
   powerOverlay = dashboard::PowerOverlay::None;
   completionBanner.clear();
   clearTouchCandidate();
   stopHaptic();
   Serial.printf("WORKSPACE mode=%s\n",
                 workspace_mode::isHermes(next) ? "hermes" :
-                next == workspace_mode::Mode::Super ? "super" : "codex");
+                next == workspace_mode::Mode::Super ? "super" :
+                next == workspace_mode::Mode::Home ? "home" : "codex");
 }
 #endif
 
@@ -1147,6 +1184,7 @@ void loop() {
     activeSwipe = touch_gesture::Direction::None;
     touchTracking = false;
     workspaceCenterTap.cancel();
+    robotTap.cancel();
   }
   const workspace_mode::Mode previousWorkspaceMode = state.workspaceMode;
   handleWorkspaceModeTransition(previousWorkspaceMode, latest.workspaceMode);
@@ -1169,6 +1207,10 @@ void loop() {
   const int touchY = touch.y;
   if (touch.wasPressed()) {
 #if defined(CODEX_STOPWATCH_USB_MIC)
+    if (state.workspaceMode == workspace_mode::Mode::Home) {
+      if(noteActivity())beginTouchGesture(touchX,touchY);
+      else {touchTracking=false;clearTouchCandidate();}
+    } else
     if (!workspace_input::touchDownWakes(state.workspaceMode)) {
       if (workspace_mode::isHermes(state.workspaceMode) && deskSleeping &&
           workspace_input::inCenter(touchX, touchY)) {
@@ -1199,6 +1241,7 @@ void loop() {
     workspaceTouchEndX = point.x;
     workspaceTouchEndY = point.y;
     workspaceCenterTap.move(point.x, point.y, kSwipeThresholdPx);
+    robotTap.move(point.x,point.y,kSwipeThresholdPx);
 #endif
     updateTouchGesture(touchX, touchY);
     updateTouchPowerHold();
@@ -1311,6 +1354,15 @@ void loop() {
         currentUi.charging != renderedCharging ||
         currentUi.docked != renderedDocked;
   }
+#if defined(CODEX_STOPWATCH_USB_MIC)
+  const bool robotFrame=robotAnimation.frameDue(millis(),!deskSleeping &&
+      state.workspaceMode==workspace_mode::Mode::Home &&
+      powerOverlay==dashboard::PowerOverlay::None);
+  if(state.workspaceMode==workspace_mode::Mode::Home &&
+     powerOverlay==dashboard::PowerOverlay::None) {
+    shouldRedraw=robotFrame;derivedStateChanged=false;
+  }
+#endif
   if (!deskSleeping &&
       (shouldRedraw || derivedStateChanged || completionBannerExpired)) {
     drawScreen();

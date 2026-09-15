@@ -491,9 +491,9 @@ void CodexMicroBle::applyConnectionEvent(const PendingConnectionEvent& event) {
       !event.connected && hostRpcConnectionValid_ &&
       hostRpcConnectionId_ == event.id;
 #if defined(CODEX_STOPWATCH_USB_MIC)
-  if (!event.connected && workspaceLease_.disconnect(event.id)) {
-    state_.workspaceMode = workspace_mode::Mode::Codex;
-  }
+  if (!event.connected) workspaceLease_.disconnect(event.id);
+  state_.workspaceMode = workspaceLease_.mode();
+  state_.workspaceHostReady = workspaceLease_.hostReady();
 #endif
   if (transition.becameConnected) {
     ++state_.connectionEpoch;
@@ -559,8 +559,9 @@ void CodexMicroBle::reconcileConnectionSet() {
   state_.hostRpcObserved = false;
   clearHostRpcIdentity();
 #if defined(CODEX_STOPWATCH_USB_MIC)
-  workspaceLease_ = workspace_mode::Lease();
-  state_.workspaceMode = workspace_mode::Mode::Codex;
+  workspaceLease_ = workspace_mode::Lease(workspace_mode::Mode::Home);
+  state_.workspaceMode = workspace_mode::Mode::Home;
+  state_.workspaceHostReady = false;
 #endif
   state_.dirty = true;
   const uint32_t epoch = state_.connectionEpoch;
@@ -780,11 +781,21 @@ void CodexMicroBle::processQuotaWrite(const uint8_t* data, size_t length,
 void CodexMicroBle::expireWorkspaceLease() {
   if (stateMutex_ == nullptr) return;
   xSemaphoreTake(stateMutex_, portMAX_DELAY);
-  if (workspaceLease_.expire(millis())) {
-    state_.workspaceMode = workspace_mode::Mode::Codex;
+  const uint32_t now = millis();
+  workspaceLease_.expire(now);
+  if (state_.workspaceMode != workspaceLease_.mode() ||
+      state_.workspaceHostReady != workspaceLease_.hostReady()) {
+    state_.workspaceMode = workspaceLease_.mode();
+    state_.workspaceHostReady = workspaceLease_.hostReady();
     state_.dirty = true;
   }
+  const bool sync = state_.connected && workspaceLease_.needsHomeSync();
   xSemaphoreGive(stateMutex_);
+  if (!sync) { homeSyncSent_ = false; return; }
+  if (!homeSyncSent_ || static_cast<uint32_t>(now-lastHomeSyncMs_) >= 1000) {
+    homeSyncSent_ = true;lastHomeSyncMs_ = now;
+    sendJson("{\"method\":\"host.workspace_action\",\"params\":{\"action\":\"show_home\"}}");
+  }
 }
 
 bool CodexMicroBle::isBootloaderRequest(const uint8_t* data,
@@ -891,8 +902,11 @@ host_rpc::RpcDisposition CodexMicroBle::handleRpc(
 
     if (stateMutex_ != nullptr && connections_.contains(connectionId)) {
       xSemaphoreTake(stateMutex_, portMAX_DELAY);
-      if (workspaceLease_.apply(command, connectionId, millis())) {
+      workspaceLease_.apply(command, connectionId, millis());
+      if (state_.workspaceMode != workspaceLease_.mode() ||
+          state_.workspaceHostReady != workspaceLease_.hostReady()) {
         state_.workspaceMode = workspaceLease_.mode();
+        state_.workspaceHostReady = workspaceLease_.hostReady();
         state_.dirty = true;
       }
       xSemaphoreGive(stateMutex_);
