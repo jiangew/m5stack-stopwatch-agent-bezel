@@ -3,9 +3,10 @@
 [简体中文](README.zh-CN.md)
 
 **Stopwatch AgentBezel C152** is an independent, unofficial, open-source
-three-workspace control surface for the **M5Stack StopWatch Dev Kit C152**:
+four-screen control surface for the **M5Stack StopWatch Dev Kit C152**:
 Codex Micro compatibility, super.engineering project controls, and Hermes
-Desktop session controls, with a local quota dashboard and optional USB microphone.
+Desktop session controls, plus an interactive robot Home, local quota dashboard
+and optional USB microphone.
 
 Codex Micro compatibility is experimental and undocumented. Runtime names,
 pairing identities, audio selection and the local Companion identity remain
@@ -14,7 +15,16 @@ USB-mic C152 physical acceptance checklist is complete for source revision
 `5e9cc25`; see the [results and limits](docs/superpowers/plans/2026-09-04-hermes-open-physical-acceptance.md).
 This is validation of one local setup, not a guarantee for every app version.
 
-## Three workspaces
+## Robot Home and three workspaces
+
+The new Home requires matched Companion 0.1.3 (build 4) and USB-mic firmware.
+It is not yet physically validated; prior acceptance below applies to older builds.
+Boot, reconnect and Companion startup select Home without activating a Mac app.
+Home stays selected even when the Mac foreground changes. Tap the head to smile,
+swipe up for surprise, down for sleepy eyes, or right for another expression.
+These interactions are local only; the first sleeping-screen touch only wakes it.
+No extra sound, vibration, microphone access or application content is added.
+Status and battery are real device inputs, not the preview's sample values.
 
 <table>
   <tr><th>Codex Micro</th><th>super.engineering</th><th>Hermes Desktop</th></tr>
@@ -27,9 +37,9 @@ This is validation of one local setup, not a guarantee for every app version.
 
 These are native framebuffer design previews, not hardware photographs.
 
-**Swipe left to cycle: Codex / ChatGPT → SUPER → HERMES → Codex / ChatGPT.**
+**Swipe left to cycle: Home → Codex / ChatGPT → SUPER → HERMES → Home.**
 The current Codex / ChatGPT entry uses `com.openai.codex`; it is one target,
-not two. From an unrelated foreground app, left first enters Codex.
+not two. Left from Home activates Codex; returning Home leaves the Mac unchanged.
 Missing or rejected targets are not skipped. The former “return to previous
 app” behavior is replaced by this fixed cycle.
 
@@ -37,7 +47,7 @@ app” behavior is replaced by this fixed cycle.
 | --- | --- | --- | --- |
 | Left physical / right physical | Push to talk / Voice Chat | No action¹ | No action¹ |
 | Center tap | Send | No action¹ | Launch/retry when waiting; no action when active |
-| Swipe left | Enter SUPER | Enter HERMES | Enter Codex |
+| Swipe left | Enter SUPER | Enter HERMES | Enter Home |
 | Swipe up | Existing app mapping | Previous project | Browse previous session |
 | Swipe down | Existing app mapping | Next project | Browse next session |
 | Swipe right | Existing app mapping | Next session Tab | Open highlighted session |
@@ -96,7 +106,7 @@ the picker selection; right releases Control to open it. This Companion-only
 update uses the existing dedicated-direction firmware. Installation acceptance
 for this version must be performed separately from the successful diagnostic probes.
 
-Local packaged apps now show version 0.1.2; build/commit metadata and a bounded,
+Local packaged apps now show version 0.1.3; build/commit metadata and a bounded,
 opt-in navigation trace are described in the [Companion guide](companion/README.md).
 
 Left from SUPER selects **HERMES / TAP TO OPEN** on the watch only; it does not
@@ -104,9 +114,14 @@ launch or activate Hermes on the Mac. Tap inside the center square to open the
 exact Desktop app. **OPENING** permits one outstanding request; actual Hermes
 foreground confirmation enables the existing directions below. Rejection or a
 3-second timeout shows **TAP TO RETRY**, with no automatic retry. Up/down/right
-are ignored while waiting, opening or retrying; left always exits to Codex.
+are ignored while waiting, opening or retrying; left always exits to Home.
 Dock/Command-Tab activation cancels the selection and follows the real app.
-Reconnect and Companion restart also resynchronize from the real foreground.
+Reconnect and Companion restart select Home. Once a work page is selected,
+foreground following works as before. All work pages, including Codex, renew
+every 5 seconds and fall back to Home after a 15-second lease expires. A Home
+acknowledgment is required before stale work-page heartbeats can be accepted.
+Mode changes never wake the display. Install and roll back the matched pair;
+see the [Home verification record](docs/superpowers/plans/2026-09-15-robot-home-verification.md).
 
 A tap must start and end inside the square, last less than 500ms and never
 cross the swipe threshold. It shares the 800ms host cooldown with directions.
@@ -170,11 +185,11 @@ Palette feedback has its own 800ms cooldown; redraw, heartbeat, quota updates
 and Dock/Command-Tab changes do not recolor. This is local input feedback, not
 proof that the Mac accepted a shortcut.
 
-Except for the explicitly selected Hermes waiting page, the display follows
+Except for pinned Home and the explicitly selected Hermes waiting page, the display follows
 actual foreground activation, with a 5-second heartbeat
 and a 15-second connection-owned lease. Leaving the two directional apps sends
 Codex; failed Codex writes get at most two further 5-second retries. Losing the
-lease or owner connection restores Codex. Foreground updates never wake the
+lease or owner connection restores Home. Foreground updates never wake the
 screen. Disabled short taps/physical controls do not wake directional screens;
 a genuine swipe wakes without also issuing an unseen action. Center long-hold
 and red-button power behavior remain available.

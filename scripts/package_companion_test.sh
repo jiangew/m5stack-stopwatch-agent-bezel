@@ -11,8 +11,8 @@ git -C "$scratch/source" -c user.name=Test -c user.email=test@example.invalid co
 # /usr/bin/true is only a packaging fixture, not a Companion validation binary.
 bash "$scratch/source/scripts/package_companion.sh" /usr/bin/true "$scratch/Candidate.app"
 plist="$scratch/Candidate.app/Contents/Info.plist"
-test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$plist")" = 0.1.2
-test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$plist")" = 3
+test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$plist")" = 0.1.3
+test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$plist")" = 4
 test "$(/usr/libexec/PlistBuddy -c 'Print :AgentBezelSourceCommit' "$plist")" = "$(git -C "$scratch/source" rev-parse HEAD)"
 /usr/libexec/PlistBuddy -c 'Print :AgentBezelBuildTimestamp' "$plist" | /usr/bin/grep -Eq '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$'
 test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$plist")" = io.github.codex-micro-stopwatch.companion

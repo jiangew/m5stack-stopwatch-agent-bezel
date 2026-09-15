@@ -71,34 +71,61 @@ request; the writer does not continue its remaining fragments.
 {"method":"host.workspace_mode","params":{"mode":"hermes","ttl_ms":15000,"state":"idle"},"id":4}
 {"method":"host.workspace_mode","params":{"mode":"hermes","ttl_ms":15000,"state":"opening"},"id":5}
 {"method":"host.workspace_mode","params":{"mode":"hermes","ttl_ms":15000,"state":"error"},"id":6}
+{"method":"host.workspace_mode","params":{"mode":"home"},"id":7}
+{"method":"host.workspace_mode","params":{"mode":"codex","ttl_ms":15000},"id":8}
 ```
 
 These are the only mode/parameter shapes. SUPER/HERMES require exactly integer
-`ttl_ms: 15000`; Codex permits only `mode`. Only Hermes accepts optional `state`,
+`ttl_ms: 15000`; Codex accepts legacy `mode` alone or the leased form above.
+Home permits only `mode`. Only Hermes accepts optional `state`,
 strictly `idle`, `opening` or `error`; omission means the existing active page.
-SUPER/Codex reject `state`. Missing or extra fields, wrong types,
+Home/SUPER/Codex reject `state`. Missing or extra fields, wrong types,
 negative, floating, overflowing or different TTL values yield
 `-32602 Invalid params` without changing or renewing the lease.
 
-The first valid directional request owns a shared lease for its HID connection.
+For the legacy/default lease, the first valid directional request owns a shared lease for its HID connection.
 That owner can renew or switch SUPER↔HERMES. Another connection cannot take over,
 switch or refresh it. Any valid Codex request exits safely; owner disconnect
 exits immediately; otherwise wrap-safe `millis()` expiry restores Codex after
 15 seconds. Renewal does not dirty an unchanged mode. This method remains
 `ControlOnly`, never sets host-RPC-observed and cannot synthesize `CODEX LIVE`.
 
+The matched Home USB-mic build instead boots and falls back to Home. All work
+pages, including Codex, require a Home acknowledgment first and share the
+15-second, wrap-safe lease. Only its owning connection can renew or switch it,
+including an explicit Home command; another connection cannot steal ownership.
+Expiry or owner disconnect clears readiness, and stale work renewals are ignored
+until Home is acknowledged again. Even idle Home readiness expires without a
+heartbeat. Renewal without a mode/readiness change does not mark state dirty.
+While connected but not ready, firmware sends this fixed control action at most
+once per second (it is not a user gesture and bypasses the 800ms gesture cooldown):
+
+```json
+{"method":"host.workspace_action","params":{"action":"show_home"}}
+```
+
+Companion cancels owned keys/pending activation, pins Home and replies with the
+Home mode above, even when already on Home. The action accepts exactly `method`
+and `params`, with `action` as its sole parameter; it never activates an app.
+Home navigation uses `workspace: home`, `direction: left`, and press/release;
+all other Home reactions stay on-device. No payload or device identity is logged.
+
 Only real companion `--watch` mode observes exact foreground bundle IDs:
 `com.zarifpour.superconductor` → SUPER, `com.nousresearch.hermes` → HERMES,
-everything else → Codex. Explicit SUPER-left selection is the sole override:
+everything else → Codex while a work page is selected. Home is a pinned override
+that ignores foreground changes until an explicit left swipe activates Codex.
+Explicit SUPER-left selection is another override:
 Hermes idle is displayed without activating the Mac app. A center request shows
 opening, with error after rejection/3 seconds; only actual Hermes foreground
 enables active mode. External foreground events cancel the selection. Attach
-and restart discard pending requests and use the real foreground.
+and restart discard pending requests and select Home in the matched build.
 Entry/attach synchronizes immediately; one 5-second timer renews the current
-directional mode. Leaving sends Codex and stops renewals. Failed exit writes
+mode, including Codex and Home in the matched build. Legacy mode without the
+interaction controller stops renewals on Codex. Failed Codex writes additionally
 retry only failed devices, at most twice at 5-second intervals; success, detach,
 a new mode or stop cancels obsolete retries. Stop attempts Codex before listener
-shutdown. Lifecycle generations reject delayed callbacks after stop/restart.
+shutdown in legacy mode; the matched controller attempts Home instead.
+Lifecycle generations reject delayed callbacks after stop/restart.
 Failures log at most once per 60 seconds and do not stop HID input, quota or the
 main RunLoop. All observer, timer and writer operations are MainActor-serialized.
 
@@ -154,8 +181,9 @@ send only this dedicated event for each direction press/release:
 ```
 
 Exactly `method` and `params` are accepted. Params must contain exactly the three
-string fields: workspace (`super`/`hermes`), direction (`left`/`up`/`down`/`right`),
+string fields: workspace (`super`/`hermes`/`home`), direction (`left`/`up`/`down`/`right`),
 phase (`press`/`release`). Unknown, missing, extra or wrong-type fields are ignored.
+Home accepts only left. Home up/down/right and head taps do not emit these events.
 Framing remains newline-delimited Report 6. Each press latches its source and
 direction; a matching release rearms the per-device decoder, including after a
 mode transition. A wrong-source/direction release cannot rearm it. Center actions

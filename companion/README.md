@@ -31,7 +31,7 @@ then run from the repository root:
 bash scripts/package_companion.sh companion/.build/release/codex-watch-companion /private/tmp/CodexWatchCompanion-candidate.app
 ```
 
-The output must not already exist. This packages version **0.1.2**, build **3**,
+The output must not already exist. This packages version **0.1.3**, build **4**,
 with `AgentBezelSourceCommit` and UTC `AgentBezelBuildTimestamp` in Info.plist,
 then ad-hoc signs and verifies the candidate. It does not install or restart it.
 The caller must supply the release executable built from the recorded checkout;
@@ -73,7 +73,23 @@ otherwise the dashboard will correctly mark quota sync stale.
 Pass `--codex-path /absolute/path/to/codex` when automatic executable discovery
 does not select the intended local Codex installation.
 
-## Optional three-workspace controls and screens
+## Robot Home and optional workspace controls
+
+Companion 0.1.3 (build 4) requires the matching Home USB-mic firmware. Startup,
+attach, detach and stop select Home; Home ignores Mac foreground changes and
+does not activate apps. Left cycles Home → Codex → SUPER → HERMES → Home.
+Home head taps/up/down/right are firmware-local reactions. All work pages now
+have a 15-second lease, renewed every 5 seconds, including Codex. On expiry or
+disconnect firmware returns Home and rejects stale renewals until Home is
+acknowledged. A fixed `show_home` event requests acknowledgment at most once per
+second; it also cancels pending activation and owned modifiers without requiring
+Accessibility. No project, session, window, credential or arbitrary display text
+is read or transmitted. This update is not yet physically validated.
+
+Installation and rollback must restore a matching app/firmware pair. Preserve
+the existing signed app and firmware, original LaunchAgent and permissions;
+never mix this Home Companion with older firmware as a supported setup. A
+rollback firmware flash still requires a freshly identified and approved port.
 
 Only a real `--watch` process enables foreground observation, radial HID input
 and workspace HID output. One-shot, `--demo`, `--json-only` and bootloader
@@ -83,19 +99,22 @@ modes do not create these controllers.
 | --- | --- | --- | --- | --- |
 | Codex / ChatGPT (`com.openai.codex`) | SUPER | Existing ChatGPT binding | Existing ChatGPT binding | Existing ChatGPT binding |
 | SUPER (`com.zarifpour.superconductor`) | HERMES | Previous Project | Next Project | Next Tab |
-| HERMES (`com.nousresearch.hermes`) | Codex | Previous / browse | Next / browse | Open selection |
+| HERMES (`com.nousresearch.hermes`) | Home | Previous / browse | Next / browse | Open selection |
 
-From any other foreground app, left activates Codex first. This is a fixed
+From Home, left activates Codex first. This is a fixed
 cycle, not a remembered-return toggle. Codex/SUPER activation retains the exact
 bundle policy. SUPER → HERMES is now watch selection only: Mac foreground stays
 unchanged, and the center shows `TAP TO OPEN`. Center tap starts/activates
 `com.nousresearch.hermes` once and shows `OPENING`. Only actual foreground
 confirmation enables navigation; rejection or 3 seconds without confirmation
 shows `TAP TO RETRY`. There is no automatic launch retry. Left can exit all
-Hermes states to Codex, including during a pending launch. Late completion
+Hermes states to Home, including during a pending launch. Late completion
 callbacks cannot restore stale selection; real foreground notifications win.
 Up/down/right are ignored in waiting/opening/error, even if SUPER remains
-frontmost. External activation, reconnect and restart discard pending selection.
+frontmost. External activation discards pending Hermes selection; reconnect and
+restart pin Home instead. Home status means the screen-control link is ready,
+not that Codex quota is live. Screen changes/animation never wake a sleeping
+device; local animation is capped at 20 fps and reactions replace rather than queue.
 
 Prepare the applications and permissions:
 
@@ -165,16 +184,16 @@ attempts release before exiting; forced termination or revoked permission cannot
 guarantee delivery. No global fallback or automatic permission reset is used.
 See [protocol and diagnostic limits](../docs/COMPANION_PROTOCOL.md#bounded-navigation-diagnostics).
 
-With matching USB-mic firmware, except for explicit Hermes waiting selection,
+With matching USB-mic firmware, except for pinned Home and Hermes waiting selection,
 the watch follows the real foreground:
 SUPER and HERMES receive an immediate mode write and a heartbeat every
-5 seconds. All other foreground apps select Codex. Each directional lease is
+5 seconds. Other foreground apps select Codex while on a work page. Each work-page lease is
 15 seconds and each newly attached device is synchronized immediately. A
 failed Codex exit write is retried at most twice, 5 seconds apart, only for
 failed devices. A new mode, detach or stop cancels obsolete retries. Failures
 are logged at most once per 60 seconds, without payload or device identifiers.
-Orderly shutdown attempts Codex before stopping the listener. Owner disconnect
-or lease expiry also restores Codex.
+Orderly shutdown attempts Home before stopping the listener. Owner disconnect
+or lease expiry also restores Home; reconnect acknowledges Home before work-page renewal.
 
 Both directional screens share four outward triangles, without an independent
 center square border. The title, connection and battery stay in the center.
@@ -198,9 +217,10 @@ controls are released on entry and stale Agent transitions are silently
 baselined. Returning to Codex restores existing controls. The USB microphone
 endpoint is unchanged.
 
-The workspace channel sends only fixed `codex`, `super` or `hermes`, optional
+The workspace channel sends only fixed `home`, `codex`, `super` or `hermes`, optional
 Hermes `idle`/`opening`/`error`, a fixed TTL and a local request number. Device
-center input uses only `host.workspace_action` with `open_hermes`.
+center input uses only `host.workspace_action` with `open_hermes`; the control
+resynchronization action uses fixed `show_home` and does not represent a tap.
 Dedicated direction input uses only fixed workspace/direction/phase enums. It does not inspect or
 transmit projects, sessions, windows, Spaces, app preferences, credentials or
 user content. Workspace control does not run CLI, shell, AppleScript, UI
@@ -209,7 +229,7 @@ is unchanged.
 
 For rollback, stop the original LaunchAgent, restore the backed-up signed
 Companion app, verify its signature and restart that same agent, preserving its
-configuration. Without renewals the new firmware returns to Codex within
+configuration. Without renewals the Home firmware returns to Home within
 15 seconds. Older companions do not understand the dedicated navigation event;
 restore a matched Companion/firmware pair. Full rollback additionally restores the saved
 USB-mic firmware, only after freshly enumerating the download port and obtaining

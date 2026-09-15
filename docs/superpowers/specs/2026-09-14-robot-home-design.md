@@ -111,4 +111,5 @@ The explicit Home selection overrides only foreground following while on Home.
 All app identities, Hermes open semantics, targeted-key mappings and USB audio
 boundaries remain intact. Home acknowledgement prevents stale heartbeat takeover
 after local fallback. Installed-device results are still unverified; only the
-browser appearance has user approval at this stage.
+browser appearance had user approval at design time. On 2026-09-15 the user
+also approved the actual angular native-renderer preview before installation.
