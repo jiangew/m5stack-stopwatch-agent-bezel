@@ -24,3 +24,12 @@ Prior installed Home firmware is retained as a private recovery artifact.
 Fresh download-port enumeration and exact-port consent are required before
 upload. Device haptic consistency is **unverified** until user observation.
 Do not reinstall Companion, merge or push.
+
+## Upload evidence
+
+After fresh device enumeration and explicit port consent, USB-mic upload
+succeeded and written-data hash verification passed. Firmware SHA-256:
+`9e8b1267431a8c9632b3f6e05aae466df165ed809de5b1320b0d8e342894a23d`.
+Companion executable and LaunchAgent plist compared unchanged with installation
+artifacts. All 16 native tests plus the actual-gesture harness passed; USB-mic
+build succeeded without warnings. Physical haptic acceptance remains pending.
