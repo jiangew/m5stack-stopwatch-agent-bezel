@@ -9,6 +9,7 @@
 
 #include "DashboardUi.h"
 #include "SuperWorkspaceUi.h"
+#include "RobotHomeUi.h"
 
 namespace {
 
@@ -113,6 +114,8 @@ super_workspace::State superPreviewState(const char* scenario) {
 }
 
 bool validScenario(const char* scenario) {
+  for(const char* name:{"home","home-happy","home-surprise","home-sleep","home-offline","home-charging","home-unknown","home-low","home-power-hold"})
+    if(std::strcmp(scenario,name)==0)return true;
   const bool hermes = std::strncmp(scenario, "hermes", 6) == 0;
   const bool super = std::strncmp(scenario, "super", 5) == 0;
   if (hermes || super) {
@@ -181,7 +184,18 @@ int main(int argc, char** argv) {
     return 1;
   }
   framebuffer.setTextWrap(false);
-  if (std::strncmp(scenario, "super", 5) == 0 ||
+  if (std::strncmp(scenario,"home",4)==0) {
+    robot_home::State state;state.batteryPercent=82;state.connected=true;
+    if(std::strcmp(scenario,"home-happy")==0)state.mood=robot_home::Mood::Happy;
+    if(std::strcmp(scenario,"home-surprise")==0)state.mood=robot_home::Mood::Surprise;
+    if(std::strcmp(scenario,"home-sleep")==0)state.mood=robot_home::Mood::Sleep;
+    if(std::strcmp(scenario,"home-offline")==0)state.connected=false;
+    if(std::strcmp(scenario,"home-charging")==0)state.charging=true;
+    if(std::strcmp(scenario,"home-unknown")==0)state.batteryPercent=-1;
+    if(std::strcmp(scenario,"home-low")==0)state.batteryPercent=9;
+    if(std::strcmp(scenario,"home-power-hold")==0){state.powerOverlay=super_workspace::PowerOverlay::HoldToPowerOff;state.powerHoldProgress=.5f;}
+    robot_home::render(framebuffer,state);
+  } else if (std::strncmp(scenario, "super", 5) == 0 ||
       std::strncmp(scenario, "hermes", 6) == 0) {
     super_workspace::render(framebuffer, superPreviewState(scenario));
   } else {
