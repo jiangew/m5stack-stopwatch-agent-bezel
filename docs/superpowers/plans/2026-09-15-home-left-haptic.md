@@ -22,7 +22,7 @@ Run it using `ruby simulator/robot_home_swipe_test.rb` alongside the native suit
 
 Prior installed Home firmware is retained as a private recovery artifact.
 Fresh download-port enumeration and exact-port consent are required before
-upload. Device haptic consistency is **unverified** until user observation.
+upload. Device haptic consistency was subsequently confirmed by the user below.
 Do not reinstall Companion, merge or push.
 
 ## Upload evidence
@@ -32,4 +32,12 @@ succeeded and written-data hash verification passed. Firmware SHA-256:
 `9e8b1267431a8c9632b3f6e05aae466df165ed809de5b1320b0d8e342894a23d`.
 Companion executable and LaunchAgent plist compared unchanged with installation
 artifacts. All 16 native tests plus the actual-gesture harness passed; USB-mic
-build succeeded without warnings. Physical haptic acceptance remains pending.
+build succeeded without warnings.
+
+## User-observed acceptance
+
+After reset and the requested checks, the user reported everything normal:
+Home left to Codex gives one haptic consistent with the other pages, while
+head taps and up/down/right facial interactions remain silent. This closes the
+reported haptic inconsistency. It does not imply a new audio, offline, lease-loss
+or long-duration stability test. No further device/service changes were made.
