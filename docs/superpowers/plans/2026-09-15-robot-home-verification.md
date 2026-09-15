@@ -36,6 +36,22 @@ Baseline: `f3be5a4`. Serial execution; no merge or push authorized.
 
 ## Physical acceptance
 
+## Installation, 2026-09-15
+
+- User authorized the freshly enumerated download port. USB-mic upload succeeded
+  and uploader reported written-data hash verification.
+- Firmware SHA-256:
+  `89ca3c124e2f57ac9b2362f55bfe96e2ee19cff37fe600731a4f9d72f966d058`.
+- Signed app and prior firmware backed up privately. Companion 0.1.3/build 4
+  installed from source `a5ee91b`, preserving signing identifier and app path.
+- Signature verified; original LaunchAgent configuration compared unchanged.
+  Original service restarted; one Companion process observed.
+- New startup log reports missing Input Monitoring. No new HID attachment yet;
+  download serial endpoint remains present and microphone is not enumerated.
+  Device reset and user permission reauthorization are pending.
+
+## Pending physical acceptance
+
 All Home device behavior is **unverified**: boot/offline Home, gestures, four-page
 cycle, previous navigation, no background actions, power/sleep, heartbeat-loss
 fallback, reconnect, microphone recording, quota and automatic startup.
