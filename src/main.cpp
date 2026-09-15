@@ -696,7 +696,10 @@ void updateTouchGesture(int x, int y) {
       case touch_gesture::Direction::Down:robotAnimation.react(robot_home::Mood::Sleep,millis());break;
       case touch_gesture::Direction::Right:robotAnimation.random(millis(),esp_random());break;
       case touch_gesture::Direction::Left:
-        if(state.workspaceHostReady)sendSwipePress(direction);
+        if(state.workspaceHostReady) {
+          sendSwipePress(direction);
+          startHaptic(kSwipeHapticIntensity, kSwipeHapticDurationMs);
+        }
         else robotAnimation.react(robot_home::Mood::Connect,millis());
         break;
       default:break;

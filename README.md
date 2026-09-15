@@ -23,7 +23,10 @@ Boot, reconnect and Companion startup select Home without activating a Mac app.
 Home stays selected even when the Mac foreground changes. Tap the head to smile,
 swipe up for surprise, down for sleepy eyes, or right for another expression.
 These interactions are local only; the first sleeping-screen touch only wakes it.
-No extra sound, vibration, microphone access or application content is added.
+Local reactions add no sound, vibration, microphone access or application content.
+An awake Home left swipe with a ready Companion link gives the same single
+vibration as other workspace swipes; offline left remains silent. This is gesture
+feedback, not confirmation of Mac activation.
 Status and battery are real device inputs, not the preview's sample values.
 
 <table>

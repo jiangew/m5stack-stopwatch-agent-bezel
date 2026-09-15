@@ -34,7 +34,10 @@ Baseline: `f3be5a4`. Work serially on `codex/robot-home`.
 - Idle has gentle vertical breathing and blinking. Short head tap gives a head
   tilt and smile eyes; up gives surprise; down gives sleepy eyes; right chooses
   a different expression from happy/surprised/sleepy. Reactions last 2400ms and
-  replace the current reaction, never queue. No extra sounds or vibration.
+  replace the current reaction, never queue. Local reactions add no sounds or vibration.
+  Approved follow-up: an awake, host-ready Home left swipe uses the same single
+  haptic pulse as other workspace swipes. Offline left remains silent. The pulse
+  confirms the gesture, not successful Mac activation; wake behavior is unchanged.
 - A head tap requires press/release inside the head bounds, less than 500ms,
   and movement never reaching the existing swipe threshold. Swipes and power
   holds cannot also produce taps. Reuse existing coordinate rotation handling.
