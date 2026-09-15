@@ -31,3 +31,14 @@ Compare SUPER rapid browse and Hermes down/down/up/right, verify four-page cycle
 no duplicate actions, no stuck Control, no background Codex actions and quota.
 Retain the installed signed Companion backup; no firmware rollback is needed
 for this Companion-only candidate. No merge or push.
+
+## Installation
+
+Candidate 0.1.4/build 5 was installed from `8d70e4f` after a new private signed-app
+backup. Signature verified and original LaunchAgent plist compared unchanged.
+The first bootstrap returned an error; a read-only check confirmed the service
+was absent, then reloading the same plist succeeded. One running Companion and
+HID attachment were observed. New logs contain an Input Monitoring warning;
+permission effectiveness and no-click Hermes navigation remain pending physical
+confirmation. No firmware was changed. Release build (warnings as errors),
+packaging checks and synthetic JSON smoke passed; these are not hardware results.
