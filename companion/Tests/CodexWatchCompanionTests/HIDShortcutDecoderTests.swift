@@ -20,6 +20,28 @@ private final class ListenerOutputDeviceStub: StopwatchHIDOutputDevice {
 
 @MainActor
 final class HIDShortcutDecoderTests: XCTestCase {
+    func testReleasedNavigationAcceptsFastBrowseButKeepsCycleGuard() {
+        for origin in ["super", "hermes"] {
+            var decoder = HIDShortcutDecoder()
+            func consume(_ direction: String, _ phase: String, _ time: Double) -> [CompanionShortcutEvent] {
+                let json = "{\"method\":\"host.workspace_navigation\",\"params\":{\"workspace\":\"\(origin)\",\"direction\":\"\(direction)\",\"phase\":\"\(phase)\"}}\n"
+                return WorkspaceModeHIDReportFramer.reports(payloadBytes: Array(json.utf8)).flatMap {
+                    decoder.consume(reportID: 6, bytes: $0, now: time)
+                }
+            }
+            XCTAssertEqual(consume("down", "press", 1).count, 1)
+            _ = consume("down", "release", 1.1)
+            XCTAssertEqual(consume("down", "press", 1.4).count, 1)
+            _ = consume("down", "release", 1.5)
+            XCTAssertEqual(consume("up", "press", 1.8).count, 1)
+            _ = consume("up", "release", 1.9)
+            XCTAssertEqual(consume("left", "press", 2.2).count, 0)
+            _ = consume("left", "release", 2.3)
+            XCTAssertEqual(consume("left", "press", 2.7).count, 1)
+            _ = consume("left", "release", 2.8)
+            XCTAssertEqual(consume("down", "press", 3.1).count, 0)
+        }
+    }
     func testHomeResyncBypassesUserCooldownButRejectsExtraFields() {
         var decoder=HIDShortcutDecoder()
         func consume(_ text:String,_ now:Double)->[CompanionShortcutEvent] {

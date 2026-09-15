@@ -53,6 +53,13 @@ struct HIDShortcutDecoder {
     private var activePress: CompanionShortcutEvent?
     private var armed: Bool { activePress == nil }
     private var lastAcceptedAt: TimeInterval?
+    private var lastCooldown: TimeInterval = Self.cooldown
+
+    private static func cooldown(for event: CompanionShortcutEvent) -> TimeInterval {
+        if case let .navigation(origin, direction) = event,
+           origin != .home, direction != .left { return 0.35 }
+        return cooldown
+    }
 
     mutating func consume(reportID: Int, bytes: [UInt8], now: TimeInterval) -> [CompanionShortcutEvent] {
         guard reportID == StopwatchHIDDescriptor.reportID else { return [] }
@@ -108,7 +115,8 @@ struct HIDShortcutDecoder {
                     events.append(.showHome)
                     continue
                 }
-                guard params["action"] as? String == "open_hermes", armed, acceptCooldown(now) else { continue }
+                guard params["action"] as? String == "open_hermes", armed,
+                      acceptCooldown(now, event: .openHermes) else { continue }
                 events.append(.openHermes)
                 continue
             }
@@ -123,6 +131,7 @@ struct HIDShortcutDecoder {
         receiveBuffer.removeAll(keepingCapacity: true)
         activePress = nil
         lastAcceptedAt = nil
+        lastCooldown = Self.cooldown
     }
 
     private mutating func recognize(_ message: Message, now: TimeInterval) -> CompanionShortcutEvent? {
@@ -144,14 +153,16 @@ struct HIDShortcutDecoder {
         }
         guard armed else { return nil }
         activePress = event
-        guard acceptCooldown(now) else { return nil }
+        guard acceptCooldown(now, event: event) else { return nil }
         return event
     }
 
-    private mutating func acceptCooldown(_ now: TimeInterval) -> Bool {
+    private mutating func acceptCooldown(_ now: TimeInterval, event: CompanionShortcutEvent) -> Bool {
+        let interval = Self.cooldown(for: event)
         guard now.isFinite,
-              lastAcceptedAt.map({ now - $0 >= Self.cooldown }) ?? true else { return false }
+              lastAcceptedAt.map({ now - $0 >= max(interval, lastCooldown) }) ?? true else { return false }
         lastAcceptedAt = now
+        lastCooldown = interval
         return true
     }
 
