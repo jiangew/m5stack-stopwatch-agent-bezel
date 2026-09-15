@@ -172,6 +172,14 @@ Desktop KeepAlive LaunchAgent is an installation policy, not this protocol.
 
 ## Host-side direction mapping
 
+Companion 0.1.4 changes host timing only: dedicated SUPER/Hermes up/down/right
+use a 350ms cooldown between released gestures. The required interval is the
+larger of the previous and current accepted action's cooldown; left, launch and
+native actions therefore retain 800ms protection. Rejected presses still require
+their matching release. Framing, firmware, key mappings and 30ms stroke spacing
+are unchanged. Hermes central opening also requests window-level focus through
+Accessibility; only window handles/state are read, never titles or contents.
+
 In the matching USB-mic firmware and Companion 0.1.1, SUPER and all HERMES states
 send only this dedicated event for each direction press/release:
 

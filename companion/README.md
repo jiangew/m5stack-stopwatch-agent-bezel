@@ -31,7 +31,7 @@ then run from the repository root:
 bash scripts/package_companion.sh companion/.build/release/codex-watch-companion /private/tmp/CodexWatchCompanion-candidate.app
 ```
 
-The output must not already exist. This packages version **0.1.3**, build **4**,
+The output must not already exist. This packages version **0.1.4**, build **5**,
 with `AgentBezelSourceCommit` and UTC `AgentBezelBuildTimestamp` in Info.plist,
 then ad-hoc signs and verifies the candidate. It does not install or restart it.
 The caller must supply the release executable built from the recorded checkout;
@@ -74,6 +74,17 @@ Pass `--codex-path /absolute/path/to/codex` when automatic executable discovery
 does not select the intended local Codex installation.
 
 ## Robot Home and optional workspace controls
+
+Version 0.1.4 is a Companion-only navigation repair candidate; it keeps the Home
+firmware. Released SUPER/Hermes up/down/right gestures may repeat after 350ms.
+Left, native Codex events and central launch retain 800ms protection on both
+sides of a transition. Stroke pacing remains 30ms; gestures are not queued.
+On an explicit Hermes central launch, the Companion uses Accessibility only to
+obtain that process's focused/main window handle, raise it and request window
+focus. It never reads titles, contents or the view tree, enumerates windows,
+clicks, or moves the cursor. A missing permission preserves app opening but not
+navigation; failed focus confirmation retains OPENING until the existing timeout
+or another valid activation callback. Physical no-click behavior is pending.
 
 Companion 0.1.3 (build 4) requires the matching Home USB-mic firmware. Startup,
 attach, detach and stop select Home; Home ignores Mac foreground changes and

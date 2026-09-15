@@ -106,7 +106,7 @@ the picker selection; right releases Control to open it. This Companion-only
 update uses the existing dedicated-direction firmware. Installation acceptance
 for this version must be performed separately from the successful diagnostic probes.
 
-Local packaged apps now show version 0.1.3; build/commit metadata and a bounded,
+Local packaged apps now show version 0.1.4; build/commit metadata and a bounded,
 opt-in navigation trace are described in the [Companion guide](companion/README.md).
 
 Left from SUPER selects **HERMES / TAP TO OPEN** on the watch only; it does not
