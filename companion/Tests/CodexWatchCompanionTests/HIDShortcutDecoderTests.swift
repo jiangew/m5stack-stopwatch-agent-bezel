@@ -20,6 +20,23 @@ private final class ListenerOutputDeviceStub: StopwatchHIDOutputDevice {
 
 @MainActor
 final class HIDShortcutDecoderTests: XCTestCase {
+    func testHomeResyncBypassesUserCooldownButRejectsExtraFields() {
+        var decoder=HIDShortcutDecoder()
+        func consume(_ text:String,_ now:Double)->[CompanionShortcutEvent] {
+            WorkspaceModeHIDReportFramer.reports(payloadBytes:Array((text+"\n").utf8)).flatMap {
+                decoder.consume(reportID:6,bytes:$0,now:now)
+            }
+        }
+        let left = #"{"method":"host.workspace_navigation","params":{"workspace":"home","direction":"left","phase":"press"}}"#
+        let sync = #"{"method":"host.workspace_action","params":{"action":"show_home"}}"#
+        XCTAssertEqual(consume(left,1),[.navigation(.home,.left)])
+        XCTAssertEqual(consume(sync,1.01),[.showHome])
+        XCTAssertEqual(consume(left,2),[.navigation(.home,.left)])
+        XCTAssertEqual(consume(sync.replacingOccurrences(of:"\"show_home\"",with:"\"show_home\",\"extra\":1"),2),[])
+        for direction in ["up","down","right"] {
+            XCTAssertEqual(consume(left.replacingOccurrences(of:"left",with:direction),3),[])
+        }
+    }
     func testDedicatedNavigationRejectsMalformedShapesAndPreservesOrigin() {
         var decoder = HIDShortcutDecoder()
         func consume(_ json: String, _ time: Double) -> [CompanionShortcutEvent] {

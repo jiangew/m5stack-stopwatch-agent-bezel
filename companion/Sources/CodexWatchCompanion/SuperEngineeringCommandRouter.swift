@@ -39,6 +39,9 @@ final class WorkspaceCommandRouter {
 
     func handle(_ event: CompanionShortcutEvent) {
         switch event {
+        case .showHome:
+            emitter.cancel()
+            toggler.showHome()
         case .left:
             guard toggler.selectedProfile == .codex else { return }
             emitter.cancel()
@@ -58,6 +61,7 @@ final class WorkspaceCommandRouter {
                 toggler.cycle()
                 return
             }
+            guard origin != .home else { return }
             guard toggler.allowsNavigation else {
                 emitter.cancel()
                 diagnose(.waitingRejected)

@@ -5,8 +5,10 @@ import XCTest
 private final class TogglerSpy: WorkspaceCycling {
     var toggleCount = 0
     var allowsNavigation = true
-    var selectedProfile = WorkspaceAppProfile.codex
+    var selectedProfile: WorkspaceAppProfile? = .codex
     var openCount = 0
+    var homeCount = 0
+    func showHome() { homeCount += 1; selectedProfile = nil }
     func openHermes() { openCount += 1 }
 
     func cycle() {
@@ -45,6 +47,20 @@ private final class RouterLogRecorder {
 
 @MainActor
 final class WorkspaceCommandRouterTests: XCTestCase {
+    func testHomeBlocksNativeAndAppDirectionsButAllowsLeftAndControlResync() {
+        let f=makeFixture(frontmost:ApplicationIdentity(processIdentifier:1,bundleIdentifier:"com.zarifpour.superconductor"),trusted:false)
+        f.toggler.selectedProfile=nil
+        for event:CompanionShortcutEvent in [.left,.up,.down,.right,.navigation(.super,.right),.navigation(.hermes,.down)] {
+            f.router.handle(event)
+        }
+        XCTAssertEqual(f.toggler.toggleCount,0)
+        XCTAssertTrue(f.emitter.calls.isEmpty)
+        f.router.handle(.navigation(.home,.left))
+        XCTAssertEqual(f.toggler.toggleCount,1)
+        f.router.handle(.showHome)
+        XCTAssertEqual(f.toggler.homeCount,1)
+        XCTAssertEqual(f.emitter.cancellations,2)
+    }
     func testAcceptedCycleAndDeniedNavigationCancelOwnedKeys() {
         let f = makeFixture(frontmost: superApp, trusted: true)
         f.toggler.selectedProfile = .super

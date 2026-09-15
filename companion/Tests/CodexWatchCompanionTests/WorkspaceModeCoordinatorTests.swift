@@ -99,6 +99,24 @@ private final class WorkspaceSenderStub: WorkspaceModeSending {
 
 @MainActor
 final class WorkspaceModeCoordinatorTests: XCTestCase {
+    func testCodexHeartbeatsAndRepeatedHomeRequestAreAcknowledged() {
+        let ws=WorkspaceStub(), observer=ForegroundObserverStub(frontmostBundleIdentifier:nil), scheduler=SchedulerStub()
+        let interaction=WorkspaceCycleController(workspace:ws,observer:observer,scheduler:scheduler,log:{_ in})
+        let coordinator=WorkspaceModeCoordinator(foregroundObserver:observer,scheduler:scheduler,uptime:{0},log:{_ in},interaction:interaction)
+        interaction.start();coordinator.start()
+        let sender=WorkspaceSenderStub(deviceKey:1);coordinator.attach(sender)
+        XCTAssertEqual(sender.modes.last,.home)
+        let count=sender.modes.count;interaction.showHome()
+        XCTAssertEqual(sender.modes.count,count+1)
+        ws.frontmost=ApplicationIdentity(processIdentifier:1,bundleIdentifier:"com.openai.codex")
+        interaction.resetToForeground()
+        let before=sender.modes.count
+        scheduler.tasks[0].fire()
+        XCTAssertEqual(sender.modes.count,before+1)
+        XCTAssertEqual(sender.modes.last,.codex)
+        XCTAssertTrue(ws.launchRequests.isEmpty)
+        coordinator.stop()
+    }
     func testSharedInteractionHeartbeatsNeverLaunchAndReconnectDiscardsSelection() {
         let ws = WorkspaceStub()
         ws.frontmost = ApplicationIdentity(processIdentifier: 1, bundleIdentifier: "com.zarifpour.superconductor")
@@ -111,6 +129,8 @@ final class WorkspaceModeCoordinatorTests: XCTestCase {
         interaction.start(); coordinator.start()
         let sender = WorkspaceSenderStub(deviceKey: 1)
         coordinator.attach(sender)
+        XCTAssertEqual(sender.modes.last, .home)
+        interaction.resetToForeground()
         interaction.cycle()
         XCTAssertEqual(sender.modes.last, .hermesIdle)
         for _ in 0..<100 { scheduler.tasks[0].fire() }
@@ -126,13 +146,12 @@ final class WorkspaceModeCoordinatorTests: XCTestCase {
         XCTAssertEqual(ws.launchRequests.count, 1)
         coordinator.detach(deviceKey: 1)
         coordinator.attach(sender)
-        XCTAssertEqual(sender.modes.last, .super)
-        XCTAssertTrue(interaction.allowsNavigation)
-        interaction.cycle()
+        XCTAssertEqual(sender.modes.last, .home)
+        XCTAssertFalse(interaction.allowsNavigation)
         let oldHandler = observer.delayedHandler
         interaction.stop(); coordinator.stop()
         oldHandler?("com.nousresearch.hermes")
-        XCTAssertEqual(sender.modes.last, .codex)
+        XCTAssertEqual(sender.modes.last, .home)
         XCTAssertEqual(ws.launchRequests.count, 1)
     }
     func testSuperToHermesChangesHeartbeatWithoutDuplicateTimer() {

@@ -159,7 +159,7 @@ final class WorkspaceModeCoordinator {
 
     func attach(_ sender: WorkspaceModeSending) {
         guard started else { return }
-        interaction?.resetToForeground()
+        interaction?.showHome()
         transition(to: interaction?.displayMode ?? mode(for: foregroundObserver.frontmostBundleIdentifier))
         sendersByDevice[sender.deviceKey] = sender
         remainingRetries.removeValue(forKey: sender.deviceKey)
@@ -170,13 +170,13 @@ final class WorkspaceModeCoordinator {
         sendersByDevice.removeValue(forKey: deviceKey)
         remainingRetries.removeValue(forKey: deviceKey)
         if remainingRetries.isEmpty { cancelCodexRetry() }
-        interaction?.resetToForeground()
+        interaction?.showHome()
     }
 
     func stop() {
         guard started else { return }
         for key in sendersByDevice.keys.sorted() {
-            if let sender = sendersByDevice[key] { _ = send(.codex, to: sender) }
+            if let sender = sendersByDevice[key] { _ = send(interaction == nil ? .codex : .home, to: sender) }
         }
         started = false
         lifecycle &+= 1
@@ -198,7 +198,12 @@ final class WorkspaceModeCoordinator {
 
     private func transition(to mode: StopwatchWorkspaceMode) {
         guard mode != desiredMode else {
-            if mode != .codex { startHeartbeatIfNeeded() }
+            if mode == .home {
+                for key in sendersByDevice.keys.sorted() {
+                    if let sender=sendersByDevice[key] { synchronize(sender) }
+                }
+            }
+            if interaction != nil || mode != .codex { startHeartbeatIfNeeded() }
             return
         }
         cancelCodexRetry()
@@ -206,7 +211,7 @@ final class WorkspaceModeCoordinator {
         for key in sendersByDevice.keys.sorted() {
             if let sender = sendersByDevice[key] { synchronize(sender) }
         }
-        if mode != .codex { startHeartbeatIfNeeded() } else { cancelHeartbeat() }
+        if interaction != nil || mode != .codex { startHeartbeatIfNeeded() } else { cancelHeartbeat() }
     }
 
     private func synchronize(_ sender: WorkspaceModeSending) {
@@ -224,7 +229,8 @@ final class WorkspaceModeCoordinator {
         let epoch = lifecycle, timer = heartbeatGeneration
         heartbeat = scheduler.scheduleRepeating(every: Self.heartbeatInterval) { [weak self] in
             guard let self, self.started, self.lifecycle == epoch,
-                  self.heartbeatGeneration == timer, self.desiredMode != .codex else { return }
+                  self.heartbeatGeneration == timer,
+                  self.interaction != nil || self.desiredMode != .codex else { return }
             for key in self.sendersByDevice.keys.sorted() {
                 if let sender = self.sendersByDevice[key] { _ = self.send(self.desiredMode, to: sender) }
             }

@@ -25,6 +25,12 @@ private final class StopwatchHIDOutputDeviceStub: StopwatchHIDOutputDevice {
 
 @MainActor
 final class WorkspaceModeHIDWriterTests: XCTestCase {
+    func testHomeUsesFixedModeWithoutLeaseOrDisplayContent() {
+        let device=StopwatchHIDOutputDeviceStub()
+        XCTAssertTrue(WorkspaceModeHIDWriter(device:device).send(.home))
+        XCTAssertEqual(String(decoding:reassembledPayload(device.writes),as:UTF8.self),
+            #"{"method":"host.workspace_mode","params":{"mode":"home"},"id":1}"# + "\n")
+    }
     func testHermesPresentationWireStatesAreFixedAndActiveOmitsState() {
         let cases: [(StopwatchWorkspaceMode, String)] = [
             (.hermesIdle, "idle"), (.hermesOpening, "opening"), (.hermesError, "error")
@@ -59,7 +65,7 @@ final class WorkspaceModeHIDWriterTests: XCTestCase {
         let payload = reassembledPayload(device.writes)
         XCTAssertEqual(
             String(decoding: payload, as: UTF8.self),
-            #"{"method":"host.workspace_mode","params":{"mode":"codex"},"id":7}"# + "\n"
+            #"{"method":"host.workspace_mode","params":{"mode":"codex","ttl_ms":15000},"id":7}"# + "\n"
         )
         for write in device.writes {
             XCTAssertEqual(write.bytes[0], 0x06)
@@ -100,7 +106,7 @@ final class WorkspaceModeHIDWriterTests: XCTestCase {
         XCTAssertTrue(writer.send(.codex))
         XCTAssertEqual(
             String(decoding: reassembledPayload(Array(device.writes[firstWriteCount...])), as: UTF8.self),
-            #"{"method":"host.workspace_mode","params":{"mode":"codex"},"id":0}"# + "\n"
+            #"{"method":"host.workspace_mode","params":{"mode":"codex","ttl_ms":15000},"id":0}"# + "\n"
         )
     }
 

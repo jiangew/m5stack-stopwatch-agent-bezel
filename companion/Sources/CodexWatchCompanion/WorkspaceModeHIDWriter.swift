@@ -2,6 +2,7 @@ import Foundation
 import IOKit.hid
 
 enum StopwatchWorkspaceMode: Equatable {
+    case home
     case codex
     case `super`
     case hermes
@@ -77,8 +78,10 @@ final class WorkspaceModeHIDWriter: WorkspaceModeSending {
 
         let request: String
         switch mode {
+        case .home:
+            request = #"{"method":"host.workspace_mode","params":{"mode":"home"},"id":\#(requestID)}"# + "\n"
         case .codex:
-            request = #"{"method":"host.workspace_mode","params":{"mode":"codex"},"id":\#(requestID)}"# + "\n"
+            request = #"{"method":"host.workspace_mode","params":{"mode":"codex","ttl_ms":15000},"id":\#(requestID)}"# + "\n"
         case .super:
             request = #"{"method":"host.workspace_mode","params":{"mode":"super","ttl_ms":15000},"id":\#(requestID)}"# + "\n"
         case .hermes:

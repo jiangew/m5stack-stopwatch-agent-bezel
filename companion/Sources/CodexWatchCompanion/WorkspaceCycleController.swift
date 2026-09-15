@@ -4,23 +4,26 @@ import Foundation
 protocol WorkspaceCycling: AnyObject {
     func cycle()
     func openHermes()
+    func showHome()
     var allowsNavigation: Bool { get }
-    var selectedProfile: WorkspaceAppProfile { get }
+    var selectedProfile: WorkspaceAppProfile? { get }
 }
 
 extension WorkspaceCycling {
     func openHermes() {}
+    func showHome() {}
     var allowsNavigation: Bool { true }
-    var selectedProfile: WorkspaceAppProfile { .codex }
+    var selectedProfile: WorkspaceAppProfile? { .codex }
 }
 
 @MainActor
 final class WorkspaceCycleController: WorkspaceCycling {
-    private(set) var displayMode = StopwatchWorkspaceMode.codex
+    private(set) var displayMode = StopwatchWorkspaceMode.home
     var modeDidChange: ((StopwatchWorkspaceMode) -> Void)?
-    var allowsNavigation: Bool { !displayMode.awaitingHermes }
-    var selectedProfile: WorkspaceAppProfile {
+    var allowsNavigation: Bool { displayMode != .home && !displayMode.awaitingHermes }
+    var selectedProfile: WorkspaceAppProfile? {
         switch displayMode {
+        case .home: return nil
         case .codex: return .codex
         case .super: return .super
         case .hermes, .hermesIdle, .hermesOpening, .hermesError: return .hermes
@@ -51,7 +54,7 @@ final class WorkspaceCycleController: WorkspaceCycling {
         started = true
         lifecycleGeneration &+= 1
         let lifecycle = lifecycleGeneration
-        resetToForeground()
+        showHome()
         observer.start { [weak self] bundle in
             guard let self, self.started, self.lifecycleGeneration == lifecycle else { return }
             self.foregroundChanged(bundle)
@@ -63,22 +66,19 @@ final class WorkspaceCycleController: WorkspaceCycling {
         lifecycleGeneration &+= 1
         generation &+= 1
         clearPending()
-        setMode(.codex)
+        setMode(.home)
         observer.stop()
     }
 
     func cycle() {
         guard started else { return }
-        if displayMode.awaitingHermes {
-            clearPending()
-            generation &+= 1
-            setMode(.foreground(workspace.frontmost?.bundleIdentifier))
-            requestActivation(WorkspaceAppProfile.codex.bundleIdentifier)
+        if displayMode == .hermes || displayMode.awaitingHermes {
+            showHome()
             return
         }
         guard pending == nil else { return }
-        let origin = workspace.frontmost?.bundleIdentifier
-        let target = (WorkspaceAppProfile(bundleIdentifier: origin)?.next ?? .codex).bundleIdentifier
+        let target = (displayMode == .home ? WorkspaceAppProfile.codex :
+                      displayMode == .codex ? .super : .hermes).bundleIdentifier
         if target == WorkspaceAppProfile.hermes.bundleIdentifier {
             setMode(.hermesIdle)
             return
@@ -96,6 +96,15 @@ final class WorkspaceCycleController: WorkspaceCycling {
         generation &+= 1
         clearPending()
         setMode(.foreground(workspace.frontmost?.bundleIdentifier))
+    }
+
+    func showHome() {
+        generation &+= 1
+        clearPending()
+        let unchanged = displayMode == .home
+        setMode(.home)
+        // An already-pinned Home still acknowledges a device's resync request.
+        if unchanged { modeDidChange?(.home) }
     }
 
     private func requestActivation(_ target: String, reopen: Bool = false) {
@@ -135,6 +144,11 @@ final class WorkspaceCycleController: WorkspaceCycling {
     }
 
     private func foregroundChanged(_ bundle: String?) {
+        if displayMode == .home && (pending == nil || pending?.target != bundle) {
+            generation &+= 1
+            clearPending()
+            return
+        }
         // A real activation supersedes selection, even if it reactivates the
         // origin app. Submission callbacks never synthesize this notification.
         generation &+= 1

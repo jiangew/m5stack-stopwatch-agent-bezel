@@ -1,14 +1,14 @@
 import Foundation
 
 enum CompanionShortcutEvent: Equatable {
-    case left, up, down, right, openHermes
+    case left, up, down, right, openHermes, showHome
     case navigation(WorkspaceNavigationOrigin, WorkspaceSwipeDirection)
 }
 
 enum WorkspaceNavigationOrigin: String {
-    case `super`, hermes
+    case `super`, hermes, home
 
-    var profile: WorkspaceAppProfile { self == .super ? .super : .hermes }
+    var profile: WorkspaceAppProfile? { self == .home ? nil : self == .super ? .super : .hermes }
 }
 
 enum WorkspaceSwipeDirection: String {
@@ -92,6 +92,7 @@ struct HIDShortcutDecoder {
                       let direction = WorkspaceSwipeDirection(rawValue: name),
                       let phase = params["phase"] as? String,
                       phase == "press" || phase == "release" else { continue }
+                guard origin != .home || direction == .left else { continue }
                 if let event = recognizePress(.navigation(origin, direction), pressed: phase == "press", now: now) {
                     events.append(event)
                 }
@@ -101,9 +102,13 @@ struct HIDShortcutDecoder {
                object["method"] as? String == "host.workspace_action" {
                 guard Set(object.keys) == Set(["method", "params"]),
                       let params = object["params"] as? [String: Any],
-                      Set(params.keys) == Set(["action"]),
-                      params["action"] as? String == "open_hermes",
-                      armed, acceptCooldown(now) else { continue }
+                      Set(params.keys) == Set(["action"]) else { continue }
+                if params["action"] as? String == "show_home" {
+                    activePress = nil
+                    events.append(.showHome)
+                    continue
+                }
+                guard params["action"] as? String == "open_hermes", armed, acceptCooldown(now) else { continue }
                 events.append(.openHermes)
                 continue
             }
