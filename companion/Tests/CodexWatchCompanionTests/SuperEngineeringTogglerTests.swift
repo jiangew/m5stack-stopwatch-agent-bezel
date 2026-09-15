@@ -9,6 +9,13 @@ final class WorkspaceStub: WorkspaceApplications {
     var activations: [ApplicationIdentity] = []
     var launchRequests: [String] = []
     var launchCompletion: ((Bool) -> Void)?
+    var focusedWindows: [ApplicationIdentity] = []
+    var windowFocusSucceeds = true
+
+    func focusWindow(_ identity: ApplicationIdentity) -> Bool {
+        focusedWindows.append(identity)
+        return windowFocusSucceeds
+    }
 
     func runningApplication(bundleIdentifier: String) -> ApplicationIdentity? {
         runningByBundleID[bundleIdentifier]

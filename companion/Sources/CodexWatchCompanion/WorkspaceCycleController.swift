@@ -144,6 +144,12 @@ final class WorkspaceCycleController: WorkspaceCycling {
     }
 
     private func foregroundChanged(_ bundle: String?) {
+        if pending?.target == "com.nousresearch.hermes",
+           bundle == pending?.target, displayMode == .hermesOpening {
+            guard let target = workspace.frontmost,
+                  target.bundleIdentifier == bundle,
+                  workspace.focusWindow(target) else { return }
+        }
         if displayMode == .home && (pending == nil || pending?.target != bundle) {
             generation &+= 1
             clearPending()

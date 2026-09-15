@@ -32,6 +32,27 @@ private final class CycleScheduler: WorkspaceModeScheduling {
 
 @MainActor
 final class WorkspaceCycleControllerTests: XCTestCase {
+    func testHermesCentralOpenRequiresWindowFocusAndDoesNotFocusAfterExit() {
+        let ws = WorkspaceStub(), observer = CycleObserver(), scheduler = CycleScheduler()
+        ws.frontmost = ApplicationIdentity(processIdentifier: 1, bundleIdentifier: "com.zarifpour.superconductor")
+        let controller = WorkspaceCycleController(workspace: ws, observer: observer, scheduler: scheduler, log: { _ in })
+        controller.start(); controller.resetToForeground(); controller.cycle(); controller.openHermes()
+        let hermes = ApplicationIdentity(processIdentifier: 3, bundleIdentifier: "com.nousresearch.hermes")
+        ws.frontmost = hermes
+        ws.windowFocusSucceeds = false
+        observer.change(hermes.bundleIdentifier)
+        XCTAssertEqual(controller.displayMode, .hermesOpening)
+        XCTAssertEqual(ws.focusedWindows, [hermes])
+        ws.windowFocusSucceeds = true
+        ws.launchCompletion?(true)
+        XCTAssertEqual(controller.displayMode, .hermes)
+        controller.cycle()
+        let count = ws.focusedWindows.count
+        ws.launchCompletion?(true)
+        observer.change(hermes.bundleIdentifier)
+        XCTAssertEqual(ws.focusedWindows.count, count)
+        XCTAssertEqual(controller.displayMode, .home)
+    }
     func testHomePinsForegroundWithoutLaunching() {
         let ws=WorkspaceStub(), observer=CycleObserver(), scheduler=CycleScheduler()
         let controller=WorkspaceCycleController(workspace:ws,observer:observer,scheduler:scheduler,log:{_ in})
