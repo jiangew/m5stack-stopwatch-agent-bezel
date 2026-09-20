@@ -1,4 +1,5 @@
 #include <cassert>
+#include "RobotHomeCharacter.h"
 #include "RobotHomeInteraction.h"
 int main() {
   using namespace robot_home;
@@ -35,4 +36,9 @@ int main() {
   tap.begin(200,200,0,true); tap.move(253,200,52);
   assert(!tap.finish(200,200,100,52));
   tap.begin(200,200,0,true);tap.cancel();assert(!tap.finish(200,200,10,52));
+
+  CharacterSelector characters;
+  characters.select(touch_gesture::Direction::Down,100);
+  assert(characters.character()==Character::Megatron);
+  characters.reset();assert(characters.character()==Character::Bumblebee);
 }

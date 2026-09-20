@@ -7,6 +7,7 @@ finish = source.index('void finishTouchGesture(', start) or abort 'missing next 
 function = source[start...finish]
 fixture = <<~CPP
   #include <cassert>
+  #include "RobotHomeCharacter.h"
   #include "RobotHomeInteraction.h"
   #include "WorkspaceInputPolicy.h"
   #include "UsbMic.h"
@@ -15,6 +16,7 @@ fixture = <<~CPP
   struct TapStub { void move(int,int,int){} void cancel(){} } workspaceCenterTap;
   robot_home::Tap robotTap;
   robot_home::Animation robotAnimation;
+  robot_home::CharacterSelector robotCharacters;
   bool touchTracking=true,touchPowerHoldConsumed=false,awake=true;
   Direction activeSwipe=Direction::None;
   int touchStartX=200,touchStartY=200;
@@ -40,7 +42,7 @@ fixture = <<~CPP
   struct {template<class F>void acceptSwipe(unsigned,F){}} workspacePalette;
   struct {template<class... A>void printf(const char*,A...){}} Serial;
   #{function}
-  void reset(){sent=haptics=speech=cancels=0;touchTracking=true;awake=true;activeSwipe=Direction::None;state.workspaceHostReady=true;}
+  void reset(bool resetCharacter=true){sent=haptics=speech=cancels=0;touchTracking=true;awake=true;activeSwipe=Direction::None;state.workspaceHostReady=true;if(resetCharacter)robotCharacters.reset();}
   int main(){
     reset();updateTouchGesture(140,200);
     assert(sent==1&&haptics==1&&speech==0&&cancels==1);
@@ -48,11 +50,17 @@ fixture = <<~CPP
     updateTouchGesture(130,200);assert(sent==1&&haptics==1);
     reset();state.workspaceHostReady=false;updateTouchGesture(140,200);
     assert(sent==0&&haptics==0&&robotAnimation.mood(100)==robot_home::Mood::Connect);
-    reset();updateTouchGesture(200,140);assert(sent==0&&haptics==0&&speech==1);
-    updateTouchGesture(200,130);assert(speech==1);
-    assert(robotAnimation.mood(100)==robot_home::Mood::Talking);
-    reset();updateTouchGesture(200,260);assert(sent==0&&haptics==0&&speech==1);
-    reset();updateTouchGesture(260,200);assert(sent==0&&haptics==0&&speech==1);
+    reset();updateTouchGesture(200,140);assert(sent==0&&haptics==0&&speech==0&&cancels==1);
+    assert(activeSwipe==Direction::None&&!touchTracking);
+    assert(robotCharacters.character()==robot_home::Character::Optimus);
+    reset(false);updateTouchGesture(200,140);
+    assert(robotCharacters.character()==robot_home::Character::Bumblebee);
+    reset();updateTouchGesture(200,260);assert(sent==0&&haptics==0&&speech==0&&cancels==1);
+    assert(activeSwipe==Direction::None&&!touchTracking);
+    assert(robotCharacters.character()==robot_home::Character::Megatron);
+    reset();updateTouchGesture(260,200);assert(sent==0&&haptics==0&&speech==0&&cancels==1);
+    assert(activeSwipe==Direction::None&&!touchTracking);
+    assert(robotCharacters.character()==robot_home::Character::Starscream);
     reset();updateTouchGesture(201,200);assert(sent==0&&haptics==0);
     reset();awake=false;updateTouchGesture(140,200);
     assert(sent==0&&haptics==1&&duration==kWakeHapticDurationMs&&!touchTracking&&speech==0);
@@ -65,4 +73,4 @@ Dir.mktmpdir('robot-home-swipe-', '/private/tmp') do |dir|
   abort 'compile failed' unless system(*args)
   abort 'gesture regression failed' unless system(File.join(dir,'test'))
 end
-puts 'PASS actual Home gesture: haptic, repeat, offline, local reactions, wake'
+puts 'PASS actual Home gesture: haptic, character selection, offline, wake'

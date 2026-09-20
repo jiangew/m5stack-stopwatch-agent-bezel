@@ -99,6 +99,7 @@ bool touchPowerHoldCandidate = false;
 workspace_input::CenterTap workspaceCenterTap;
 robot_home::Tap robotTap;
 robot_home::Animation robotAnimation;
+robot_home::CharacterSelector robotCharacters;
 bool robotSpeechTracked = false;
 uint32_t robotSpeechSequence = 0;
 
@@ -553,6 +554,8 @@ void drawScreen() {
     if (state.workspaceMode == workspace_mode::Mode::Home) {
       robot_home::State ui;
       ui.nowMs=millis();ui.mood=robotAnimation.mood(ui.nowMs);
+      ui.character=robotCharacters.character();
+      ui.transitionProgress=robotCharacters.transitionProgress(ui.nowMs);
       ui.batteryPercent=batteryPercent;ui.charging=charging;
       ui.connected=state.workspaceHostReady;
       ui.powerOverlay=superPowerOverlay();ui.powerHoldProgress=currentPowerHoldProgress();
@@ -729,7 +732,12 @@ void updateTouchGesture(int x, int y) {
       case touch_gesture::Direction::Up:
       case touch_gesture::Direction::Down:
       case touch_gesture::Direction::Right:
-        requestRobotReaction(stopwatch_usb_mic::LocalSound::RobotLaugh);break;
+        stopRobotReaction();
+        robotCharacters.select(direction,millis());
+        activeSwipe=touch_gesture::Direction::None;
+        touchTracking=false;
+        drawScreen();
+        break;
       case touch_gesture::Direction::Left:
         stopRobotReaction();
         if(state.workspaceHostReady) {
@@ -998,6 +1006,8 @@ void handleWorkspaceModeTransition(workspace_mode::Mode previous,
   touchTracking = false;
   touchPowerHoldConsumed = false;
   stopRobotReaction();
+  if(previous==workspace_mode::Mode::Home &&
+     next!=workspace_mode::Mode::Home)robotCharacters.reset();
   powerOverlay = dashboard::PowerOverlay::None;
   completionBanner.clear();
   clearTouchCandidate();
