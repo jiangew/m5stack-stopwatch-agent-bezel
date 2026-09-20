@@ -47,3 +47,6 @@ docs/USB_MIC_PLAN.md
 # The HTML sketches were exploratory; the native framebuffer preview is the
 # public rendering reference.
 ui-mock/
+
+# Private user-supplied speech. Never publish system-voice output or PCM.
+include/RobotSpeechLocal.h

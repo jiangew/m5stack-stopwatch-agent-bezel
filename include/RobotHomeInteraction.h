@@ -3,12 +3,15 @@
 #include <cstdint>
 #include "TouchGesture.h"
 namespace robot_home {
-enum class Mood : std::uint8_t { Idle, Happy, Surprise, Sleep, Connect };
+enum class Mood : std::uint8_t { Idle, Happy, Surprise, Sleep, Connect, Talking };
 class Animation {
  public:
-  void react(Mood mood, std::uint32_t now) { mood_=mood; since_=now; }
+  void react(Mood mood, std::uint32_t now) { mood_=mood; since_=now; duration_=2400; }
+  void talk(std::uint32_t now, std::uint32_t duration) {
+    mood_=Mood::Talking;since_=now;duration_=duration;
+  }
   Mood mood(std::uint32_t now) const {
-    return static_cast<std::uint32_t>(now-since_) >= 2400 ? Mood::Idle : mood_;
+    return static_cast<std::uint32_t>(now-since_) >= duration_ ? Mood::Idle : mood_;
   }
   void random(std::uint32_t now, std::uint32_t entropy) {
     const Mood choices[]{Mood::Happy,Mood::Surprise,Mood::Sleep};
@@ -23,7 +26,7 @@ class Animation {
   }
  private:
   Mood mood_=Mood::Idle;
-  std::uint32_t since_=0,lastFrame_=0;
+  std::uint32_t since_=0,lastFrame_=0,duration_=2400;
   bool framed_=false;
 };
 constexpr bool inHead(int x,int y) { return x>=88 && x<=378 && y>=108 && y<=319; }

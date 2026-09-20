@@ -99,6 +99,37 @@ bool touchPowerHoldCandidate = false;
 workspace_input::CenterTap workspaceCenterTap;
 robot_home::Tap robotTap;
 robot_home::Animation robotAnimation;
+bool robotSpeechTracked = false;
+uint32_t robotSpeechSequence = 0;
+
+void stopRobotReaction() {
+  stopwatch_usb_mic::cancelRobotSpeech();
+  robotSpeechTracked = false;
+  robotAnimation.react(robot_home::Mood::Idle, millis());
+}
+
+void requestRobotReaction(stopwatch_usb_mic::LocalSound sound) {
+  // No replay queue, including during a silent (recording-priority) response.
+  if (robotAnimation.mood(millis()) == robot_home::Mood::Talking ||
+      stopwatch_usb_mic::snapshotChimeStatus().pending) return;
+  const auto result = stopwatch_usb_mic::requestRobotSpeech(sound);
+  if (result == stopwatch_usb_mic::ChimeRequestResult::Busy) return;
+  robotSpeechTracked = result == stopwatch_usb_mic::ChimeRequestResult::Queued;
+  robotSpeechSequence = stopwatch_usb_mic::snapshotChimeStatus().sequence;
+  // The audio status ends the animation, not a guessed spoken duration.
+  // This cap is only a failsafe; skipped speech gets a short silent response.
+  robotAnimation.talk(millis(), robotSpeechTracked ? 6000 : 1200);
+}
+
+void updateRobotReaction(bool visible) {
+  if (!visible) { stopRobotReaction(); return; }
+  if (!robotSpeechTracked) return;
+  const auto audio = stopwatch_usb_mic::snapshotChimeStatus();
+  if (!audio.pending || audio.sequence != robotSpeechSequence) {
+    robotSpeechTracked = false;
+    robotAnimation.react(robot_home::Mood::Idle, millis());
+  }
+}
 workspace_navigation::Gesture navigationGesture;
 int workspaceTouchEndX = 0;
 int workspaceTouchEndY = 0;
@@ -180,6 +211,9 @@ void setPanelReset(bool high) {
 void enterDeskSleep() {
   if (deskSleeping || leftPressed || rightPressed || touchTracking) return;
   stopHaptic();
+#if defined(CODEX_STOPWATCH_USB_MIC)
+  stopRobotReaction();
+#endif
 #if !defined(CODEX_STOPWATCH_USB_MIC)
   speakerSuspended = M5.Speaker.isRunning();
   if (speakerSuspended) M5.Speaker.end();
@@ -692,10 +726,12 @@ void updateTouchGesture(int x, int y) {
 #if defined(CODEX_STOPWATCH_USB_MIC)
   if (state.workspaceMode == workspace_mode::Mode::Home) {
     switch(direction) {
-      case touch_gesture::Direction::Up:robotAnimation.react(robot_home::Mood::Surprise,millis());break;
-      case touch_gesture::Direction::Down:robotAnimation.react(robot_home::Mood::Sleep,millis());break;
-      case touch_gesture::Direction::Right:robotAnimation.random(millis(),esp_random());break;
+      case touch_gesture::Direction::Up:
+      case touch_gesture::Direction::Down:
+      case touch_gesture::Direction::Right:
+        requestRobotReaction(stopwatch_usb_mic::LocalSound::RobotLaugh);break;
       case touch_gesture::Direction::Left:
+        stopRobotReaction();
         if(state.workspaceHostReady) {
           sendSwipePress(direction);
           startHaptic(kSwipeHapticIntensity, kSwipeHapticDurationMs);
@@ -747,7 +783,7 @@ void finishTouchGesture(int x, int y) {
   if (directionalWorkspaceActive()) {
     if (state.workspaceMode == workspace_mode::Mode::Home) {
       if(robotTap.finish(x,y,millis(),kSwipeThresholdPx)&&noteActivity())
-        robotAnimation.react(robot_home::Mood::Happy,millis());
+        requestRobotReaction(stopwatch_usb_mic::LocalSound::RobotTask);
       clearTouchCandidate();return;
     }
     const bool tap = workspaceCenterTap.finish(x, y, millis(), kSwipeThresholdPx);
@@ -961,7 +997,7 @@ void handleWorkspaceModeTransition(workspace_mode::Mode previous,
   voiceTapBannerVisible = false;
   touchTracking = false;
   touchPowerHoldConsumed = false;
-  robotAnimation.react(robot_home::Mood::Idle,millis());
+  stopRobotReaction();
   powerOverlay = dashboard::PowerOverlay::None;
   completionBanner.clear();
   clearTouchCandidate();
@@ -974,6 +1010,9 @@ void handleWorkspaceModeTransition(workspace_mode::Mode previous,
 #endif
 
 [[noreturn]] void enterTravelPowerOff() {
+#if defined(CODEX_STOPWATCH_USB_MIC)
+  stopRobotReaction();
+#endif
   touchPowerHoldConsumed = true;
   powerOverlay = dashboard::PowerOverlay::PoweringOff;
   drawScreen();
@@ -1358,6 +1397,8 @@ void loop() {
         currentUi.docked != renderedDocked;
   }
 #if defined(CODEX_STOPWATCH_USB_MIC)
+  updateRobotReaction(!deskSleeping && state.workspaceMode==workspace_mode::Mode::Home &&
+      powerOverlay==dashboard::PowerOverlay::None);
   const bool robotFrame=robotAnimation.frameDue(millis(),!deskSleeping &&
       state.workspaceMode==workspace_mode::Mode::Home &&
       powerOverlay==dashboard::PowerOverlay::None);

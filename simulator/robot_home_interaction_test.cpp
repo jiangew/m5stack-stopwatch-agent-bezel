@@ -3,6 +3,12 @@
 int main() {
   using namespace robot_home;
   Animation a;
+  a.talk(100, 3516);
+  assert(a.mood(3615) == Mood::Talking);
+  assert(a.mood(3616) == Mood::Idle);
+  a.talk(0xfffffff0u, 100);
+  assert(a.mood(83) == Mood::Talking);
+  assert(a.mood(84) == Mood::Idle);
   a.react(Mood::Happy, 100);
   assert(a.mood(2499) == Mood::Happy);
   a.react(Mood::Sleep, 2499);

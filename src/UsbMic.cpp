@@ -17,6 +17,7 @@
 #include <freertos/semphr.h>
 #include <freertos/task.h>
 #include <tusb.h>
+#include "RobotSpeechData.h"
 
 #ifndef CODEX_STOPWATCH_USB_MIC_SYNTHETIC
 #define CODEX_STOPWATCH_USB_MIC_SYNTHETIC 0
@@ -164,6 +165,9 @@ std::atomic<uint32_t> micInterfaceEnableGeneration{0};
 std::atomic<uint32_t> startupAwaitingGeneration{0};
 std::atomic<bool> pipelineStarted{false};
 std::atomic<ChimePhase> chimePhase{ChimePhase::Idle};
+std::atomic<stopwatch_usb_mic::LocalSound> selectedSound{
+    stopwatch_usb_mic::LocalSound::Completion};
+std::atomic<bool> speechCancelled{false};
 std::atomic<uint32_t> chimeAlt1Baseline{0};
 std::atomic<uint32_t> chimeGuardUntilMs{0};
 portMUX_TYPE statsMux = portMUX_INITIALIZER_UNLOCKED;
@@ -404,6 +408,7 @@ void finishChime(stopwatch_usb_mic::ChimeResult result) {
       break;
     case stopwatch_usb_mic::ChimeResult::NeverRequested:
     case stopwatch_usb_mic::ChimeResult::Pending:
+    case stopwatch_usb_mic::ChimeResult::Cancelled:
       break;
   }
   // Publish idle while the result lock is still held. A new request may then
@@ -858,6 +863,17 @@ bool streamRequestedDuringChime() {
              chimeAlt1Baseline.load(std::memory_order_acquire);
 }
 
+bool localSoundInterrupted() {
+  return streamRequestedDuringChime() || speechCancelled.load(std::memory_order_acquire);
+}
+
+stopwatch_usb_mic::ChimeResult interruptionResult(bool played) {
+  using stopwatch_usb_mic::ChimeResult;
+  if (streamRequestedDuringChime())
+    return played ? ChimeResult::AbortedStreaming : ChimeResult::SkippedStreaming;
+  return ChimeResult::Cancelled;
+}
+
 void markCaptureHardwareFailed() {
   captureHardwareReady.store(false, std::memory_order_release);
 
@@ -911,14 +927,14 @@ bool performCompletionChime(size_t* nextBuffer) {
   // This avoids deleting its I2S task while a DMA destination is still live.
   while (M5.Mic.isRecording() != 0) vTaskDelay(1);
 
-  if (streamRequestedDuringChime()) {
+  if (localSoundInterrupted()) {
     if (!queueInitialCaptureBlocks(nextBuffer)) {
       captureHardwareReady.store(false, std::memory_order_release);
       finishChime(
           stopwatch_usb_mic::ChimeResult::MicrophoneRestoreFailed);
       return false;
     }
-    finishChime(stopwatch_usb_mic::ChimeResult::SkippedStreaming);
+    finishChime(interruptionResult(false));
     return true;
   }
 
@@ -926,7 +942,7 @@ bool performCompletionChime(size_t* nextBuffer) {
 
   // An alt1 request may race the last capture block. Do not even enable the
   // amplifier in that case; put the microphone back first.
-  if (streamRequestedDuringChime()) {
+  if (localSoundInterrupted()) {
     const bool restored = restartCaptureAfterChime(nextBuffer);
     if (!restored) {
       captureHardwareReady.store(false, std::memory_order_release);
@@ -934,7 +950,7 @@ bool performCompletionChime(size_t* nextBuffer) {
           stopwatch_usb_mic::ChimeResult::MicrophoneRestoreFailed);
       return false;
     }
-    finishChime(stopwatch_usb_mic::ChimeResult::SkippedStreaming);
+    finishChime(interruptionResult(false));
     return true;
   }
 
@@ -942,41 +958,56 @@ bool performCompletionChime(size_t* nextBuffer) {
   vTaskDelay(pdMS_TO_TICKS(10));
   const bool codecReady = configureCodecSpeaker();
   bool speakerReady = false;
-  if (codecReady && !streamRequestedDuringChime()) {
+  if (codecReady && !localSoundInterrupted()) {
     setSpeakerAmp(true);
     // Avoid starting the I2S speaker task if alt1 arrived while the amplifier
     // enable write was in flight. A later arrival is caught before any PCM is
     // queued and again on every playback poll.
-    if (!streamRequestedDuringChime()) {
+    if (!localSoundInterrupted()) {
       speakerReady = M5.Speaker.begin() && M5.Speaker.isRunning();
     }
   }
 
   stopwatch_usb_mic::ChimeResult result =
       stopwatch_usb_mic::ChimeResult::SpeakerStartFailed;
-  if (speakerReady && !streamRequestedDuringChime()) {
+  if (speakerReady && !localSoundInterrupted()) {
     M5.Speaker.setVolume(kChimeVolume);
+    const int16_t* pcm = completionChimePcm.data();
+    size_t samples = completionChimePcm.size();
+    uint32_t rate = kChimeSampleRate;
+    uint32_t timeout = kChimePlaybackTimeoutMs;
+    const auto sound = selectedSound.load(std::memory_order_acquire);
+    if (sound == stopwatch_usb_mic::LocalSound::RobotTask) {
+      pcm = robot_speech::kTask;
+      samples = sizeof(robot_speech::kTask) / sizeof(int16_t);
+      rate = robot_speech::kSampleRate;
+    } else if (sound == stopwatch_usb_mic::LocalSound::RobotLaugh) {
+      pcm = robot_speech::kLaugh;
+      samples = sizeof(robot_speech::kLaugh) / sizeof(int16_t);
+      rate = robot_speech::kSampleRate;
+    }
+    if (sound != stopwatch_usb_mic::LocalSound::Completion)
+      timeout = static_cast<uint32_t>(samples * 1000 / rate) + 500;
     const bool queued = M5.Speaker.playRaw(
-        completionChimePcm.data(), completionChimePcm.size(),
-        kChimeSampleRate, false, 1, -1, true);
+        pcm, samples, rate, false, 1, -1, true);
     if (queued && M5.Speaker.isPlaying()) {
       chimePhase.store(ChimePhase::Playing, std::memory_order_release);
       const uint32_t startedMs = millis();
       while (M5.Speaker.isPlaying() &&
-             millis() - startedMs < kChimePlaybackTimeoutMs) {
-        if (streamRequestedDuringChime()) break;
+             millis() - startedMs < timeout) {
+        if (localSoundInterrupted()) break;
         vTaskDelay(1);
       }
-      if (streamRequestedDuringChime()) {
-        result = stopwatch_usb_mic::ChimeResult::AbortedStreaming;
+      if (localSoundInterrupted()) {
+        result = interruptionResult(true);
       } else if (M5.Speaker.isPlaying()) {
         result = stopwatch_usb_mic::ChimeResult::PlaybackFailed;
       } else {
         result = stopwatch_usb_mic::ChimeResult::Played;
         const uint32_t drainStartedMs = millis();
         while (millis() - drainStartedMs < kChimeDmaDrainMs) {
-          if (streamRequestedDuringChime()) {
-            result = stopwatch_usb_mic::ChimeResult::AbortedStreaming;
+          if (localSoundInterrupted()) {
+            result = interruptionResult(true);
             break;
           }
           vTaskDelay(1);
@@ -985,8 +1016,8 @@ bool performCompletionChime(size_t* nextBuffer) {
     } else {
       result = stopwatch_usb_mic::ChimeResult::PlaybackFailed;
     }
-  } else if (streamRequestedDuringChime()) {
-    result = stopwatch_usb_mic::ChimeResult::SkippedStreaming;
+  } else if (localSoundInterrupted()) {
+    result = interruptionResult(false);
   }
 
   stopLocalSpeaker();
@@ -999,9 +1030,9 @@ bool performCompletionChime(size_t* nextBuffer) {
 
   // A request arriving while the codec was changing modes still counts as an
   // abort even if the PCM task had just reached its natural end.
-  if (streamRequestedDuringChime() &&
+  if (localSoundInterrupted() &&
       result == stopwatch_usb_mic::ChimeResult::Played) {
-    result = stopwatch_usb_mic::ChimeResult::AbortedStreaming;
+    result = interruptionResult(true);
   }
   finishChime(result);
   return true;
@@ -1023,9 +1054,8 @@ void captureAudio(void*) {
   for (;;) {
     const ChimePhase phase = chimePhase.load(std::memory_order_acquire);
     if (phase == ChimePhase::Guarding) {
-      if (streamRequestedDuringChime()) {
-        finishGuardingChime(
-            stopwatch_usb_mic::ChimeResult::SkippedStreaming);
+      if (localSoundInterrupted()) {
+        finishGuardingChime(interruptionResult(false));
       } else if (deadlineReached(
                      millis(),
                      chimeGuardUntilMs.load(std::memory_order_acquire))) {
@@ -1045,7 +1075,7 @@ void captureAudio(void*) {
       const ChimePhase waitingPhase =
           chimePhase.load(std::memory_order_acquire);
       if (waitingPhase == ChimePhase::Guarding &&
-          (streamRequestedDuringChime() ||
+          (localSoundInterrupted() ||
            deadlineReached(
                millis(),
                chimeGuardUntilMs.load(std::memory_order_acquire)))) {
@@ -1055,7 +1085,7 @@ void captureAudio(void*) {
     }
 
     if (chimePhase.load(std::memory_order_acquire) == ChimePhase::Guarding &&
-        (streamRequestedDuringChime() ||
+        (localSoundInterrupted() ||
          deadlineReached(
              millis(),
              chimeGuardUntilMs.load(std::memory_order_acquire)))) {
@@ -1259,7 +1289,7 @@ bool begin() {
   return true;
 }
 
-ChimeRequestResult requestCompletionChime() {
+static ChimeRequestResult requestLocalSound(LocalSound sound) {
   const uint32_t alt1Baseline =
       micInterfaceEnableGeneration.load(std::memory_order_acquire);
   noteChimeRequest();
@@ -1273,6 +1303,10 @@ ChimeRequestResult requestCompletionChime() {
   }
 
   chimeAlt1Baseline.store(alt1Baseline, std::memory_order_release);
+  // UI requests and cancellations are serialized on the same task. Publish
+  // immutable selection before Guarding; a busy request cannot clear cancel.
+  selectedSound.store(sound, std::memory_order_release);
+  speechCancelled.store(false, std::memory_order_release);
 
 #if CODEX_STOPWATCH_USB_MIC_SYNTHETIC
   armChimeStatus(false);
@@ -1312,6 +1346,22 @@ ChimeRequestResult requestCompletionChime() {
   }
   return ChimeRequestResult::Queued;
 #endif
+}
+
+ChimeRequestResult requestCompletionChime() {
+  return requestLocalSound(LocalSound::Completion);
+}
+
+ChimeRequestResult requestRobotSpeech(LocalSound sound) {
+  if (sound != LocalSound::RobotTask && sound != LocalSound::RobotLaugh)
+    return ChimeRequestResult::Unsupported;
+  if (!robot_speech::kAvailable) return ChimeRequestResult::Unavailable;
+  return requestLocalSound(sound);
+}
+
+void cancelRobotSpeech() {
+  if (selectedSound.load(std::memory_order_acquire) != LocalSound::Completion)
+    speechCancelled.store(true, std::memory_order_release);
 }
 
 ChimeStatus snapshotChimeStatus() { return readChimeStatus(); }

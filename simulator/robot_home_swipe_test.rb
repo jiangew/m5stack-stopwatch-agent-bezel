@@ -9,6 +9,7 @@ fixture = <<~CPP
   #include <cassert>
   #include "RobotHomeInteraction.h"
   #include "WorkspaceInputPolicy.h"
+  #include "UsbMic.h"
   using touch_gesture::Direction;
   struct { workspace_mode::Mode workspaceMode=workspace_mode::Mode::Home; bool workspaceHostReady=true; } state;
   struct TapStub { void move(int,int,int){} void cancel(){} } workspaceCenterTap;
@@ -21,6 +22,12 @@ fixture = <<~CPP
   constexpr int kSwipeHapticIntensity=77,kSwipeHapticDurationMs=88;
   constexpr int kButtonHapticIntensity=11,kWakeHapticDurationMs=22;
   int sent=0,haptics=0,intensity=0,duration=0;
+  int speech=0,cancels=0;
+  void requestRobotReaction(stopwatch_usb_mic::LocalSound sound){
+    assert(sound==stopwatch_usb_mic::LocalSound::RobotLaugh);++speech;
+    robotAnimation.talk(100,2400);
+  }
+  void stopRobotReaction(){++cancels;}
   unsigned millis(){return 100;}
   unsigned esp_random(){return 1;}
   bool directionalWorkspaceActive(){return state.workspaceMode!=workspace_mode::Mode::Codex;}
@@ -33,20 +40,22 @@ fixture = <<~CPP
   struct {template<class F>void acceptSwipe(unsigned,F){}} workspacePalette;
   struct {template<class... A>void printf(const char*,A...){}} Serial;
   #{function}
-  void reset(){sent=haptics=0;touchTracking=true;awake=true;activeSwipe=Direction::None;state.workspaceHostReady=true;}
+  void reset(){sent=haptics=speech=cancels=0;touchTracking=true;awake=true;activeSwipe=Direction::None;state.workspaceHostReady=true;}
   int main(){
     reset();updateTouchGesture(140,200);
-    assert(sent==1&&haptics==1);
+    assert(sent==1&&haptics==1&&speech==0&&cancels==1);
     assert(intensity==kSwipeHapticIntensity&&duration==kSwipeHapticDurationMs);
     updateTouchGesture(130,200);assert(sent==1&&haptics==1);
     reset();state.workspaceHostReady=false;updateTouchGesture(140,200);
     assert(sent==0&&haptics==0&&robotAnimation.mood(100)==robot_home::Mood::Connect);
-    reset();updateTouchGesture(200,140);assert(sent==0&&haptics==0);
-    reset();updateTouchGesture(200,260);assert(sent==0&&haptics==0);
-    reset();updateTouchGesture(260,200);assert(sent==0&&haptics==0);
+    reset();updateTouchGesture(200,140);assert(sent==0&&haptics==0&&speech==1);
+    updateTouchGesture(200,130);assert(speech==1);
+    assert(robotAnimation.mood(100)==robot_home::Mood::Talking);
+    reset();updateTouchGesture(200,260);assert(sent==0&&haptics==0&&speech==1);
+    reset();updateTouchGesture(260,200);assert(sent==0&&haptics==0&&speech==1);
     reset();updateTouchGesture(201,200);assert(sent==0&&haptics==0);
     reset();awake=false;updateTouchGesture(140,200);
-    assert(sent==0&&haptics==1&&duration==kWakeHapticDurationMs&&!touchTracking);
+    assert(sent==0&&haptics==1&&duration==kWakeHapticDurationMs&&!touchTracking&&speech==0);
   }
 CPP
 Dir.mktmpdir('robot-home-swipe-', '/private/tmp') do |dir|

@@ -114,7 +114,7 @@ super_workspace::State superPreviewState(const char* scenario) {
 }
 
 bool validScenario(const char* scenario) {
-  for(const char* name:{"home","home-happy","home-surprise","home-sleep","home-offline","home-charging","home-unknown","home-low","home-power-hold"})
+  for(const char* name:{"home","home-happy","home-surprise","home-sleep","home-offline","home-charging","home-unknown","home-low","home-power-hold","home-talking"})
     if(std::strcmp(scenario,name)==0)return true;
   const bool hermes = std::strncmp(scenario, "hermes", 6) == 0;
   const bool super = std::strncmp(scenario, "super", 5) == 0;
@@ -189,6 +189,7 @@ int main(int argc, char** argv) {
     if(std::strcmp(scenario,"home-happy")==0)state.mood=robot_home::Mood::Happy;
     if(std::strcmp(scenario,"home-surprise")==0)state.mood=robot_home::Mood::Surprise;
     if(std::strcmp(scenario,"home-sleep")==0)state.mood=robot_home::Mood::Sleep;
+    if(std::strcmp(scenario,"home-talking")==0){state.mood=robot_home::Mood::Talking;state.nowMs=100;}
     if(std::strcmp(scenario,"home-offline")==0)state.connected=false;
     if(std::strcmp(scenario,"home-charging")==0)state.charging=true;
     if(std::strcmp(scenario,"home-unknown")==0)state.batteryPercent=-1;

@@ -6,6 +6,8 @@
 
 namespace stopwatch_usb_mic {
 
+enum class LocalSound : uint8_t { Completion, RobotTask, RobotLaugh };
+
 // Immediate disposition of a nonblocking local completion-chime request.
 // The USB descriptor remains microphone-only; this API drives only the
 // StopWatch's local speaker when the host is not requesting UAC microphone
@@ -31,6 +33,7 @@ enum class ChimeResult : uint8_t {
   SpeakerStartFailed,
   PlaybackFailed,
   MicrophoneRestoreFailed,
+  Cancelled,
 };
 
 struct ChimeStatus {
@@ -107,6 +110,11 @@ bool begin();
 // stream request arrives during playback, playback is aborted and microphone
 // capture is restored first.
 ChimeRequestResult requestCompletionChime();
+
+// Fixed local speech only. Requests/cancellation originate on the UI task;
+// codec ownership remains exclusively with the capture task. No queue/retry.
+ChimeRequestResult requestRobotSpeech(LocalSound sound);
+void cancelRobotSpeech();
 
 // Returns an internally consistent snapshot of the latest accepted chime.
 ChimeStatus snapshotChimeStatus();

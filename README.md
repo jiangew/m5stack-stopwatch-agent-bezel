@@ -17,13 +17,23 @@ This is validation of one local setup, not a guarantee for every app version.
 
 ## Robot Home and three workspaces
 
+**Public builds contain no speech samples.** Home uses silent talking animation
+unless you provide authorized local audio via the [speech setup](docs/ROBOT_SPEECH.md).
+The lines below describe the privately tested installation, not bundled assets.
+
 The new Home requires matched Companion 0.1.3 (build 4) and USB-mic firmware.
 It is not yet physically validated; prior acceptance below applies to older builds.
 Boot, reconnect and Companion startup select Home without activating a Mac app.
-Home stays selected even when the Mac foreground changes. Tap the head to smile,
-swipe up for surprise, down for sleepy eyes, or right for another expression.
+Home stays selected even when the Mac foreground changes. With the local speech
+firmware, tap the head for “愚蠢的人类，快给我下发任务吧！”; swipe up/down/right
+for “哈哈哈，愚蠢的人类！”. All four use the same talking faceplate/blue-eye animation.
 These interactions are local only; the first sleeping-screen touch only wakes it.
-Local reactions add no sound, vibration, microphone access or application content.
+Speech never queues or overlaps. Leaving Home, sleep or power confirmation cancels it.
+USB microphone streaming takes priority: an active stream skips speech (silent
+animation only), and a new stream preempts playback. No USB speaker endpoint,
+microphone recording, network TTS or application content access is added.
+See [audio provenance and verification](docs/ROBOT_SPEECH.md). Physical speech
+acceptance is pending; desktop auditions do not establish C152 speaker quality.
 An awake Home left swipe with a ready Companion link gives the same single
 vibration as other workspace swipes; offline left remains silent. This is gesture
 feedback, not confirmation of Mac activation.

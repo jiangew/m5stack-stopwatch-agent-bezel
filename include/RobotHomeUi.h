@@ -18,6 +18,10 @@ template<class Surface>void render(Surface& s,const State& state){
   s.fillScreen(0);
   const float phase=(state.nowMs%4400)/4400.0f*6.2831853f;
   const int bob=int(std::sin(phase)*3);
+  const bool talking=state.mood==Mood::Talking;
+  const float speechPulse=(1.0f+std::sin((state.nowMs%320)/320.0f*6.2831853f))*0.5f;
+  const int mouthOffset=talking?int(speechPulse*5):0;
+  const int eyeBlue=talking&&speechPulse>0.5f?0xBFFF:blue;
   const float tilt=state.mood==Mood::Happy?std::sin((state.nowMs%700)/700.0f*6.2831853f)*0.10f:0;
   auto point=[&](Point p){float x=p.x-233,y=p.y-225;return Point{233+int(x*std::cos(tilt)-y*std::sin(tilt)),225+bob+int(x*std::sin(tilt)+y*std::cos(tilt))};};
   auto poly=[&](std::initializer_list<Point> pts,int color){auto it=pts.begin();Point first=point(*it++),previous=point(*it++);for(;it!=pts.end();++it){Point next=point(*it);s.fillTriangle(first.x,first.y,previous.x,previous.y,next.x,next.y,color);previous=next;}};
@@ -43,14 +47,14 @@ template<class Surface>void render(Surface& s,const State& state){
     }else if(state.mood==Mood::Surprise){
       poly({{156+dx,197},{166+dx,190},{191+dx,190},{201+dx,197},{201+dx,231},{191+dx,241},{166+dx,241},{156+dx,231}},blue);
     }else{
-      poly({{153+dx,207},{176+dx,201},{202+dx,211},{197+dx,231},{173+dx,236},{155+dx,225}},blue);
+      poly({{153+dx,207},{176+dx,201},{202+dx,211},{197+dx,231},{173+dx,236},{155+dx,225}},eyeBlue);
     }
   }
   poly({{220,210},{246,210},{253,245},{233,255},{213,245}},0x73EF);
-  poly({{175,248},{208,239},{233,254},{258,239},{291,248},{285,281},{261,299},{205,299},{181,281}},metal);
-  poly({{198,256},{215,262},{251,262},{268,256},{266,263},{252,269},{214,269},{200,263}},dark);
-  poly({{204,275},{262,275},{258,280},{208,280}},dark);
-  poly({{218,285},{248,285},{244,290},{222,290}},dark);
+  poly({{175,248+mouthOffset},{208,239+mouthOffset},{233,254+mouthOffset},{258,239+mouthOffset},{291,248+mouthOffset},{285,281+mouthOffset},{261,299+mouthOffset},{205,299+mouthOffset},{181,281+mouthOffset}},metal);
+  poly({{198,256+mouthOffset},{215,262+mouthOffset},{251,262+mouthOffset},{268,256+mouthOffset},{266,263+mouthOffset},{252,269+mouthOffset},{214,269+mouthOffset},{200,263+mouthOffset}},dark);
+  poly({{204,275+mouthOffset},{262,275+mouthOffset},{258,280+mouthOffset},{208,280+mouthOffset}},dark);
+  poly({{218,285+mouthOffset},{248,285+mouthOffset},{244,290+mouthOffset},{222,290+mouthOffset}},dark);
   poly({{128,230},{148,241},{166,277},{179,294},{157,284},{136,265}},light);
   poly({{338,230},{318,241},{300,277},{287,294},{309,284},{330,265}},light);
   poly({{208,306},{258,306},{249,319},{217,319}},dark);
