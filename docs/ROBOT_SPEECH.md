@@ -61,7 +61,10 @@ Left navigation keeps its existing single ready-link haptic. Wake-only touch and
 long holds never start speech. Input-only USB descriptors and all app controls
 are unchanged; no Companion installation or permission changes are needed.
 
-Both clips use one Talking animation. Pending/playing audio status holds it;
+The four-character Home selector introduces no additional voice samples. Up,
+down and right only select local portraits and remain silent; center tap on any
+portrait uses the same authorized local task clip and one Talking animation.
+Pending/playing audio status holds it;
 terminal status ends it. Skipped/unavailable speech produces 1200 ms of silent
 animation. Repeated inputs during either response are ignored, never retried.
 The existing `chime_*` local audio counters now also include speech requests;

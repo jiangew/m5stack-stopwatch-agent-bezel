@@ -4,7 +4,14 @@
 
 **Goal:** Replace Robot Home's expression swipes with four locally rendered, cinematic robot portraits while preserving the existing center-tap speech and Home-to-Codex behavior.
 
-**Architecture:** A new pure firmware `CharacterSelector` owns only the local character and transition time. Four independent vector drawing functions feed the existing Robot Home compositor; `main.cpp` maps Home up/down/right into selector operations and leaves audio, HID, workspace leases and Companion untouched.
+**Architecture:** A new pure firmware `CharacterSelector` owns only the local character and transition time. Four original 300x300 baseline JPEG portraits are embedded in flash and decoded by M5GFX into the existing Robot Home compositor; `main.cpp` maps Home up/down/right into selector operations and leaves audio, HID, workspace leases and Companion untouched.
+
+**Approved implementation amendment (2026-09-20):** Full-scale M5GFX preview
+showed that the first procedural-polygon implementation lost recognizable armor
+detail and destabilized later draws for some concave geometry. The user approved
+switching Task 2 to embedded project artwork. The selector and input contract are
+unchanged; no film frame, official logo, runtime download or new dependency is
+introduced. The source JPEGs and deterministic embedding script are committed.
 
 **Tech Stack:** C++17, Arduino/M5Unified, M5GFX RGB565 sprites, PlatformIO native tests and USB-mic firmware build.
 
@@ -103,7 +110,7 @@ git commit -m "feat: add robot home character selector"
 
 ---
 
-### Task 2: Independent cinematic vector renderers
+### Task 2: Independent cinematic embedded portraits
 
 **Files:**
 - Create: `include/RobotHomeCharacters.h`

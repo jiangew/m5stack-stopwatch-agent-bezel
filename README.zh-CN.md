@@ -18,10 +18,13 @@ Companion 身份保持不变。三应用行为需要匹配的源码构建；源�
 [语音配置说明](docs/ROBOT_SPEECH.md)提供有权使用的本地音频。
 下述台词描述的是已实测的私人安装，不代表仓库附带这些声音。
 
-新增首页需要匹配的 Companion 0.1.3（build 4）与 USB-mic 固件，当前尚未实机验收；
-下文既有验收仅代表旧版本。开机、重连和 Companion 启动都选中首页，不激活 Mac 应用，
+首页沿用现有 Companion 0.1.4，并需要匹配的 USB-mic 固件。下述四角色选择功能
+尚未实机验收；既有验收仅代表当前已安装的单角色版本。开机、重连和 Companion 启动
+都选中首页，不激活 Mac 应用，
 Mac 前台变化也不会离开首页。语音版固件中央点按播放“愚蠢的人类，快给我下发任务吧！”，
-上／下／右滑统一播放“哈哈哈，愚蠢的人类！”，四种操作共用面罩轻动、蓝眼发光动画。
+上滑选择擎天柱、下滑选择威震天、右滑选择红蜘蛛；对当前角色重复同一方向则返回大黄蜂。
+角色选择静音、无振动、完全在手表本地完成，不向 Mac 发送操作。四个角色中央点按都沿用
+同一条任务语音和说话动画。
 熄屏后第一次触摸只亮屏；重复输入不排队、不叠加。离开首页、熄屏或电源确认时停止语音。
 USB 录音优先：正在收音时仅显示短暂无声动画；播放期间开始收音则中断语音并恢复麦克风。
 不新增 USB 扬声器接口、麦克风录音、联网合成、振动或应用内容读取。
@@ -29,6 +32,19 @@ USB 录音优先：正在收音时仅显示短暂无声动画；播放期间开�
 首页亮屏且 Companion 就绪时，左滑触发与其他桌面相同的一次振动；离线左滑仍无振动。
 振动仅确认手势反馈，不代表 Mac 激活成功。
 连接和电量来自真实状态，不使用预览中的固定示例值。
+
+<table>
+  <tr><th>大黄蜂（默认）</th><th>擎天柱（上滑）</th><th>威震天（下滑）</th><th>红蜘蛛（右滑）</th></tr>
+  <tr>
+    <td width="25%"><img src="artifacts/robot-home-bumblebee.png" alt="机器人首页大黄蜂画像"></td>
+    <td width="25%"><img src="artifacts/robot-home-optimus.png" alt="机器人首页擎天柱画像"></td>
+    <td width="25%"><img src="artifacts/robot-home-megatron.png" alt="机器人首页威震天画像"></td>
+    <td width="25%"><img src="artifacts/robot-home-starscream.png" alt="机器人首页红蜘蛛画像"></td>
+  </tr>
+</table>
+
+四张画像均为项目原创素材，以 baseline JPEG 内置在固件中，不使用电影截图、官方标志或
+运行时网络素材。离开首页后，下次进入会重置为大黄蜂。
 
 <table>
   <tr><th>Codex Micro</th><th>super.engineering</th><th>Hermes Desktop</th></tr>

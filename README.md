@@ -21,13 +21,16 @@ This is validation of one local setup, not a guarantee for every app version.
 unless you provide authorized local audio via the [speech setup](docs/ROBOT_SPEECH.md).
 The lines below describe the privately tested installation, not bundled assets.
 
-The new Home requires matched Companion 0.1.3 (build 4) and USB-mic firmware.
-It is not yet physically validated; prior acceptance below applies to older builds.
+The Home workspace uses the existing Companion 0.1.4 and matching USB-mic firmware.
+The four-character selector described below is not yet physically validated;
+prior acceptance below applies to the installed single-character build.
 Boot, reconnect and Companion startup select Home without activating a Mac app.
 Home stays selected even when the Mac foreground changes. With the local speech
-firmware, tap the head for “愚蠢的人类，快给我下发任务吧！”; swipe up/down/right
-for “哈哈哈，愚蠢的人类！”. All four use the same talking faceplate/blue-eye animation.
-These interactions are local only; the first sleeping-screen touch only wakes it.
+firmware, tap the portrait for “愚蠢的人类，快给我下发任务吧！”. Swipe up for
+Optimus Prime, down for Megatron, or right for Starscream; repeat the selected
+direction to return to Bumblebee. Character selection is silent, local-only,
+non-haptic and sends no Mac input. Every portrait uses the same task voice and
+talking animation. The first sleeping-screen touch only wakes the display.
 Speech never queues or overlaps. Leaving Home, sleep or power confirmation cancels it.
 USB microphone streaming takes priority: an active stream skips speech (silent
 animation only), and a new stream preempts playback. No USB speaker endpoint,
@@ -38,6 +41,20 @@ An awake Home left swipe with a ready Companion link gives the same single
 vibration as other workspace swipes; offline left remains silent. This is gesture
 feedback, not confirmation of Mac activation.
 Status and battery are real device inputs, not the preview's sample values.
+
+<table>
+  <tr><th>Bumblebee (default)</th><th>Optimus Prime (up)</th><th>Megatron (down)</th><th>Starscream (right)</th></tr>
+  <tr>
+    <td width="25%"><img src="artifacts/robot-home-bumblebee.png" alt="Robot Home Bumblebee portrait"></td>
+    <td width="25%"><img src="artifacts/robot-home-optimus.png" alt="Robot Home Optimus Prime portrait"></td>
+    <td width="25%"><img src="artifacts/robot-home-megatron.png" alt="Robot Home Megatron portrait"></td>
+    <td width="25%"><img src="artifacts/robot-home-starscream.png" alt="Robot Home Starscream portrait"></td>
+  </tr>
+</table>
+
+The portraits are original project artwork embedded in firmware as baseline
+JPEG assets. They are not film frames, official logos, or network-fetched media.
+Leaving Home resets the next visit to Bumblebee.
 
 <table>
   <tr><th>Codex Micro</th><th>super.engineering</th><th>Hermes Desktop</th></tr>

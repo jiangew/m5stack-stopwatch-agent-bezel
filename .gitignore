@@ -16,6 +16,10 @@ artifacts/*
 !artifacts/hermes-idle-preview.png
 !artifacts/hermes-opening-preview.png
 !artifacts/hermes-error-preview.png
+!artifacts/robot-home-bumblebee.png
+!artifacts/robot-home-optimus.png
+!artifacts/robot-home-megatron.png
+!artifacts/robot-home-starscream.png
 
 # The companion is built and wrapped locally so Bluetooth permission, device
 # binding, executable paths, and logs never become repository data.

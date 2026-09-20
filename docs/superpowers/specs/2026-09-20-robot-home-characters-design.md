@@ -1,7 +1,7 @@
 # Robot Home cinematic character selector
 
 Status: Approved by the user on 2026-09-20, including the cinematic visual
-direction and its embedded-vector interpretation.
+direction and its embedded-image interpretation.
 Baseline: `536499b`. Continue on `codex/robot-voice-public`.
 
 ## User experience
@@ -21,11 +21,11 @@ Baseline: `536499b`. Continue on `codex/robot-voice-public`.
 
 ## Visual system
 
-- Each character has an independent embedded-vector head renderer. Do not
-  implement the characters as one shared face with palette swaps.
-- Use the approved cinematic concept as a silhouette reference, then reduce it
-  to bounded filled polygons, thick dark seams and a small number of flat
-  highlight planes suitable for the 466x466 display.
+- Each character has an independent, original 300x300 baseline JPEG portrait
+  embedded in firmware flash. Do not implement the characters as one shared
+  face with palette swaps.
+- The approved cinematic concept is simplified into bold armor planes, dark
+  seams and high-contrast optics that remain readable on the 466x466 display.
 - Bumblebee keeps rounded yellow/black automotive armor, two short antennae,
   large blue optics and a compact silver respirator.
 - Optimus Prime uses a red/blue angular helmet, tall side antennae, narrow blue
@@ -59,9 +59,9 @@ Baseline: `536499b`. Continue on `codex/robot-voice-public`.
 - Add a small selector state machine that maps directions to targets and toggles
   a repeated target back to Bumblebee. It owns transition start time but does
   not own audio, HID or workspace state.
-- Split drawing into character-specific helpers sharing only display chrome,
-  connection/battery rendering and animation timing. This keeps each silhouette
-  independently testable and prevents future shape coupling.
+- Keep asset selection separate from shared display chrome, connection/battery
+  rendering and animation timing. M5GFX decodes the embedded JPEG directly;
+  there is no filesystem or network dependency.
 - Keep `RobotSpeechData` and the ignored private `RobotSpeechLocal.h` boundary
   unchanged. No new distributable voice asset is introduced.
 - Companion, Report ID 6 protocol, workspace lease, LaunchAgent and navigation
@@ -72,8 +72,8 @@ Baseline: `536499b`. Continue on `codex/robot-voice-public`.
 - Native tests cover the direction-to-character table, repeat-to-Bumblebee,
   direct cross-character selection, reset on Home exit and no emitted host action.
 - Renderer tests exercise every character in idle, transition and talking states,
-  all battery variants, charging, connection and power overlays; every primitive
-  must remain inside the circular 466x466 canvas.
+  all battery variants, charging, connection and power overlays; each asset is
+  unique, bounded and within the agreed flash budget.
 - Native previews show all four characters at real output size and demonstrate
   their transition midpoint. Visual acceptance is required before flashing.
 - Run the full native suite and warning-free USB-mic build. Confirm the public
