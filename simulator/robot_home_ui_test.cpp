@@ -24,9 +24,28 @@ int main(){
   Surface idle,talking;robot_home::State probe;probe.nowMs=100;
   robot_home::render(idle,probe);probe.mood=robot_home::Mood::Talking;
   robot_home::render(talking,probe);assert(idle.geometry!=talking.geometry);
+  std::vector<std::vector<int>> fingerprints;
+  for(auto character:{robot_home::Character::Bumblebee,
+                      robot_home::Character::Optimus,
+                      robot_home::Character::Megatron,
+                      robot_home::Character::Starscream}){
+    Surface surface;robot_home::State state;state.character=character;
+    state.transitionProgress=1.0f;robot_home::render(surface,state);
+    fingerprints.push_back(surface.geometry);
+  }
+  for(std::size_t i=0;i<fingerprints.size();++i)
+    for(std::size_t j=i+1;j<fingerprints.size();++j)
+      assert(fingerprints[i]!=fingerprints[j]);
   for(bool charging:{false,true})for(unsigned now=0;now<5200;now+=50)
-  for(int battery:{-1,0,9,78,100})for(auto mood:{robot_home::Mood::Idle,robot_home::Mood::Happy,robot_home::Mood::Sleep,robot_home::Mood::Surprise,robot_home::Mood::Talking}){
+  for(int battery:{-1,0,9,78,100})
+  for(auto character:{robot_home::Character::Bumblebee,
+                      robot_home::Character::Optimus,
+                      robot_home::Character::Megatron,
+                      robot_home::Character::Starscream})
+  for(float transition:{0.0f,0.5f,1.0f})
+  for(auto mood:{robot_home::Mood::Idle,robot_home::Mood::Talking}){
     Surface s;robot_home::State state;state.batteryPercent=battery;state.mood=mood;state.nowMs=now;state.charging=charging;
+    state.character=character;state.transitionProgress=transition;
     robot_home::render(s,state);
     bool found=false;
     for(auto& t:s.texts)if(t.s.find('%')!=std::string::npos){found=true;assert(t.y==395);int left=t.x-30;int right=t.x+s.textWidth(t.s.c_str());assert((left+right)/2==233);}
