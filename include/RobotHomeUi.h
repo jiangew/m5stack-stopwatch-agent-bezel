@@ -36,26 +36,6 @@ void render(Surface& surface, const State& state) {
                             state.connected ? "CONNECTED" : "OFFLINE", 233,
                             64, middle_center,
                             state.connected ? 0x8ED6 : kMuted);
-  const char* mood = "READY WHEN YOU ARE";
-  switch (state.mood) {
-    case Mood::Happy:
-      mood = "HEY, PARTNER!";
-      break;
-    case Mood::Surprise:
-      mood = "OH! HELLO!";
-      break;
-    case Mood::Sleep:
-      mood = "RECHARGING...";
-      break;
-    case Mood::Connect:
-      mood = "CONNECT MAC";
-      break;
-    case Mood::Idle:
-    case Mood::Talking:
-      break;
-  }
-  super_workspace::drawText(surface, mood, 233, 357, middle_center, 0xDF14);
-
   char battery[8];
   if (state.batteryPercent < 0)
     std::snprintf(battery, sizeof battery, "--%%");

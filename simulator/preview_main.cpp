@@ -114,7 +114,7 @@ super_workspace::State superPreviewState(const char* scenario) {
 }
 
 bool validScenario(const char* scenario) {
-  for(const char* name:{"home","home-happy","home-surprise","home-sleep","home-offline","home-charging","home-unknown","home-low","home-power-hold","home-talking"})
+  for(const char* name:{"home","home-bumblebee","home-optimus","home-megatron","home-starscream","home-optimus-transition","home-megatron-transition","home-starscream-transition","home-happy","home-surprise","home-sleep","home-offline","home-charging","home-unknown","home-low","home-power-hold","home-talking"})
     if(std::strcmp(scenario,name)==0)return true;
   const bool hermes = std::strncmp(scenario, "hermes", 6) == 0;
   const bool super = std::strncmp(scenario, "super", 5) == 0;
@@ -186,6 +186,10 @@ int main(int argc, char** argv) {
   framebuffer.setTextWrap(false);
   if (std::strncmp(scenario,"home",4)==0) {
     robot_home::State state;state.batteryPercent=82;state.connected=true;
+    if(std::strcmp(scenario,"home-optimus")==0||std::strcmp(scenario,"home-optimus-transition")==0)state.character=robot_home::Character::Optimus;
+    if(std::strcmp(scenario,"home-megatron")==0||std::strcmp(scenario,"home-megatron-transition")==0)state.character=robot_home::Character::Megatron;
+    if(std::strcmp(scenario,"home-starscream")==0||std::strcmp(scenario,"home-starscream-transition")==0)state.character=robot_home::Character::Starscream;
+    if(std::strstr(scenario,"-transition")!=nullptr)state.transitionProgress=0.5f;
     if(std::strcmp(scenario,"home-happy")==0)state.mood=robot_home::Mood::Happy;
     if(std::strcmp(scenario,"home-surprise")==0)state.mood=robot_home::Mood::Surprise;
     if(std::strcmp(scenario,"home-sleep")==0)state.mood=robot_home::Mood::Sleep;
