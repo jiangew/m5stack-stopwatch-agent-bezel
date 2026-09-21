@@ -61,8 +61,17 @@ model or cloning a performer. The approved WAV is mono PCM16, 24kHz,
 3.226375 seconds; SHA-256
 `f775ff01dcfee20767009a292bf9db9c4ae889332ecbd199b50dac23ffb6cc3c`.
 It is embedded only in the ignored private header, not distributed here.
-Up/down/right remain silent character selection. Desktop audition approval
-does not establish speaker quality on C152; installation acceptance is pending.
+Up/down/right remain silent character selection.
+
+The subsequent equal-spacing follow-up halves only this central clip's PCM
+amplitude (approximately -6 dB), preserving its duration and tone. Its private
+WAV SHA-256 is
+`40d5f40f394358f86e4e2fcff1faf50ed5c29ae01f32bcfc9a1a0bd5872c8e49`.
+After upload, the user confirmed the reduced voice level, centered/equally
+spaced Home layout, character selection and four-workspace controls normal.
+This is user-observed acceptance, not an inference from the build. No new
+microphone recording test was performed for this follow-up. See
+`superpowers/plans/2026-09-21-home-equal-spacing-half-volume.md`.
 
 ### Ownership and cancellation
 

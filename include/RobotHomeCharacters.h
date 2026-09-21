@@ -46,17 +46,30 @@ void render(Surface& surface, Character character, Mood mood,
   const float eased = 1.0f -
                       (1.0f - boundedProgress) * (1.0f - boundedProgress);
   float scale = 1.04f + 0.14f * eased;
-  int centerY = 225;
+
+  // Visible rim centers in the approved 300px JPEGs. Their black padding is
+  // not symmetric; anchoring the bitmap midpoint makes the circles drift.
+  // Calibrated against the native RGB565 renderer and guarded by pixel tests.
+  float rimX = 150.0f;
+  float rimY = 148.3f;
+  switch (character) {
+    case Character::Bumblebee: break;
+    case Character::Optimus: rimX = 149.15f; break;
+    case Character::Megatron: rimX = 149.58f; rimY = 147.88f; break;
+    case Character::Starscream: rimX = 148.3f; rimY = 145.1f; break;
+  }
 
   if (mood == Mood::Talking) {
     const float phase = (nowMs % 320) / 320.0f * 6.2831853f;
     const float pulse = (1.0f + std::sin(phase)) * 0.5f;
-    centerY -= static_cast<int>(pulse * 3.0f);
     scale += pulse * 0.010f;
   }
 
-  const int left = 233 - static_cast<int>(150.0f * scale);
-  const int top = centerY - static_cast<int>(150.0f * scale);
+  // M5GFX's scaled JPEG raster lands one pixel before the geometric anchor.
+  const int left = 1 + static_cast<int>(std::lround(233.0f - rimX * scale));
+  // Status ink ends at y=50; the battery group starts at y=414. Center
+  // the visible ring at their midpoint so both clear gaps are equal.
+  const int top = 1 + static_cast<int>(std::lround(232.0f - rimY * scale));
   surface.drawJpg(asset.bytes, asset.size, left, top, 0, 0, 0, 0,
                   scale, scale);
 }

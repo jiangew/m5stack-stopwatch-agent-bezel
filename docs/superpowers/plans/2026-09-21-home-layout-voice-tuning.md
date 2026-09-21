@@ -49,9 +49,9 @@ Files: `include/RobotHomeUi.h`, `include/RobotHomeCharacters.h`,
 
 ## Task 3: Installation and physical acceptance
 
-- [ ] Obtain fresh unique download-port enumeration and explicit confirmation.
-- [ ] Upload verified USB-mic image; require successful written-data hash checks.
-- [ ] Verify HID/microphone enumeration and quota sync separately.
+- [x] Obtain fresh unique download-port enumeration and explicit confirmation.
+- [x] Upload verified USB-mic image; require successful written-data hash checks.
+- [x] Verify HID/microphone enumeration and quota sync separately.
 - [ ] User checks four complete enlarged rings, status/battery clearance,
   center voice clarity, silent character switching and left workspace cycle.
 - [ ] Record only observed checks as passed; no automatic merge or push.
@@ -71,8 +71,33 @@ Files: `include/RobotHomeUi.h`, `include/RobotHomeCharacters.h`,
 - Approved menacing v3 audition: 3.226375 seconds, mono PCM16 at 24kHz,
   SHA-256 `f775ff01dcfee20767009a292bf9db9c4ae889332ecbd199b50dac23ffb6cc3c`.
   The unused secondary sample was preserved from the old private header.
-- Old firmware and private header were backed up before replacement. Installed
-  firmware still uses the previous voice; this candidate has not been flashed.
+- Old firmware and private header were backed up before replacement. Upload
+  completed on 2026-09-21 after fresh enumeration and user confirmation;
+  esptool verified all segments, including the 1,706,768-byte application,
+  and issued a hardware reset. PlatformIO exited successfully.
 - Existing unrelated BLE working-tree changes remain untouched; Companion,
   permissions and LaunchAgent remain unchanged. No XCTest claimed or required
   for these firmware-only changes. Physical sound/display acceptance pending.
+
+## Evening resume check
+
+On 2026-09-21 at 20:33 local time, read-only checks found a single running
+Companion, but neither the vendor HID device nor USB microphone was enumerated.
+Recent quota output contained fetched values without successful device-write
+confirmation. This does not establish a firmware regression; normal device
+boot/reconnection must be confirmed before continuing physical acceptance.
+No second flash, pairing reset or Companion change was performed.
+
+After the user restarted the watch, checks at 20:42 confirmed vendor HID
+enumeration, USB microphone enumeration (mono input, 48kHz), one Companion
+process and a successful quota write four seconds before the check. Audio
+capture quality and the new on-device voice/layout still require physical
+observation; enumeration alone does not establish them.
+
+## Superseding follow-up
+
+The user subsequently requested equal visible spacing and half central-speech
+amplitude. The follow-up implementation, successful upload and user-confirmed
+physical acceptance are recorded in
+`2026-09-21-home-equal-spacing-half-volume.md`. Earlier pending layout/voice
+checks above describe the intermediate image, not the final accepted image.
