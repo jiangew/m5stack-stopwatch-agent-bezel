@@ -45,13 +45,13 @@ void render(Surface& surface, Character character, Mood mood,
                                            : transitionProgress);
   const float eased = 1.0f -
                       (1.0f - boundedProgress) * (1.0f - boundedProgress);
-  float scale = 0.82f + 0.12f * eased;
-  int centerY = 220;
+  float scale = 1.04f + 0.14f * eased;
+  int centerY = 225;
 
   if (mood == Mood::Talking) {
     const float phase = (nowMs % 320) / 320.0f * 6.2831853f;
     const float pulse = (1.0f + std::sin(phase)) * 0.5f;
-    centerY -= static_cast<int>(pulse * 4.0f);
+    centerY -= static_cast<int>(pulse * 3.0f);
     scale += pulse * 0.010f;
   }
 

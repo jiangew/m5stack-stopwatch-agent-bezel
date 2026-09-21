@@ -52,6 +52,20 @@ This change does not authorize merge/push or imply redistribution clearance.
 
 ## Runtime safety
 
+### 2026-09-21 central-voice candidate
+
+The user approved a stronger locally synthesized mechanical voice audition for
+the unchanged central-tap task phrase. It lowers pitch, tightens tempo, adds
+controlled saturation and a light metallic modulation without downloading a
+model or cloning a performer. The approved WAV is mono PCM16, 24kHz,
+3.226375 seconds; SHA-256
+`f775ff01dcfee20767009a292bf9db9c4ae889332ecbd199b50dac23ffb6cc3c`.
+It is embedded only in the ignored private header, not distributed here.
+Up/down/right remain silent character selection. Desktop audition approval
+does not establish speaker quality on C152; installation acceptance is pending.
+
+### Ownership and cancellation
+
 Only the capture task changes microphone/speaker codec ownership, using the
 existing 200 ms idle guard. A USB stream request (including a brief alt1 pulse)
 wins over local speech. Playback checks preemption each task tick and restores

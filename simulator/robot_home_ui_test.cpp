@@ -59,6 +59,7 @@ int main() {
     assert(surface.jpegs[0].bytes == asset.bytes);
     assert(surface.jpegs[0].size == asset.size);
     assert(surface.jpegs[0].x + static_cast<int>(150 * surface.jpegs[0].scaleX) == 233);
+    assert(surface.jpegs[0].y + static_cast<int>(150 * surface.jpegs[0].scaleY) == 225);
     assert(surface.jpegs[0].maxWidth == 0);
     assert(surface.jpegs[0].maxHeight == 0);
   }
@@ -74,7 +75,7 @@ int main() {
   robot_home::render(end, transition);
   assert(start.jpegs[0].scaleX < end.jpegs[0].scaleX);
   assert(start.jpegs[0].scaleY == start.jpegs[0].scaleX);
-  assert(std::fabs(end.jpegs[0].scaleX - 0.94f) < 0.001f);
+  assert(std::fabs(end.jpegs[0].scaleX - 1.18f) < 0.001f);
 
   Surface idle;
   robot_home::State reaction;
@@ -103,17 +104,46 @@ int main() {
         for (const auto& text : surface.texts) {
           if (text.value.find('%') != std::string::npos) {
             foundBattery = true;
-            assert(text.y == 395);
+            assert(text.y == 420);
             const int left = text.x - 30;
             const int right = text.x + surface.textWidth(text.value.c_str());
             assert((left + right) / 2 == 233);
           }
           if (text.value == "CONNECTED" || text.value == "OFFLINE") {
             foundConnection = true;
-            assert(text.y == 64);
+            assert(text.y == 44);
           }
         }
         assert(foundBattery);
         assert(foundConnection);
+      }
+
+  // Oversized/shifted animation frames must not collide with the status or
+  // battery. The JPEG's visible ring has >= 8px black margin on each edge.
+  // Sample the full 320ms Talking period and the complete transition range.
+  for (auto character : {robot_home::Character::Bumblebee,
+                         robot_home::Character::Optimus,
+                         robot_home::Character::Megatron,
+                         robot_home::Character::Starscream})
+    for (int progress = 0; progress <= 10; ++progress)
+      for (unsigned ms = 0; ms < 320; ++ms) {
+        Surface surface;
+        robot_home::State state;
+        state.character = character;
+        state.mood = robot_home::Mood::Talking;
+        state.nowMs = ms;
+        state.transitionProgress = progress / 10.0f;
+        robot_home::render(surface, state);
+        const auto& frame = surface.jpegs[0];
+        assert(frame.x >= 0 && frame.y >= 0);
+        assert(frame.x + 300 * frame.scaleX < 466);
+        assert(frame.y + 300 * frame.scaleY < 466);
+        assert(frame.y + 8 * frame.scaleY > 53); // status bottom
+        assert(frame.y + 292 * frame.scaleY < 411); // battery top
+        const float cx = frame.x + 150 * frame.scaleX;
+        const float cy = frame.y + 150 * frame.scaleY;
+        const float dx = cx - 233;
+        const float dy = cy - 233;
+        assert(std::sqrt(dx * dx + dy * dy) + 150 * frame.scaleX < 233);
       }
 }

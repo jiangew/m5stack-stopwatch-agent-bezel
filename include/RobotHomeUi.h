@@ -34,7 +34,7 @@ void render(Surface& surface, const State& state) {
   surface.loadFont(dashboard::font_data::kSpaceMono18Vlw);
   super_workspace::drawText(surface,
                             state.connected ? "CONNECTED" : "OFFLINE", 233,
-                            64, middle_center,
+                            44, middle_center,
                             state.connected ? 0x8ED6 : kMuted);
   char battery[8];
   if (state.batteryPercent < 0)
@@ -47,17 +47,17 @@ void render(Surface& surface, const State& state) {
   const int color = state.batteryPercent >= 0 && state.batteryPercent <= 15
                         ? 0xFB29
                         : kMuted;
-  surface.fillSmoothRoundRect(left, 389, 20, 12, 2, color);
-  surface.fillRect(left + 20, 393, 2, 4, color);
-  surface.fillRect(left + 2, 391, 16, 8, 0);
+  surface.fillSmoothRoundRect(left, 414, 20, 12, 2, color);
+  surface.fillRect(left + 20, 418, 2, 4, color);
+  surface.fillRect(left + 2, 416, 16, 8, 0);
   if (state.charging)
-    surface.fillRect(left + 9, 390, 3, 10, kYellow);
+    surface.fillRect(left + 9, 415, 3, 10, kYellow);
   else if (state.batteryPercent > 0)
     surface.fillRect(
-        left + 3, 392,
+        left + 3, 417,
         std::max(1, 14 * std::min(100, state.batteryPercent) / 100), 6,
         color);
-  super_workspace::drawText(surface, battery, left + 30, 395, middle_left,
+  super_workspace::drawText(surface, battery, left + 30, 420, middle_left,
                             color);
   surface.unloadFont();
 
