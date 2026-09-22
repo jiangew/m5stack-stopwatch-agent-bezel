@@ -22,8 +22,10 @@ unless you provide authorized local audio via the [speech setup](docs/ROBOT_SPEE
 The lines below describe the privately tested installation, not bundled assets.
 
 The Home workspace uses the existing Companion 0.1.4 and matching USB-mic firmware.
-The four-character selector described below is not yet physically validated;
-prior acceptance below applies to the installed single-character build.
+The user has physically verified four-character selection, centered/equally
+spaced Home layout, reduced central-speech level and four-workspace controls on
+the local C152 installation. This is not a guarantee for other setups; see the
+[acceptance record](docs/superpowers/plans/2026-09-21-home-equal-spacing-half-volume.md).
 Boot, reconnect and Companion startup select Home without activating a Mac app.
 Home stays selected even when the Mac foreground changes. With the local speech
 firmware, tap the portrait for “愚蠢的人类，快给我下发任务吧！”. Swipe up for
@@ -35,8 +37,9 @@ Speech never queues or overlaps. Leaving Home, sleep or power confirmation cance
 USB microphone streaming takes priority: an active stream skips speech (silent
 animation only), and a new stream preempts playback. No USB speaker endpoint,
 microphone recording, network TTS or application content access is added.
-See [audio provenance and verification](docs/ROBOT_SPEECH.md). Physical speech
-acceptance is pending; desktop auditions do not establish C152 speaker quality.
+See [audio provenance and verification](docs/ROBOT_SPEECH.md). The latest voice
+level was accepted on the device; no new microphone recording test was performed
+for this layout/volume follow-up.
 An awake Home left swipe with a ready Companion link gives the same single
 vibration as other workspace swipes; offline left remains silent. This is gesture
 feedback, not confirmation of Mac activation.
