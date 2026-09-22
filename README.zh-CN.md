@@ -7,10 +7,24 @@
 项目控制、Hermes Desktop 会话控制，并提供本地额度面板和可选 USB 麦克风。
 
 Codex Micro 兼容性为实验性且未文档化功能。运行标识、配对身份、音频名称与
-Companion 身份保持不变。三应用行为需要匹配的源码构建；源码版本 `5e9cc25`
-已完成约定的 USB-mic C152 实机验收，详见
-[验收结果与边界](docs/superpowers/plans/2026-09-04-hermes-open-physical-acceptance.md)。
-这是一套本地环境的验证，不代表保证所有应用版本兼容。
+Companion 身份保持不变。四屏体验需要匹配的源码构建 USB-mic 固件与 Companion。
+验证仅覆盖一套本地环境，不代表所有应用版本均兼容。
+
+## 当前版本速览
+
+文档更新于 **2026-09-22**；当前 Companion 为 **0.1.4（build 5）**。
+
+- 四屏循环：机器人首页 → Codex / ChatGPT → SUPER → HERMES → 首页。
+- 首页：四款电影风格机器人；上/下/右静音切角色，中央点按使用统一说话动画及可选本地语音。
+- 最新布局：放大且完整闭合的人物圆圈，连接文字、圆圈、电量居中，上下留白等距。
+  中央语音 PCM 振幅降为此前的 50%（约 −6 dB，不等于主观响度必然减半）。
+- SUPER：上下切项目、右滑切会话 Tab；Hermes：点中央启动或恢复窗口，上下选择、右滑打开。
+- 专属方向导航采用 350ms 冷却和释放门控；切屏及中央启动保留 800ms 保护，按键序列间隔 30ms。
+
+[最新首页验收](docs/superpowers/plans/2026-09-21-home-equal-spacing-half-volume.md)
+记录用户确认的布局、音量、角色选择及四屏操作。
+[此前导航与录音验收](docs/superpowers/plans/2026-09-12-paced-navigation-verification.md)
+属于历史证据，不表示每次更新都重新做过全部测试。公开构建**不含语音素材**，设备上的私有音频不上传。
 
 ## 机器人首页与三个工作区
 
@@ -64,15 +78,15 @@ USB 录音优先：正在收音时仅显示短暂无声动画；播放期间开�
 从首页左滑激活 Codex，返回首页不改变 Mac 前台。找不到或无法激活的目标不会被自动跳过。
 原来的“返回之前应用”已被固定循环替代。
 
-| 输入 | Codex Micro | SUPER | HERMES |
-| --- | --- | --- | --- |
-| 左实体键 / 右实体键 | Push to talk / Voice Chat | 无动作¹ | 无动作¹ |
-| 中心短点 | Send | 无动作¹ | 待启动时启动或重试；操作页无动作 |
-| 左滑 | 进入 SUPER | 进入 HERMES | 进入首页 |
-| 上滑 | 应用现有映射 | 上一个项目 | 浏览上一个会话 |
-| 下滑 | 应用现有映射 | 下一个项目 | 浏览下一个会话 |
-| 右滑 | 应用现有映射 | 下一个会话 Tab | 打开高亮会话 |
-| 电源操作 | 桌面休眠 / 旅行关机 | 相同 | 相同 |
+| 输入 | 机器人首页 | Codex Micro | SUPER | HERMES |
+| --- | --- | --- | --- | --- |
+| 左实体键 / 右实体键 | 无动作¹ | Push to talk / Voice Chat | 无动作¹ | 无动作¹ |
+| 中心短点 | 说话动画＋可选本地语音 | Send | 无动作¹ | 待启动时启动或重试；操作页无动作 |
+| 左滑 | 激活 Codex | 进入 SUPER | 选中 HERMES 待启动页 | 进入首页 |
+| 上滑 | 擎天柱／返回大黄蜂 | 应用现有映射 | 上一个项目 | 浏览上一个会话 |
+| 下滑 | 威震天／返回大黄蜂 | 应用现有映射 | 下一个项目 | 浏览下一个会话 |
+| 右滑 | 红蜘蛛／返回大黄蜂 | 应用现有映射 | 下一个会话 Tab | 打开本次选择；无选择则无动作 |
+| 电源操作 | 桌面休眠 / 旅行关机 | 相同 | 相同 | 相同 |
 
 ¹ 专属屏幕和设备侧隔离需要用户明确选择、且匹配的 `usb-mic` 固件。
 默认无线固件仍显示 Codex 面板；Companion 方向控制仅在真实 `--watch` 中启用。
@@ -109,14 +123,10 @@ Next Tab = `Control-Option-Right`。上/下/右仅定向发送给该前台进程
 
 ## Hermes Desktop 工作区
 
-**必须使用匹配版本：** Companion 0.1.1 与对应 USB-mic 固件将 SUPER/HERMES
-方向事件改为专属 `host.workspace_navigation`，不再同时发送 Codex 原生方向事件。
-Codex 上/下/右绑定保持不变；安装和回滚应成套进行，并实测 Codex 无后台动作。
-Hermes 按键接口提交成功不等于导航验收通过。Companion 0.1.2（build 3）新增
-非阻塞的 30 毫秒按键间隔；Hermes 上下保留选择列表，右滑释放 Control 后打开。
-此次只更新 Companion，沿用已有专属方向事件固件，无需重刷；临时诊断工具的
-成功结果不能代替新版安装后的实机验收。新打包应用显示版本 0.1.4，构建号、
-源码提交及默认关闭的限时导航诊断详见 [Companion 文档](companion/README.md)。
+使用 **Companion 0.1.4（build 5）** 与匹配的四屏 USB-mic 固件。
+SUPER/HERMES 使用专属 `host.workspace_navigation`，不同时发送 Codex 原生方向事件。
+Codex 上/下/右绑定保持不变，并实测 Codex 无后台动作；安装、回滚保持组件兼容。
+构建号、源码提交及默认关闭的限时导航诊断详见 [Companion 文档](companion/README.md)。
 
 从 SUPER 左滑仅在手表选中 **HERMES / TAP TO OPEN**，Mac 保持原前台，
 不会启动或激活后台 Hermes。短点中央正方形内部才启动客户端，显示 **OPENING**。
@@ -138,8 +148,10 @@ Dock、Command-Tab 切换会取消待启动选择；重连或 Companion 重启�
 gateway/dashboard 不变。其他安装不一定有这个任务，不应盲目停用其他服务。
 恢复方法见 [Companion 文档](companion/README.md#hermes-desktop-launch-policy)。
 
-此中央启动版本需要匹配的 Companion 与固件，物理验收仍为**待验证**，
-不能用之前的导航验收替代；见 [本轮记录](docs/superpowers/plans/2026-09-09-hermes-tap-launch.md)。
+中央启动统一调用 `NSWorkspace.openApplication`，包括 Hermes 已在后台运行时；
+启用激活、禁止创建新实例。针对前台 Hermes 的准确进程，辅助功能只获取 focused/main
+窗口句柄并请求窗口聚焦，不读取内容、标题或窗口列表，用于修复“进程已前台，但必须点击
+标题栏才能导航”的情况。用户已确认交互恢复；接口返回成功不能代替其他安装上的可见窗口验收。
 
 <table><tr><th>待启动</th><th>启动中</th><th>点按重试</th></tr><tr>
 <td><img src="artifacts/hermes-idle-preview.png" alt="HERMES TAP TO OPEN"></td>
@@ -150,9 +162,10 @@ gateway/dashboard 不变。其他安装不一定有这个任务，不应盲目�
 仅匹配原生桌面应用 `com.nousresearch.hermes`，不是 CLI、网页面板或安装器。
 上滑发送 `Control-Shift-Tab`，下滑发送 `Control-Tab`，保留
 [原生桌面浏览快捷键](https://hermes-agent.nousresearch.com/docs/user-guide/desktop#windows-tabs--panes)。
-屏幕中央会话选择器出现时，上下选择、右滑打开高亮会话。右滑发送一次
-Control 按下/松开，结束时清除修饰键标记；已用物理键盘确认 Hermes 0.17.0
-选择器在 Control 松开时确认。右滑不发送 Enter 或 Command-T，不再新建 Tab。
+屏幕中央会话选择器出现时，上下选择、右滑打开高亮会话。Companion 在连续上下操作间
+保持自己按下的 Control，右滑才释放并清除修饰键标记；没有本次导航持有的选择时右滑无动作。
+已用物理键盘确认 Hermes 0.17.0 选择器在 Control 松开时确认；不发送 Enter 或 Command-T，
+右滑不是新建 Tab。
 安装前请核验你的 Hermes 版本；原生浏览受聚焦 Tab 区域影响，并不保证按
 Project 树排序。无需 Hermes 插件或源码扩展。Companion 不检测选择器状态，
 不读取会话数据或应用设置，也不自动重试确认。本次安装已分别确认物理键盘行为
@@ -163,7 +176,7 @@ Project 树排序。无需 Hermes 插件或源码扩展。Companion 不检测选
 
 1. 安装三个目标桌面应用。需要独立 Space 时，人工使用
    **Dock → Options → Assign To → This Desktop** 分配。
-   Companion 仅激活应用，不创建/枚举 Space，也不选择具体窗口。
+   Companion 激活应用并恢复 Hermes focused/main 窗口焦点；不创建/枚举 Space，也不按窗口内容选窗。
 2. 为 `CodexWatchCompanion.app` 开启输入监控、辅助功能，并保留额度同步所需的蓝牙权限。
 3. ChatGPT 控制器的 **Analog stick left** 保持未绑定，上/下/右保留现有映射。
    权限变更后重启原 Companion LaunchAgent。
@@ -187,13 +200,16 @@ MainActor 路由在发送前校验前台 PID/bundle，只投递固定的进程�
 
 ### 验证状态与新安装检查
 
-[实机验收记录](docs/superpowers/plans/2026-09-04-hermes-open-physical-acceptance.md)
-区分用户观察到的界面、操作和录音结果，以及刷写、运行日志和构建证据。
-本次环境已通过约定的浏览/打开、三桌面、输入隔离、熄屏、租约回退、重连、麦克风
-和额度检查。开发机的 Command Line Tools 缺少 XCTest，完整 XCTest 仍不可执行；
+[最新首页验收](docs/superpowers/plans/2026-09-21-home-equal-spacing-half-volume.md)
+覆盖用户确认的最终布局、中央降音量、角色选择及四屏操作。
+[节奏导航记录](docs/superpowers/plans/2026-09-12-paced-navigation-verification.md)
+包含此前导航、后台窗口恢复和录音验收；
+[最初三桌面记录](docs/superpowers/plans/2026-09-04-hermes-open-physical-acceptance.md)
+作为历史证据保留，不能理解为每个后续固件都重跑了全部项目。本次微调未重复录音和长时间稳定性测试。
+开发机的 Command Line Tools 缺少 XCTest，完整 XCTest 仍不可执行；
 Swift harness 不等于完整 XCTest。
 
-每套新安装仍需确认完整左滑循环、未启动应用启动、失败不跳过、Space、各方向动作、防重复、
+每套新安装仍需确认完整左滑循环、未启动应用启动、失败不跳过、Space、各方向动作、350ms 导航／800ms 切屏启动保护、
 随机色、熄屏唤醒、输入隔离、ChatGPT 无后台误动作、15 秒回退、断开重连、
 USB 麦克风短采集、额度及原自动启动。构建和 native 预览不等于 C152 实机通过。
 
@@ -205,33 +221,44 @@ USB 麦克风短采集、额度及原自动启动。构建和 native 预览不�
 USB-C 线，以及已登录且支持 Codex Micro 的 ChatGPT Desktop。本移植只支持
 **M5Stack StopWatch Dev Kit，SKU C152**，不支持其他 M5Stack 设备。
 
-连接 C152，切勿猜测串口，并把以下内容粘贴给 Codex：
+先明确要安装哪一种体验：
+
+| 体验 | 固件 | 包含功能 |
+| --- | --- | --- |
+| 上文完整四屏 AgentBezel | 明确选择 `pio run -d usb-mic`＋Companion 0.1.4 | 机器人首页、Codex、SUPER、HERMES、纯输入 USB 麦克风；本地语音可选 |
+| 基础 Codex 兼容面板 | `pio run -e m5stack-stopwatch` | Codex 面板和 BLE 控制，使用 Mac 所选麦克风；不含四屏首页及角色选择 |
+
+以下提示词**明确选择四屏 USB-mic 版本**。如果只需要基础 Codex 面板，请改用手动章节的
+基础构建目标，不要混用两种固件的启动检查。连接 C152，切勿猜测串口，再粘贴给 Codex：
 
 ```text
-请帮我把这个项目安装到真实的 M5Stack StopWatch Dev Kit C152 上。
+请在我的 M5Stack StopWatch Dev Kit C152 上安装四屏 AgentBezel。
+我选择独立 USB-mic 固件及匹配的 Companion，包含首页、Codex、SUPER、HERMES。
+公开仓库不附带语音素材。
 
 开始前完整阅读 AGENTS.md 和 README.zh-CN.md。请自主完成安装流程，但严格遵守：
 
 1. 先做只读检查，确认 macOS、C152 硬件、现有构建工具，以及刚刚接入的准确串口。
-2. 不要构建或启用麦克风、USB Audio、BLE Audio、diagnostics 或其他暂缓实验；
-   只使用 m5stack-stopwatch 固件环境。
+2. 使用 `pio run -d usb-mic` 构建已选择的 USB-mic 版本，说明依赖下载与磁盘成本；
+   不启用其他无关音频实验。
 3. 安装任何缺失依赖之前先向我解释。不要向我索要 OpenAI API key、登录 cookie、
    access token 或其他凭据。
 4. 先向我展示 M5Stack 官方恢复出厂固件链接，再完成固件编译。
 5. 刷机前再次解析并报告准确的 /dev/cu.* 端口，只针对这一次设备写入征求确认。
-6. 刷机后使用 `python3 scripts/serial_probe.py <准确端口> --seconds 30 --expect
-   CODEX_MICRO_STOPWATCH_READY` 验证启动标记，再引导我完成 macOS 蓝牙配对。
+6. 刷机并重启手表后，分别验证 Codex StopWatch Mic USB 输入及 BLE/HID。
+   此版本没有普通串口 READY 控制台。
 7. 帮我给 ChatGPT 开启输入监控，并配置 ChatGPT Desktop：左键 = Push to talk，
    Command Key 4 = Toggle voice chat，中间 = Send；上/下/右保留可配置，左方向留空供 watch 模式循环。
 8. 从源码编译 Swift 额度 companion。先用 demo discovery 找出这台 Mac 看到的
    CoreBluetooth UUID，再把真实额度写入绑定到这一台设备。
 9. 如果我同意开机自动运行，只在本机生成 app wrapper 和 LaunchAgent。路径、UUID、
    日志和生成的 app 都不能进入 Git。
-10. 分别验证两个实体键、中央 Send、四向滑动、Agent 颜色、完成提示音、振动、
-    真实额度和 reset 更新。没有在真机观察到的结果必须明确标成未验证。
-11. 只有在我明确选择可选 SUPER/HERMES 阶段时，才引导我进行 Space、快捷键
-    和验收配置。不要静默开启辅助功能、修改 super.engineering 设置或分配 Space。
-12. 除非我明确选择该独立阶段，不要选择或刷入可选 USB 麦克风镜像。
+10. 引导我完成 Companion 输入监控/辅助功能、SUPER 快捷键及可选的人工 Space 分配；
+    不静默改权限或应用设置，保留原有 LaunchAgent 配置和私有设备绑定。
+11. 验证四屏循环、角色选择、Hermes 中央启动及导航、SUPER 控制、Codex 原操作、
+    输入隔离、熄屏/重连、额度及短时间本地麦克风录音；验收后删除录音。
+12. 未提供有权使用的本地音频时保持公开构建静音，不上传私有语音。
+    只把真机实际观察到的结果记为通过，替换前保留匹配的固件及 Companion 备份。
 ```
 
 仓库中的 [AGENTS.md](AGENTS.md) 为安装和隐私提供持续生效的边界。Claude Code
@@ -253,9 +280,9 @@ app、路径、UUID 和日志均保留在本地。LaunchAgent 模板标识为
 `io.github.codex-micro-stopwatch.companion`，可执行文件保持为
 `codex-watch-companion`。
 
-如果 macOS 在切换镜像后缓存了旧 HID descriptor，只忘记 StopWatch 的
-**Codex Micro** 配对并重新配对即可。可以保留真实 Codex Micro 的配对记录，但
-验证本移植时应断开或关闭它：一次仅支持一个 active Micro。
+更新镜像后分别检查 BLE 连接和 HID 枚举；蓝牙显示已连接不等于控制通道已就绪。
+仅在排障确认旧配对有问题时重新配对这块 StopWatch，不要反复删除正常配对或重置系统权限。
+保留真实 Codex Micro 的配对记录，但验证本移植时应断开或关闭它：一次仅支持一个 active Micro。
 
 ## 可选 USB 麦克风
 
@@ -278,13 +305,15 @@ Server，并读取 `account/rateLimits/read`。它只通过项目自有额度 GA
 明确绑定的手表发送剩余百分比和 reset 倒计时；兼容 HID 接口不包含账户额度。
 
 在真实 `--watch` 运行中，可选工作区集成还仅通过 vendor HID Report ID 6 发送
-固定的 `codex`、`super` 或 `hermes` 显示模式枚举及 Hermes 可选的
+固定的 `home`、`codex`、`super` 或 `hermes` 显示模式枚举及 Hermes 可选的
 `idle`/`opening`/`error` 状态；中央点按仅发送固定 `open_hermes` 动作。
 专属方向事件仅携带固定的桌面、方向、按下/释放枚举，不含项目或会话数据。
 它不会发送 API key、token、账户标识、
 提示词、任务文本、音频、项目/会话/窗口/Space 元数据或用户内容；不会抓取 UI、
 使用云中继、检查键盘文本、调用 shell 或 AppleScript、使用私有 Space API，或
 检查 super.engineering 或 Hermes 设置。
+Hermes 中央启动有一项有限的辅助功能操作：仅在本机使用 focused/main 窗口句柄和焦点状态，
+抬起并聚焦准确进程的窗口；不读取或向手表发送窗口标题、内容、窗口列表。
 
 设备 MAC 地址、CoreBluetooth UUID、用户名、home-directory path 和日志均为
 本地安装数据，绝不能提交。BLE 配对使用平台的无 passkey Just Works 流程：请在
@@ -355,7 +384,7 @@ swift build -c release
 ### 蓝牙设置中看不到 Codex Micro
 
 - 重启手表后重新扫描。
-- 先删除旧 **Codex Micro** 配对，再重试。
+- 确认旧配对有问题后才重新配对这块 StopWatch；不要跳过 BLE/HID 分层检查而反复重置配对。
 - 默认镜像应在串口上确认 `CODEX_MICRO_STOPWATCH_READY`；USB-mic 应独立验证音频
   接口和 BLE/HID。
 
@@ -382,6 +411,10 @@ swift build -c release
   键盘使用，且 `CodexWatchCompanion.app` 已开启辅助功能。
 - 输入监控是接收径向手势所必需的。若缺少辅助功能，仅项目/标签导航会被禁用；
   左滑循环、额度和 USB 麦克风输入仍可用。
+- Hermes 应先进入待启动页，点中央并等到操作页；下/下/上移动选择，右滑释放后打开。
+  没有 Companion 本次持有的选择时，右滑无动作是预期行为。
+- 如果物理键盘 Control-Tab 也要点击标题栏后才生效，应检查窗口焦点和已安装 Companion
+  0.1.4 的身份、权限；不能把进程前台当作窗口已聚焦，也不要改成全局按键投递。
 
 ## 致谢、许可证与商标
 
@@ -394,7 +427,8 @@ swift build -c release
    将其中部分 BLE 兼容层改编到 M5Stack StopWatch C152，并进一步加入 StopWatch
    UI、电源逻辑、额度 Companion 和可选 USB 麦克风；本仓库直接建立在这套代码基础上。
 3. **Stopwatch AgentBezel C152** 延续 StopWatch 代码线，增加 Codex Micro、
-   super.engineering 与 Hermes Desktop 工作区、Companion 前台联动和独立方向屏幕。
+   super.engineering 与 Hermes Desktop 工作区、Companion 前台联动和独立方向屏幕，
+   并增加四角色机器人首页、本地语音支持及 USB 麦克风优先处理。
 
 这里描述的是实现谱系，并不表示这些仓库是运行时包依赖，也不表示它们彼此存在官方
 隶属关系。后续每一层实现都依赖、引用并扩展了前人的开源成果。再次分发时，请保留原始

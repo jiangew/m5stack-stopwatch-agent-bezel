@@ -10,10 +10,29 @@ and optional USB microphone.
 
 Codex Micro compatibility is experimental and undocumented. Runtime names,
 pairing identities, audio selection and the local Companion identity remain
-unchanged. Three-app behavior requires matching source builds. The agreed
-USB-mic C152 physical acceptance checklist is complete for source revision
-`5e9cc25`; see the [results and limits](docs/superpowers/plans/2026-09-04-hermes-open-physical-acceptance.md).
-This is validation of one local setup, not a guarantee for every app version.
+unchanged. The four-screen experience requires matching source-built USB-mic
+firmware and Companion. Validation covers one local setup, not every app version.
+
+## Current version at a glance
+
+Documentation updated **2026-09-22**. Current Companion: **0.1.4 (build 5)**.
+
+- Four screens: robot Home → Codex / ChatGPT → SUPER → HERMES → Home.
+- Home: four cinematic robot portraits; silent up/down/right character selection;
+  center tap uses one shared talking animation and optional private local speech.
+- Latest Home tuning: larger complete portrait rings, centered connection/ring/
+  battery with equal clear gaps, and central speech at half its previous PCM
+  amplitude (about −6 dB, not a guarantee of half perceived loudness).
+- SUPER: previous/next project and next session Tab. Hermes: tap to open or
+  restore its window, up/down browse, right opens the selected session.
+- Dedicated navigation uses a 350ms cooldown with release gating; cycling and
+  central launch retain 800ms protection. Key strokes are paced at 30ms.
+
+The latest [Home acceptance](docs/superpowers/plans/2026-09-21-home-equal-spacing-half-volume.md)
+records user-confirmed layout, voice level, character selection and four-screen
+controls. Older [navigation/audio acceptance](docs/superpowers/plans/2026-09-12-paced-navigation-verification.md)
+is historical evidence, not a claim that every test was rerun for this image.
+Public builds contain **no speech samples**; installed private audio is not uploaded.
 
 ## Robot Home and three workspaces
 
@@ -76,15 +95,15 @@ not two. Left from Home activates Codex; returning Home leaves the Mac unchanged
 Missing or rejected targets are not skipped. The former “return to previous
 app” behavior is replaced by this fixed cycle.
 
-| Input | Codex Micro | SUPER | HERMES |
-| --- | --- | --- | --- |
-| Left physical / right physical | Push to talk / Voice Chat | No action¹ | No action¹ |
-| Center tap | Send | No action¹ | Launch/retry when waiting; no action when active |
-| Swipe left | Enter SUPER | Enter HERMES | Enter Home |
-| Swipe up | Existing app mapping | Previous project | Browse previous session |
-| Swipe down | Existing app mapping | Next project | Browse next session |
-| Swipe right | Existing app mapping | Next session Tab | Open highlighted session |
-| Power controls | Desk sleep / Travel Mode | Same | Same |
+| Input | Robot Home | Codex Micro | SUPER | HERMES |
+| --- | --- | --- | --- | --- |
+| Left physical / right physical | No action¹ | Push to talk / Voice Chat | No action¹ | No action¹ |
+| Center tap | Talking animation + optional local voice | Send | No action¹ | Launch/retry when waiting; no action when active |
+| Swipe left | Activate Codex | Enter SUPER | Select HERMES waiting page | Enter Home |
+| Swipe up | Optimus / back to Bumblebee | Existing app mapping | Previous project | Browse previous session |
+| Swipe down | Megatron / back to Bumblebee | Existing app mapping | Next project | Browse next session |
+| Swipe right | Starscream / back to Bumblebee | Existing app mapping | Next session Tab | Open owned selection; otherwise no action |
+| Power controls | Desk sleep / Travel Mode | Same | Same | Same |
 
 ¹ Directional screens and device-side isolation require the explicitly chosen
 matching `usb-mic` firmware. The default wireless image remains a Codex panel.
@@ -129,18 +148,11 @@ Hermes; it does not return to an arbitrary previous app.
 
 ## Hermes Desktop workspace
 
-**Matching versions required:** Companion 0.1.1 and its USB-mic firmware separate
-SUPER/HERMES direction events from Codex's native radial events. Keep Codex's
-up/down/right bindings: dedicated workspaces use `host.workspace_navigation`
-instead. Install/roll back both components together and physically verify no
-background Codex action. Hermes API submission alone is not navigation acceptance.
-Companion 0.1.2 (build 3) adds nonblocking 30 ms key pacing. Hermes up/down retains
-the picker selection; right releases Control to open it. This Companion-only
-update uses the existing dedicated-direction firmware. Installation acceptance
-for this version must be performed separately from the successful diagnostic probes.
-
-Local packaged apps now show version 0.1.4; build/commit metadata and a bounded,
-opt-in navigation trace are described in the [Companion guide](companion/README.md).
+Use **Companion 0.1.4 (build 5)** with matching four-screen USB-mic firmware.
+Dedicated SUPER/HERMES events use `host.workspace_navigation`, not Codex's
+native radial events; keep Codex up/down/right bindings and verify no background
+Codex action. Install/roll back compatible components together. Build/commit
+metadata and opt-in diagnostics are described in the [Companion guide](companion/README.md).
 
 Left from SUPER selects **HERMES / TAP TO OPEN** on the watch only; it does not
 launch or activate Hermes on the Mac. Tap inside the center square to open the
@@ -169,9 +181,13 @@ and disabled, retaining its plist for recovery. Gateway/dashboard were left
 unchanged. Do not disable other services or assume this job exists on every Mac.
 See [deployment and rollback](companion/README.md#hermes-desktop-launch-policy).
 
-This central-launch revision requires matching firmware and Companion. Its
-physical acceptance is **pending**, independent of the historical navigation
-acceptance above; see [current evidence](docs/superpowers/plans/2026-09-09-hermes-tap-launch.md).
+Central launch uses `NSWorkspace.openApplication` even when Hermes is already
+running, with activation enabled and new-instance creation disabled. For the
+exact foreground Hermes process, Accessibility requests focus on its focused/
+main window without reading content, titles or the window list. This addresses
+the case where the process was foreground but navigation required a title-bar
+click. The user confirmed restored interactions; API success alone is not proof
+of a visible/focused window on another installation.
 
 <table><tr><th>Selected</th><th>Request pending</th><th>Retry on tap</th></tr><tr>
 <td><img src="artifacts/hermes-idle-preview.png" alt="HERMES TAP TO OPEN"></td>
@@ -183,9 +199,10 @@ Use the exact native app bundle `com.nousresearch.hermes`, not a CLI, web
 dashboard or installer. Up sends `Control-Shift-Tab`, down sends
 `Control-Tab`, retaining the [native Desktop browsing shortcuts](https://hermes-agent.nousresearch.com/docs/user-guide/desktop#windows-tabs--panes).
 When the central session picker is visible, browse with up/down and swipe right
-to open the highlighted session. Right sends a Control press/release pair,
-ending with no modifier flags; the tested Hermes 0.17.0 picker commits on Control
-release. It does not send Return or Command-T, so right is no longer New Tab.
+to open the highlighted session. The Companion retains its own Control press
+across up/down gestures; right releases it with no modifier flags. Without an
+owned selection, right is a no-op. The tested Hermes 0.17.0 picker commits on
+Control release; no Return or Command-T is sent, so right is not New Tab.
 Verify the behavior with a physical keyboard on your Hermes version before
 installation. Native browsing can depend on the focused Tab region; it is not
 project-tree-order navigation. No Hermes plugin or source extension is required.
@@ -199,8 +216,8 @@ Control modifier. Repeat acceptance after changing Hermes versions.
 
 1. Install the three target desktop apps. Assign each to a normal macOS Space
    manually using **Dock → Options → Assign To → This Desktop** if desired.
-   The Companion activates apps; it does not create/enumerate Spaces or select
-   a particular window.
+   The Companion activates apps and restores focus to Hermes's focused/main
+   window; it does not create/enumerate Spaces or choose among window contents.
 2. Enable Input Monitoring and Accessibility for the installed
    `CodexWatchCompanion.app`; retain Bluetooth permission for quota sync.
 3. Leave **Analog stick left** unbound in ChatGPT's controller settings.
@@ -235,15 +252,18 @@ no global key injection or application-content reading is used.
 
 ### Validation status and checks for your installation
 
-The [physical acceptance record](docs/superpowers/plans/2026-09-04-hermes-open-physical-acceptance.md)
-separates user-observed UI/controls/audio from uploader, runtime-log and build
-evidence. The tested setup passed the agreed browse/open, three-workspace,
-input-isolation, sleep, lease-fallback, reconnect, microphone and quota checks.
+The [latest Home record](docs/superpowers/plans/2026-09-21-home-equal-spacing-half-volume.md)
+covers the user-observed final layout, lower central voice, character selection
+and four-screen controls. The [paced-navigation record](docs/superpowers/plans/2026-09-12-paced-navigation-verification.md)
+covers earlier navigation, background-window restoration and microphone checks;
+the [original three-workspace record](docs/superpowers/plans/2026-09-04-hermes-open-physical-acceptance.md)
+remains historical. Do not interpret them as a complete rerun on every later image.
+The latest follow-up did not repeat microphone recording or long-duration soak tests.
 Full XCTest remains unavailable on the development host because its Command
 Line Tools lack XCTest; the Swift harness is not a complete XCTest run.
 
 For each new installation, verify one full left-swipe cycle, cold app launch, failure/no-skip, assigned
-Spaces, all app-specific directions, 800ms gating, random colors, sleep/wake,
+Spaces, all app-specific directions, 350ms navigation/800ms cycle-launch gating, random colors, sleep/wake,
 input isolation, no background ChatGPT actions, 15-second fallback, reconnect,
 USB microphone capture, quota updates and original automatic startup.
 Builds and native previews alone do not establish C152 hardware success.
@@ -258,27 +278,38 @@ data-capable USB-C cable for the first flash, and a signed-in ChatGPT Desktop
 with Codex Micro support. This port supports **M5Stack StopWatch Dev Kit, SKU
 C152** only; other M5Stack devices are unsupported.
 
-Connect the C152, do not guess its serial port, and paste this into Codex:
+Choose the intended experience before building:
+
+| Experience | Firmware | What you get |
+| --- | --- | --- |
+| Four-screen AgentBezel described above | Explicitly choose `pio run -d usb-mic` + Companion 0.1.4 | Robot Home, Codex, SUPER, HERMES, input-only USB microphone; local voice optional |
+| Basic Codex-only compatibility | `pio run -e m5stack-stopwatch` | Codex dashboard and BLE controls, Mac-selected microphone; no four-screen Home/selector |
+
+The following prompt **explicitly selects the four-screen USB-mic variant**.
+For Codex-only installation, use the basic target in the manual section instead;
+do not mix the two variants' startup checks. Connect the C152, never guess its
+serial port, and paste this into Codex:
 
 ```text
-Install this project on my physical M5Stack StopWatch Dev Kit C152.
+Install the four-screen AgentBezel experience on my M5Stack StopWatch Dev Kit C152.
+I choose the isolated USB-mic firmware and matching Companion, including Home,
+Codex, SUPER and HERMES. Voice samples are not included in the public repository.
 
 Read AGENTS.md and README.md completely before acting. Work through the setup
 autonomously, but follow these safety rules:
 
 1. Start with read-only checks. Confirm macOS, the C152 target, available build
    tools, and the exact newly connected serial device.
-2. Do not build or enable any microphone, USB Audio, BLE Audio, diagnostics, or
-   other deferred experiment. Use only the m5stack-stopwatch firmware target.
+2. Build the selected USB-mic variant with `pio run -d usb-mic`. Explain its
+   dependency downloads and disk cost; do not enable unrelated audio experiments.
 3. Explain any missing dependency before installing it. Never ask me for an
    OpenAI API key, login cookie, access token, or other credential.
 4. Show me the official M5Stack factory-recovery link and build the firmware
    before attempting an upload.
 5. Immediately before flashing, report the exact /dev/cu.* port you resolved
    and ask me to confirm that one destructive device action.
-6. After flashing, verify the CODEX_MICRO_STOPWATCH_READY marker with
-   `python3 scripts/serial_probe.py <the exact port> --seconds 30 --expect
-   CODEX_MICRO_STOPWATCH_READY`, then guide me through macOS Bluetooth pairing.
+6. After flashing and restarting the watch, verify Codex StopWatch Mic USB input
+   and BLE/HID independently. This variant has no normal serial READY console.
 7. Help me grant ChatGPT Input Monitoring and configure ChatGPT Desktop: left
    button = Push to talk, Command Key 4 = Toggle voice chat, center = Send, and
    keep up/down/right configurable and leave left unbound for watch-mode cycling.
@@ -286,14 +317,15 @@ autonomously, but follow these safety rules:
    Mac's CoreBluetooth UUID, then bind real quota writes to that exact device.
 9. If I approve automatic startup, create the local app wrapper and LaunchAgent
    only on this Mac. Keep generated paths, UUIDs, logs, and app files out of Git.
-10. Verify buttons, center Send, four swipes, Agent colors, completion chime,
-    haptics, and a real quota/reset update separately. Report anything not
-    physically observed as unverified.
-11. Only if I explicitly choose the optional SUPER/HERMES phase, guide me
-    through its Space, shortcuts, and acceptance checks. Do not silently enable
-    Accessibility, edit SUPER/Hermes settings, or assign a Space.
-12. Do not select or flash the optional USB microphone image unless I explicitly
-    choose that separate phase.
+10. Guide me through Companion Input Monitoring/Accessibility, SUPER shortcuts
+    and optional manual Space assignment. Do not silently change permissions or
+    app settings. Keep any existing LaunchAgent configuration and private binding.
+11. Verify four-screen cycling, character selection, Hermes central launch and
+    navigation, SUPER controls, Codex controls, input isolation, sleep/reconnect,
+    quota and a short local microphone recording. Delete that recording afterward.
+12. Keep public builds silent unless I supply authorized local audio. Never upload
+    private speech. Record only physically observed results as passed, and preserve
+    matched firmware/Companion backups before replacement.
 ```
 
 The repository's [AGENTS.md](AGENTS.md) provides durable installation and
@@ -319,10 +351,12 @@ files, paths, UUIDs, and logs remain local. The LaunchAgent template identity is
 `io.github.codex-micro-stopwatch.companion` and the executable remains
 `codex-watch-companion`.
 
-If macOS caches an older HID descriptor after changing images, forget only the
-StopWatch's **Codex Micro** pairing and pair it again. Keep a real Codex
-Micro's pairing record, but disconnect or power it off while validating this
-port: one active Micro is supported at a time.
+After an image change, verify BLE connectivity and HID enumeration separately;
+a Bluetooth connection alone does not prove that controls are attached. Only
+re-pair the StopWatch if troubleshooting establishes a stale pairing problem;
+do not repeatedly delete working pairings or reset system permissions. Keep a
+real Codex Micro's pairing record, but disconnect or power it off while
+validating this port: one active Micro is supported at a time.
 
 ## Optional USB microphone
 
@@ -351,7 +385,8 @@ GATT service to the explicitly bound watch. The compatible HID interface does
 not include account rate limits.
 
 In a real `--watch` run, the optional workspace integration additionally sends
-only fixed display modes and optional Hermes `idle`/`opening`/`error` state over
+only fixed `home`/`codex`/`super`/`hermes` display modes and optional Hermes
+`idle`/`opening`/`error` state over
 vendor HID Report ID 6; the watch's center action is the fixed `open_hermes` enum.
 Dedicated directions carry only fixed workspace/direction/phase enums on that
 same HID transport, not project or session data.
@@ -359,6 +394,9 @@ It does not send API keys, tokens, account identifiers, prompts, task text,
 audio, project/session/window/Space metadata, or user content. It does not
 scrape UI, use a cloud relay, inspect keyboard text, invoke shell commands or
 AppleScript, use private Space APIs, or inspect super.engineering or Hermes settings.
+Hermes central launch has one narrow Accessibility exception: focused/main
+window handles and focus state are used locally to raise/focus the exact process's
+window. No window title, content or window list is read or sent to the watch.
 
 Device MAC addresses, CoreBluetooth UUIDs, usernames, home-directory paths,
 and logs are local installation data and must never be committed. BLE pairing
@@ -434,7 +472,8 @@ swift build -c release
 ### Codex Micro does not appear in Bluetooth settings
 
 - Restart the watch and scan again.
-- Forget an old **Codex Micro** pairing before retrying.
+- If a stale pairing is confirmed, re-pair only this StopWatch; avoid repeated
+  pairing resets without checking the BLE and HID layers first.
 - For the default image, confirm `CODEX_MICRO_STOPWATCH_READY` over serial. For
   USB-mic, verify its audio interface and BLE/HID independently.
 
@@ -466,6 +505,12 @@ button sends `ACT09`, not `ACT11`.
 - Input Monitoring is required to receive radial gestures. If Accessibility is
   missing, only project/tab navigation is disabled; left cycling, quota,
   and USB microphone input remain available.
+- For Hermes, enter its waiting page, tap the center and wait for the operating
+  page. Down/down/up should move selection; right releases it to open. Right
+  without a selection owned by the Companion deliberately does nothing.
+- If physical Control-Tab also fails until clicking the title bar, check window
+  focus and the installed Companion 0.1.4 identity/permissions. Do not treat app
+  foreground status as proof of window focus or replace delivery with global keys.
 
 ## Acknowledgements, license, and trademarks
 
@@ -481,7 +526,8 @@ This repository belongs to an open-source implementation lineage:
    microphone. It is the direct codebase on which this repository builds.
 3. **Stopwatch AgentBezel C152** continues the StopWatch codebase with Codex Micro,
    super.engineering and Hermes Desktop workspaces, including foreground
-   Companion integration and dedicated directional displays.
+   Companion integration and dedicated directional displays, plus four-character
+   robot Home, local speech support and USB microphone priority handling.
 
 This is an implementation lineage, not a claim that the repositories are
 runtime package dependencies or officially affiliated projects. Each later
