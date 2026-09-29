@@ -111,7 +111,8 @@ Home navigation uses `workspace: home`, `direction: left`, and press/release;
 all other Home reactions stay on-device. No payload or device identity is logged.
 
 Only real companion `--watch` mode observes exact foreground bundle IDs:
-`com.zarifpour.superconductor` → SUPER, `com.nousresearch.hermes` → HERMES,
+`engineering.super.app` or legacy `com.zarifpour.superconductor` → SUPER,
+`com.nousresearch.hermes` → HERMES,
 everything else → Codex while a work page is selected. Home is a pinned override
 that ignores foreground changes until an explicit left swipe activates Codex.
 Explicit SUPER-left selection is another override:

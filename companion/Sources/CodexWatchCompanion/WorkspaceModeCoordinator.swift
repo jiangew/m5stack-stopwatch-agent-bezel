@@ -98,7 +98,7 @@ final class SystemWorkspaceModeScheduler: WorkspaceModeScheduling {
 
 @MainActor
 final class WorkspaceModeCoordinator {
-    static let targetBundleIdentifier = "com.zarifpour.superconductor"
+    static let targetBundleIdentifier = "engineering.super.app"
     static let heartbeatInterval: TimeInterval = 5
     static let failureLogInterval: TimeInterval = 60
 

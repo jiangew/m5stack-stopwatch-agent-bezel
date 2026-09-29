@@ -15,7 +15,7 @@ firmware and Companion. Validation covers one local setup, not every app version
 
 ## Current version at a glance
 
-Documentation updated **2026-09-22**. Current Companion: **0.1.4 (build 5)**.
+Documentation updated **2026-09-29**. Current Companion: **0.1.4 (build 6)**.
 
 - Four screens: robot Home → Codex / ChatGPT → SUPER → HERMES → Home.
 - Home: four cinematic robot portraits; silent up/down/right character selection;
@@ -140,7 +140,9 @@ experimental until that checklist is complete.
 
 ## super.engineering workspace
 
-Use the exact bundle `com.zarifpour.superconductor`. Configure these app
+Identify the running app by current bundle `engineering.super.app` or legacy
+bundle `com.zarifpour.superconductor`; Companion launches the current bundle.
+Configure these app
 shortcuts: Previous Project = `Control-Option-Up`, Next Project =
 `Control-Option-Down`, Next Tab = `Control-Option-Right`.
 Up/down/right are sent only to that exact foreground process. Left advances to
@@ -148,7 +150,7 @@ Hermes; it does not return to an arbitrary previous app.
 
 ## Hermes Desktop workspace
 
-Use **Companion 0.1.4 (build 5)** with matching four-screen USB-mic firmware.
+Use **Companion 0.1.4 (build 6)** with matching four-screen USB-mic firmware.
 Dedicated SUPER/HERMES events use `host.workspace_navigation`, not Codex's
 native radial events; keep Codex up/down/right bindings and verify no background
 Codex action. Install/roll back compatible components together. Build/commit
@@ -498,8 +500,8 @@ button sends `ACT09`, not `ACT11`.
 
 ### Optional workspace navigation does not work
 
-- Confirm the foreground bundle is `com.zarifpour.superconductor` or
-  `com.nousresearch.hermes`, the corresponding
+- Confirm the SUPER foreground bundle is `engineering.super.app` or legacy
+  `com.zarifpour.superconductor`, HERMES is `com.nousresearch.hermes`, the corresponding
   fixed shortcuts work from the physical keyboard, and Accessibility is enabled
   for `CodexWatchCompanion.app`.
 - Input Monitoring is required to receive radial gestures. If Accessibility is

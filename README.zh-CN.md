@@ -12,7 +12,7 @@ Companion 身份保持不变。四屏体验需要匹配的源码构建 USB-mic �
 
 ## 当前版本速览
 
-文档更新于 **2026-09-22**；当前 Companion 为 **0.1.4（build 5）**。
+文档更新于 **2026-09-29**；当前 Companion 为 **0.1.4（build 6）**。
 
 - 四屏循环：机器人首页 → Codex / ChatGPT → SUPER → HERMES → 首页。
 - 首页：四款电影风格机器人；上/下/右静音切角色，中央点按使用统一说话动画及可选本地语音。
@@ -116,14 +116,15 @@ ChatGPT Desktop 仅暴露一个 Mic key，而非单独的 `ACT10` 和 `ACT11`：
 
 ## super.engineering 工作区
 
-仅匹配 `com.zarifpour.superconductor`。在应用快捷键中配置：
+识别运行中应用时兼容当前 bundle `engineering.super.app` 和旧 bundle
+`com.zarifpour.superconductor`；启动缺失应用时使用当前 bundle。在应用快捷键中配置：
 Previous Project = `Control-Option-Up`、Next Project = `Control-Option-Down`、
 Next Tab = `Control-Option-Right`。上/下/右仅定向发送给该前台进程。
 左滑进入 Hermes，不再返回任意旧应用。
 
 ## Hermes Desktop 工作区
 
-使用 **Companion 0.1.4（build 5）** 与匹配的四屏 USB-mic 固件。
+使用 **Companion 0.1.4（build 6）** 与匹配的四屏 USB-mic 固件。
 SUPER/HERMES 使用专属 `host.workspace_navigation`，不同时发送 Codex 原生方向事件。
 Codex 上/下/右绑定保持不变，并实测 Codex 无后台动作；安装、回滚保持组件兼容。
 构建号、源码提交及默认关闭的限时导航诊断详见 [Companion 文档](companion/README.md)。
@@ -407,8 +408,9 @@ swift build -c release
 
 ### 可选工作区导航不可用
 
-- 确认前台 bundle 是 `com.zarifpour.superconductor` 或 `com.nousresearch.hermes`，对应快捷键能由物理
-  键盘使用，且 `CodexWatchCompanion.app` 已开启辅助功能。
+- 确认 SUPER 前台 bundle 是 `engineering.super.app` 或旧 `com.zarifpour.superconductor`，
+  HERMES 是 `com.nousresearch.hermes`；对应快捷键能由物理键盘使用，
+  且 `CodexWatchCompanion.app` 已开启辅助功能。
 - 输入监控是接收径向手势所必需的。若缺少辅助功能，仅项目/标签导航会被禁用；
   左滑循环、额度和 USB 麦克风输入仍可用。
 - Hermes 应先进入待启动页，点中央并等到操作页；下/下/上移动选择，右滑释放后打开。

@@ -111,7 +111,7 @@ final class SystemProcessTargetedKeyEmitter: ProcessTargetedKeyEmitting {
         to identity: ApplicationIdentity
     ) -> Bool {
         guard !stopped else { return false }
-        guard identity.bundleIdentifier == command.profile.bundleIdentifier,
+        guard command.profile.matches(identity.bundleIdentifier),
               frontmostIdentity() == identity,
               identityForProcess(identity.processIdentifier) == identity else {
             diagnose(.identityRejected)
