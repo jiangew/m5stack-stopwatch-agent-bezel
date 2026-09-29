@@ -40,8 +40,8 @@ import XCTest
     lazy var emitter = SystemProcessTargetedKeyEmitter(frontmostIdentity: { [unowned self] in front },
         identityForProcess: { [unowned self] _ in actual }, poster: poster, scheduler: clock,
         uptime: { [unowned self] in clock.now }, trusted: { [unowned self] in trusted })
-    init(hermes: Bool = false) {
-        target = ApplicationIdentity(processIdentifier: 202, bundleIdentifier: hermes ? "com.nousresearch.hermes" : "com.zarifpour.superconductor")
+    init(hermes: Bool = false, superBundleIdentifier: String = "com.zarifpour.superconductor") {
+        target = ApplicationIdentity(processIdentifier: 202, bundleIdentifier: hermes ? "com.nousresearch.hermes" : superBundleIdentifier)
         front = target; actual = target
     }
     func send(_ c: WorkspaceNavigationCommand) -> Bool { emitter.emit(c, to: target) }
@@ -49,6 +49,21 @@ import XCTest
 @MainActor final class PacedKeyEmitterTests: XCTestCase {
     private func s(_ k: Int, _ down: Bool, _ flags: CGEventFlags) -> ProcessKeyStroke {
         ProcessKeyStroke(keyCode: CGKeyCode(k), keyDown: down, flags: flags)
+    }
+    func testCurrentAndLegacySuperBundleIDsPostCompleteSequence() {
+        for bundleID in ["engineering.super.app", "com.zarifpour.superconductor"] {
+            let f = KeyFixture(superBundleIdentifier: bundleID)
+            XCTAssertTrue(f.send(.nextTab))
+            XCTAssertEqual(f.poster.strokes.count, 1)
+            f.clock.drain()
+            XCTAssertEqual(f.poster.strokes, [
+                s(59, true, .maskControl), s(58, true, [.maskControl, .maskAlternate]),
+                s(124, true, [.maskControl, .maskAlternate]),
+                s(124, false, [.maskControl, .maskAlternate]),
+                s(58, false, .maskControl), s(59, false, [])
+            ])
+            f.emitter.stop()
+        }
     }
     func testSuperPacingBusyRejectionAndNoCatchupBurst() {
         let cases: [(WorkspaceNavigationCommand, Int)] = [(.previousProject,126),(.nextProject,125),(.nextTab,124)]

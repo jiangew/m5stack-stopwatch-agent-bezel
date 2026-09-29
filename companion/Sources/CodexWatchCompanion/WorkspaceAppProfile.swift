@@ -3,16 +3,34 @@ import Foundation
 enum WorkspaceAppProfile: CaseIterable {
     case codex, `super`, hermes
 
+    /// The bundle identifier used to launch a missing application.
+    /// SUPER moved from its legacy identifier in the 2026-09 release.
     var bundleIdentifier: String {
         switch self {
         case .codex: return "com.openai.codex"
-        case .super: return "com.zarifpour.superconductor"
+        case .super: return "engineering.super.app"
         case .hermes: return "com.nousresearch.hermes"
         }
     }
 
+    var acceptedBundleIdentifiers: [String] {
+        switch self {
+        case .codex:
+            return ["com.openai.codex"]
+        case .super:
+            return ["engineering.super.app", "com.zarifpour.superconductor"]
+        case .hermes:
+            return ["com.nousresearch.hermes"]
+        }
+    }
+
+    func matches(_ bundleIdentifier: String?) -> Bool {
+        guard let bundleIdentifier else { return false }
+        return acceptedBundleIdentifiers.contains(bundleIdentifier)
+    }
+
     init?(bundleIdentifier: String?) {
-        guard let profile = Self.allCases.first(where: { $0.bundleIdentifier == bundleIdentifier }) else { return nil }
+        guard let profile = Self.allCases.first(where: { $0.matches(bundleIdentifier) }) else { return nil }
         self = profile
     }
 
