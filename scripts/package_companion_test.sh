@@ -12,7 +12,7 @@ git -C "$scratch/source" -c user.name=Test -c user.email=test@example.invalid co
 bash "$scratch/source/scripts/package_companion.sh" /usr/bin/true "$scratch/Candidate.app"
 plist="$scratch/Candidate.app/Contents/Info.plist"
 test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$plist")" = 0.1.4
-test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$plist")" = 5
+test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$plist")" = 7
 test "$(/usr/libexec/PlistBuddy -c 'Print :AgentBezelSourceCommit' "$plist")" = "$(git -C "$scratch/source" rev-parse HEAD)"
 /usr/libexec/PlistBuddy -c 'Print :AgentBezelBuildTimestamp' "$plist" | /usr/bin/grep -Eq '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$'
 test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$plist")" = io.github.codex-micro-stopwatch.companion

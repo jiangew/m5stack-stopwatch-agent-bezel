@@ -62,7 +62,98 @@ final class WorkspaceCycleControllerTests: XCTestCase {
         XCTAssertFalse(controller.allowsNavigation)
         XCTAssertTrue(ws.launchRequests.isEmpty)
     }
-    private let ids = ["com.openai.codex", "com.zarifpour.superconductor", "com.nousresearch.hermes"]
+    private let ids = ["com.openai.codex", "engineering.super.app", "com.nousresearch.hermes"]
+
+    func testCurrentSuperEngineeringBundleActivatesFromCodex() {
+        let ws = WorkspaceStub(), observer = CycleObserver(), scheduler = CycleScheduler()
+        let current = ApplicationIdentity(
+            processIdentifier: 2,
+            bundleIdentifier: "engineering.super.app"
+        )
+        ws.runningByBundleID[current.bundleIdentifier] = current
+        ws.activatable.insert(current)
+        ws.frontmost = ApplicationIdentity(
+            processIdentifier: 1,
+            bundleIdentifier: "com.openai.codex"
+        )
+        let controller = WorkspaceCycleController(
+            workspace: ws,
+            observer: observer,
+            scheduler: scheduler,
+            log: { _ in }
+        )
+        controller.start()
+        controller.resetToForeground()
+        controller.cycle()
+
+        XCTAssertEqual(ws.activations, [current])
+        XCTAssertTrue(ws.launchRequests.isEmpty)
+        ws.frontmost = current
+        observer.change(current.bundleIdentifier)
+        XCTAssertEqual(controller.displayMode, .super)
+        XCTAssertEqual(controller.selectedProfile, .super)
+    }
+
+    func testLegacySuperEngineeringBundleRemainsActivatableFromCodex() {
+        let ws = WorkspaceStub(), observer = CycleObserver(), scheduler = CycleScheduler()
+        let legacy = ApplicationIdentity(
+            processIdentifier: 2,
+            bundleIdentifier: "com.zarifpour.superconductor"
+        )
+        ws.runningByBundleID[legacy.bundleIdentifier] = legacy
+        ws.activatable.insert(legacy)
+        ws.frontmost = ApplicationIdentity(
+            processIdentifier: 1,
+            bundleIdentifier: "com.openai.codex"
+        )
+        let controller = WorkspaceCycleController(
+            workspace: ws,
+            observer: observer,
+            scheduler: scheduler,
+            log: { _ in }
+        )
+        controller.start()
+        controller.resetToForeground()
+        controller.cycle()
+
+        XCTAssertEqual(ws.activations, [legacy])
+        XCTAssertTrue(ws.launchRequests.isEmpty)
+        ws.frontmost = legacy
+        observer.change(legacy.bundleIdentifier)
+        XCTAssertEqual(controller.displayMode, .super)
+        XCTAssertEqual(controller.selectedProfile, .super)
+    }
+
+    func testCurrentSuperEngineeringTakesPriorityWhenBothVersionsRun() {
+        let ws = WorkspaceStub(), observer = CycleObserver(), scheduler = CycleScheduler()
+        let current = ApplicationIdentity(processIdentifier: 2, bundleIdentifier: "engineering.super.app")
+        let legacy = ApplicationIdentity(processIdentifier: 3, bundleIdentifier: "com.zarifpour.superconductor")
+        ws.runningByBundleID[current.bundleIdentifier] = current
+        ws.runningByBundleID[legacy.bundleIdentifier] = legacy
+        ws.activatable.formUnion([current, legacy])
+        ws.frontmost = ApplicationIdentity(processIdentifier: 1, bundleIdentifier: "com.openai.codex")
+        let controller = WorkspaceCycleController(workspace: ws, observer: observer, scheduler: scheduler, log: { _ in })
+        controller.start()
+        controller.resetToForeground()
+        controller.cycle()
+
+        XCTAssertEqual(ws.activations, [current])
+    }
+
+    func testMissingSuperEngineeringLaunchesCurrentBundleID() {
+        let ws = WorkspaceStub(), observer = CycleObserver(), scheduler = CycleScheduler()
+        ws.frontmost = ApplicationIdentity(processIdentifier: 1, bundleIdentifier: "com.openai.codex")
+        let controller = WorkspaceCycleController(workspace: ws, observer: observer, scheduler: scheduler, log: { _ in })
+        controller.start()
+        controller.resetToForeground()
+        controller.cycle()
+
+        XCTAssertEqual(ws.launchRequests, ["engineering.super.app"])
+        let launched = ApplicationIdentity(processIdentifier: 2, bundleIdentifier: "engineering.super.app")
+        ws.frontmost = launched
+        observer.change(launched.bundleIdentifier)
+        XCTAssertEqual(controller.displayMode, .super)
+    }
 
     func testSelectingHermesDoesNotLaunchOrActivate() {
         let ws = WorkspaceStub(), observer = CycleObserver(), scheduler = CycleScheduler()

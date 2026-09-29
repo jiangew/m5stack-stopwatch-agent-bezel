@@ -120,7 +120,12 @@ final class WorkspaceCycleController: WorkspaceCycling {
         }
         // A Hermes central tap must request reopening, not merely activate a
         // running process whose last window may have been closed.
-        if !reopen, let identity = workspace.runningApplication(bundleIdentifier: target) {
+        let acceptedBundleIdentifiers = WorkspaceAppProfile(bundleIdentifier: target)?
+            .acceptedBundleIdentifiers ?? [target]
+        if !reopen,
+           let identity = acceptedBundleIdentifiers.lazy.compactMap({
+               self.workspace.runningApplication(bundleIdentifier: $0)
+           }).first {
             completeRequest(request, accepted: workspace.activate(identity))
         } else {
             workspace.launchAndActivate(bundleIdentifier: target) { [weak self] accepted in

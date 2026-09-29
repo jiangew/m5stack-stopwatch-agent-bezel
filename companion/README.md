@@ -31,7 +31,7 @@ then run from the repository root:
 bash scripts/package_companion.sh companion/.build/release/codex-watch-companion /private/tmp/CodexWatchCompanion-candidate.app
 ```
 
-The output must not already exist. This packages version **0.1.4**, build **5**,
+The output must not already exist. This packages version **0.1.4**, build **7**,
 with `AgentBezelSourceCommit` and UTC `AgentBezelBuildTimestamp` in Info.plist,
 then ad-hoc signs and verifies the candidate. It does not install or restart it.
 The caller must supply the release executable built from the recorded checkout;
@@ -77,6 +77,8 @@ does not select the intended local Codex installation.
 
 Version 0.1.4 is a Companion-only navigation repair candidate; it keeps the Home
 firmware. Released SUPER/Hermes up/down/right gestures may repeat after 350ms.
+Build 7 recognizes both the current SUPER bundle ID `engineering.super.app` and
+the earlier `com.zarifpour.superconductor`, preferring a running current app.
 Left, native Codex events and central launch retain 800ms protection on both
 sides of a transition. Stroke pacing remains 30ms; gestures are not queued.
 On an explicit Hermes central launch, the Companion uses Accessibility only to
@@ -109,7 +111,7 @@ modes do not create these controllers.
 | Foreground app | Left | Up | Down | Right |
 | --- | --- | --- | --- | --- |
 | Codex / ChatGPT (`com.openai.codex`) | SUPER | Existing ChatGPT binding | Existing ChatGPT binding | Existing ChatGPT binding |
-| SUPER (`com.zarifpour.superconductor`) | HERMES | Previous Project | Next Project | Next Tab |
+| SUPER (`engineering.super.app`; legacy `com.zarifpour.superconductor`) | HERMES | Previous Project | Next Project | Next Tab |
 | HERMES (`com.nousresearch.hermes`) | Home | Previous / browse | Next / browse | Open selection |
 
 From Home, left activates Codex first. This is a fixed
