@@ -1,14 +1,29 @@
 import Foundation
 
 enum CompanionShortcutEvent: Equatable {
-    case left, up, down, right, openHermes, showHome
+    case left, up, down, right, openHermes, openSelectedWorkspace, showHome
     case navigation(WorkspaceNavigationOrigin, WorkspaceSwipeDirection)
 }
 
 enum WorkspaceNavigationOrigin: String {
-    case `super`, hermes, home
+    case codex, deepseek, `super`, hermes, home
 
-    var profile: WorkspaceAppProfile? { self == .home ? nil : self == .super ? .super : .hermes }
+    var profile: WorkspaceAppProfile? {
+        switch self {
+        case .home: return nil
+        case .codex: return .codex
+        case .deepseek: return .deepseek
+        case .super: return .super
+        case .hermes: return .hermes
+        }
+    }
+
+    func allows(_ direction: WorkspaceSwipeDirection) -> Bool {
+        switch self {
+        case .home, .codex: return direction == .left
+        case .deepseek, .super, .hermes: return true
+        }
+    }
 }
 
 enum WorkspaceSwipeDirection: String {
@@ -99,10 +114,18 @@ struct HIDShortcutDecoder {
                       let direction = WorkspaceSwipeDirection(rawValue: name),
                       let phase = params["phase"] as? String,
                       phase == "press" || phase == "release" else { continue }
-                guard origin != .home || direction == .left else { continue }
+                guard origin.allows(direction) else { continue }
                 if let event = recognizePress(.navigation(origin, direction), pressed: phase == "press", now: now) {
                     events.append(event)
                 }
+                continue
+            }
+            if let object = try? JSONSerialization.jsonObject(with: line) as? [String: Any],
+               object["method"] as? String == "host.open_workspace" {
+                guard Set(object.keys) == Set(["method", "params"]),
+                      let params = object["params"] as? [String: Any], params.isEmpty,
+                      armed, acceptCooldown(now, event: .openSelectedWorkspace) else { continue }
+                events.append(.openSelectedWorkspace)
                 continue
             }
             if let object = try? JSONSerialization.jsonObject(with: line) as? [String: Any],

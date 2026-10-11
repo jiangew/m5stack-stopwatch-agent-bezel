@@ -1,0 +1,5 @@
+# Bundle patch: selected by the external profile, never edits shipped app files.
+- insert:
+    - id: agentbezel-navigation
+      name: dsh-agentbezel-navigation
+      config: {}

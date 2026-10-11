@@ -4,6 +4,14 @@ import Darwin
 
 @MainActor
 final class NavigationDiagnosticsTests: XCTestCase {
+    func testDeepseekDiagnosticsUseFixedOriginAndDirectionOnly() {
+        var logs: [String] = []
+        let diagnostics = NavigationDiagnostics(uptime: { 1 }, log: { logs.append($0) })
+        diagnostics.arm()
+        diagnostics.recordInput(.navigation(.deepseek, .left))
+        XCTAssertEqual(logs, ["NAV deepseek_input", "NAV left"])
+    }
+
     func testSignalArmsOnMainRunLoopAndStopIgnoresQueuedSignals() {
         var logs: [String] = []
         let diagnostics = NavigationDiagnostics(uptime: { 1 }, log: { logs.append($0) })

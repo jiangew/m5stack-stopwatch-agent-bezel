@@ -15,7 +15,17 @@ struct Asset {
   std::uint32_t size;
 };
 
-inline Asset assetFor(Character character) {
+inline Asset assetFor(Character character, BlinkFrame frame = BlinkFrame::Open) {
+#define ROBOT_BLINK_ASSET(Name) \
+  if (frame == BlinkFrame::Half) return {art_data::k##Name##HalfJpg, static_cast<std::uint32_t>(art_data::k##Name##HalfJpgSize)}; \
+  if (frame == BlinkFrame::Closed) return {art_data::k##Name##ClosedJpg, static_cast<std::uint32_t>(art_data::k##Name##ClosedJpgSize)};
+  switch (character) {
+    case Character::Bumblebee: ROBOT_BLINK_ASSET(Bumblebee) break;
+    case Character::Optimus: ROBOT_BLINK_ASSET(Optimus) break;
+    case Character::Megatron: ROBOT_BLINK_ASSET(Megatron) break;
+    case Character::Starscream: ROBOT_BLINK_ASSET(Starscream) break;
+  }
+#undef ROBOT_BLINK_ASSET
   switch (character) {
     case Character::Bumblebee:
       return {art_data::kBumblebeeJpg,
@@ -36,8 +46,9 @@ inline Asset assetFor(Character character) {
 
 template <class Surface>
 void render(Surface& surface, Character character, Mood mood,
-            std::uint32_t nowMs, float transitionProgress) {
-  const Asset asset = assetFor(character);
+            std::uint32_t reactionElapsedMs, float transitionProgress) {
+  const Asset asset = assetFor(character, mood == Mood::Blink
+      ? blinkFrame(reactionElapsedMs) : BlinkFrame::Open);
   const float boundedProgress = transitionProgress < 0.0f
                                     ? 0.0f
                                     : (transitionProgress > 1.0f
@@ -47,9 +58,8 @@ void render(Surface& surface, Character character, Mood mood,
                       (1.0f - boundedProgress) * (1.0f - boundedProgress);
   float scale = 1.04f + 0.14f * eased;
 
-  // Visible rim centers in the approved 300px JPEGs. Their black padding is
-  // not symmetric; anchoring the bitmap midpoint makes the circles drift.
-  // Calibrated against the native RGB565 renderer and guarded by pixel tests.
+  // Preserve the original portrait anchors and scale after removing the rim.
+  // Black padding differs by character; all blink frames share this geometry.
   float rimX = 150.0f;
   float rimY = 148.3f;
   switch (character) {
@@ -59,16 +69,10 @@ void render(Surface& surface, Character character, Mood mood,
     case Character::Starscream: rimX = 148.3f; rimY = 145.1f; break;
   }
 
-  if (mood == Mood::Talking) {
-    const float phase = (nowMs % 320) / 320.0f * 6.2831853f;
-    const float pulse = (1.0f + std::sin(phase)) * 0.5f;
-    scale += pulse * 0.010f;
-  }
-
   // M5GFX's scaled JPEG raster lands one pixel before the geometric anchor.
   const int left = 1 + static_cast<int>(std::lround(233.0f - rimX * scale));
   // Status ink ends at y=50; the battery group starts at y=414. Center
-  // the visible ring at their midpoint so both clear gaps are equal.
+  // the portrait at their midpoint without adding an outline.
   const int top = 1 + static_cast<int>(std::lround(232.0f - rimY * scale));
   surface.drawJpg(asset.bytes, asset.size, left, top, 0, 0, 0, 0,
                   scale, scale);

@@ -99,6 +99,71 @@ private final class WorkspaceSenderStub: WorkspaceModeSending {
 
 @MainActor
 final class WorkspaceModeCoordinatorTests: XCTestCase {
+    func testDeepseekForegroundUsesOneHeartbeatAndRejectsLookalikeBundles() {
+        let observer = ForegroundObserverStub(frontmostBundleIdentifier: "com.deepseek.dsh")
+        let scheduler = SchedulerStub()
+        let coordinator = WorkspaceModeCoordinator(foregroundObserver: observer, scheduler: scheduler, uptime: { 0 }, log: { _ in })
+        coordinator.start()
+        let sender = WorkspaceSenderStub(deviceKey: 1)
+        coordinator.attach(sender)
+        scheduler.tasks[0].fire()
+        observer.activate("engineering.super.app")
+        observer.activate("com.deepseek.dsh")
+        scheduler.tasks[0].fire()
+        XCTAssertEqual(sender.modes, [.deepseek, .deepseek, .super, .deepseek, .deepseek])
+        XCTAssertEqual(scheduler.intervals, [5])
+        observer.activate("com.deepseek.dsh.helper")
+        XCTAssertEqual(sender.modes.last, .codex)
+        XCTAssertTrue(scheduler.tasks[0].cancelled)
+        coordinator.stop()
+    }
+
+    func testDeepseekInteractionReconnectPinsHomeAndHeartbeatsNeverActivate() {
+        let ws = WorkspaceStub()
+        let observer = ForegroundObserverStub(frontmostBundleIdentifier: nil)
+        let scheduler = SchedulerStub()
+        let interaction = WorkspaceCycleController(workspace: ws, observer: observer, scheduler: scheduler, log: { _ in })
+        let coordinator = WorkspaceModeCoordinator(foregroundObserver: observer, scheduler: scheduler, uptime: { 0 }, log: { _ in }, interaction: interaction)
+        interaction.start(); coordinator.start()
+        let sender = WorkspaceSenderStub(deviceKey: 1)
+        coordinator.attach(sender)
+        ws.frontmost = ApplicationIdentity(processIdentifier: 4, bundleIdentifier: "com.deepseek.dsh")
+        interaction.resetToForeground()
+        XCTAssertEqual(sender.modes.last, .deepseek)
+        for _ in 0..<10 { scheduler.tasks[0].fire() }
+        XCTAssertEqual(sender.modes.last, .deepseek)
+        XCTAssertTrue(ws.launchRequests.isEmpty)
+        XCTAssertTrue(ws.activations.isEmpty)
+        coordinator.detach(deviceKey: 1)
+        coordinator.attach(sender)
+        observer.activate("com.deepseek.dsh")
+        XCTAssertEqual(sender.modes.last, .home)
+        XCTAssertNil(interaction.selectedProfile)
+        coordinator.stop(); interaction.stop()
+        XCTAssertEqual(sender.modes.last, .home)
+    }
+
+    func testAllWaitingModeHeartbeatsNeverLaunchAndDetachCancelsPending() {
+        let ws = WorkspaceStub(), observer = ForegroundObserverStub(frontmostBundleIdentifier: nil), scheduler = SchedulerStub()
+        let interaction = WorkspaceCycleController(workspace: ws, observer: observer, scheduler: scheduler, log: { _ in })
+        let coordinator = WorkspaceModeCoordinator(foregroundObserver: observer, scheduler: scheduler, uptime: { 0 }, log: { _ in }, interaction: interaction)
+        interaction.start(); coordinator.start()
+        let sender = WorkspaceSenderStub(deviceKey: 1); coordinator.attach(sender)
+        for profile in WorkspaceAppProfile.allCases {
+            interaction.cycle()
+            for _ in 0..<3 { scheduler.tasks[0].fire() }
+            XCTAssertEqual(sender.modes.last, .waiting(profile))
+        }
+        XCTAssertTrue(ws.launchRequests.isEmpty)
+        interaction.openSelectedWorkspace()
+        let completion = ws.launchCompletion
+        coordinator.detach(deviceKey: 1); coordinator.attach(sender)
+        completion?(false)
+        XCTAssertEqual(sender.modes.last, .home)
+        XCTAssertEqual(interaction.displayMode, .home)
+        coordinator.stop(); interaction.stop()
+    }
+
     func testCodexHeartbeatsAndRepeatedHomeRequestAreAcknowledged() {
         let ws=WorkspaceStub(), observer=ForegroundObserverStub(frontmostBundleIdentifier:nil), scheduler=SchedulerStub()
         let interaction=WorkspaceCycleController(workspace:ws,observer:observer,scheduler:scheduler,log:{_ in})

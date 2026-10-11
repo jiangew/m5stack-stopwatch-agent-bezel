@@ -10,6 +10,7 @@ private final class TogglerSpy: WorkspaceCycling {
     var homeCount = 0
     func showHome() { homeCount += 1; selectedProfile = nil }
     func openHermes() { openCount += 1 }
+    func openSelectedWorkspace() { openCount += 1 }
 
     func cycle() {
         toggleCount += 1
@@ -47,6 +48,107 @@ private final class RouterLogRecorder {
 
 @MainActor
 final class WorkspaceCommandRouterTests: XCTestCase {
+    func testGenericCenterOnlyRoutesWaitingSelectionsWithoutNavigationOrAX() {
+        for profile in WorkspaceAppProfile.allCases {
+            let f = makeFixture(frontmost: superApp, trusted: false)
+            f.toggler.selectedProfile = profile
+            f.router.handle(.openSelectedWorkspace)
+            XCTAssertEqual(f.toggler.openCount, 0)
+            f.toggler.allowsNavigation = false
+            f.router.handle(.openSelectedWorkspace)
+            XCTAssertEqual(f.toggler.openCount, 1)
+            XCTAssertEqual(f.emitter.cancellations, 1)
+            XCTAssertTrue(f.emitter.calls.isEmpty)
+            f.toggler.selectedProfile = nil
+            f.router.handle(.openSelectedWorkspace)
+            XCTAssertEqual(f.toggler.openCount, 1)
+        }
+    }
+
+    func testDedicatedCodexOnlyCyclesWaitingAndNeverEmitsAppActions() {
+        let f = makeFixture(frontmost: chatGPT, trusted: false)
+        f.toggler.selectedProfile = .codex
+        f.router.handle(.navigation(.codex, .left))
+        XCTAssertEqual(f.toggler.toggleCount, 0)
+        f.toggler.allowsNavigation = false
+        f.router.handle(.navigation(.codex, .left))
+        f.router.handle(.left)
+        XCTAssertEqual(f.toggler.toggleCount, 2)
+        for direction: WorkspaceSwipeDirection in [.up, .down, .right] {
+            f.router.handle(.navigation(.codex, direction))
+        }
+        XCTAssertTrue(f.emitter.calls.isEmpty)
+        f.toggler.selectedProfile = .deepseek
+        f.router.handle(.navigation(.codex, .left))
+        XCTAssertEqual(f.toggler.toggleCount, 2)
+    }
+
+    func testDeepseekCyclesWithoutAccessibilityAndRejectsNativeOrWrongOriginInputs() {
+        let deepseek = ApplicationIdentity(processIdentifier: 404, bundleIdentifier: "com.deepseek.dsh")
+        for trusted in [false, true] {
+            let f = makeFixture(frontmost: deepseek, trusted: trusted)
+            for event: CompanionShortcutEvent in [
+                .left, .up, .down, .right, .openHermes,
+                .navigation(.super, .left), .navigation(.hermes, .down), .navigation(.home, .left)
+            ] { f.router.handle(event) }
+            XCTAssertEqual(f.toggler.toggleCount, 0)
+            XCTAssertEqual(f.toggler.openCount, 0)
+            XCTAssertTrue(f.emitter.calls.isEmpty)
+            XCTAssertTrue(f.logs.messages.isEmpty)
+            f.toggler.allowsNavigation = false
+            f.router.handle(.navigation(.deepseek, .left))
+            XCTAssertEqual(f.toggler.toggleCount, 1)
+            XCTAssertEqual(f.emitter.cancellations, 1)
+            f.toggler.selectedProfile = .super
+            f.router.handle(.navigation(.deepseek, .left))
+            XCTAssertEqual(f.toggler.toggleCount, 1)
+        }
+    }
+
+    func testDeepseekDirectionsAndRepeatedRightUseOnlyExactTargetCommands() {
+        let target = ApplicationIdentity(processIdentifier: 404, bundleIdentifier: "com.deepseek.dsh")
+        let f = makeFixture(frontmost: target, trusted: true)
+        for direction: WorkspaceSwipeDirection in [.up, .down, .right, .right] {
+            f.router.handle(.navigation(.deepseek, direction))
+        }
+        XCTAssertEqual(f.emitter.calls, [
+            .init(command: .previousDeepseekThread, identity: target),
+            .init(command: .nextDeepseekThread, identity: target),
+            .init(command: .toggleDeepseekView, identity: target),
+            .init(command: .toggleDeepseekView, identity: target),
+        ])
+        XCTAssertEqual(f.toggler.toggleCount, 0)
+        XCTAssertEqual(f.toggler.openCount, 0)
+    }
+
+    func testDeepseekRejectsPermissionWaitingSelectionAndForegroundMismatches() {
+        let target = ApplicationIdentity(processIdentifier: 404, bundleIdentifier: "com.deepseek.dsh")
+        for direction: WorkspaceSwipeDirection in [.up, .down, .right] {
+            let denied = makeFixture(frontmost: target, trusted: false)
+            denied.router.handle(.navigation(.deepseek, direction))
+            XCTAssertTrue(denied.emitter.calls.isEmpty)
+            XCTAssertEqual(denied.emitter.cancellations, 1)
+            let waiting = makeFixture(frontmost: target, trusted: true)
+            waiting.toggler.allowsNavigation = false
+            waiting.router.handle(.navigation(.deepseek, direction))
+            XCTAssertTrue(waiting.emitter.calls.isEmpty)
+            XCTAssertEqual(waiting.emitter.cancellations, 1)
+            for profile: WorkspaceAppProfile? in [nil, .codex, .super, .hermes] {
+                let stale = makeFixture(frontmost: target, trusted: true)
+                stale.toggler.selectedProfile = profile
+                stale.router.handle(.navigation(.deepseek, direction))
+                XCTAssertTrue(stale.emitter.calls.isEmpty)
+            }
+            for bundle in ["com.openai.codex", "com.deepseek.dsh.helper", "COM.DEEPSEEK.DSH", "engineering.super.app", "com.nousresearch.hermes"] {
+                let wrong = makeFixture(frontmost: ApplicationIdentity(processIdentifier: 404, bundleIdentifier: bundle), trusted: true)
+                wrong.toggler.selectedProfile = .deepseek
+                wrong.router.handle(.navigation(.deepseek, direction))
+                XCTAssertTrue(wrong.emitter.calls.isEmpty)
+                XCTAssertEqual(wrong.emitter.cancellations, 1)
+            }
+        }
+    }
+
     func testHomeBlocksNativeAndAppDirectionsButAllowsLeftAndControlResync() {
         let f=makeFixture(frontmost:ApplicationIdentity(processIdentifier:1,bundleIdentifier:"com.zarifpour.superconductor"),trusted:false)
         f.toggler.selectedProfile=nil
@@ -176,7 +278,7 @@ final class WorkspaceCommandRouterTests: XCTestCase {
 
         XCTAssertEqual(fixture.emitter.calls, [.init(command: .nextTab, identity: superApp)])
         XCTAssertEqual(fixture.toggler.toggleCount, 0)
-        XCTAssertEqual(fixture.logs.messages, ["super.engineering 导航按键发送失败"])
+        XCTAssertEqual(fixture.logs.messages, ["工作区导航按键发送失败"])
     }
 
     private func makeFixture(

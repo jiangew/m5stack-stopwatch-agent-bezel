@@ -3,6 +3,7 @@
 #include <cassert>
 #include <cstdint>
 #include <limits>
+#include <string>
 
 #include "WorkspaceMode.h"
 
@@ -157,13 +158,103 @@ void testMillisRollover() {
 
 }  // namespace
 
+void testDeepseekLease() {
+  using namespace workspace_mode;
+  assert(parseParams(R"({"mode":"deepseek","ttl_ms":15000})") == Command::Deepseek);
+  for (const char* bad : {R"({"mode":"deepseek"})",
+       R"({"mode":"deepseek","ttl_ms":15000.0})",
+       R"({"mode":"deepseek","ttl_ms":14999})",
+       R"({"mode":"deepseek","ttl_ms":15000,"state":"active"})",
+       R"({"mode":"deepseek","ttl_ms":15000,"extra":1})"})
+    assert(parseParams(bad) == Command::Invalid);
+  Lease lease(Mode::Home);
+  assert(!lease.apply(Command::Deepseek, 7, 0)); // Home sync required.
+  lease.apply(Command::Home, 7, 1);
+  assert(lease.apply(Command::Deepseek, 7, 2));
+  assert(lease.mode() == Mode::Deepseek);
+  assert(!lease.apply(Command::Super, 8, 3));
+  assert(!lease.apply(Command::Deepseek, 7, 5000));
+  assert(!lease.expire(19999));
+  assert(lease.expire(20000));
+  assert(lease.mode() == Mode::Home && lease.needsHomeSync());
+  assert(!lease.apply(Command::Deepseek, 7, 20001));
+  lease.apply(Command::Home, 7, 20002);
+  assert(lease.apply(Command::Deepseek, 7, 20003));
+  assert(!lease.disconnect(8));
+  assert(lease.disconnect(7));
+}
+
+void testAllLaunchStates() {
+  using namespace workspace_mode;
+  static_assert(static_cast<int>(Mode::Deepseek) == 7, "preserve mode ordinals");
+  static_assert(static_cast<int>(Command::Deepseek) == 9, "preserve commands");
+  struct Profile {
+    const char* name;
+    Command commands[3];
+    Mode modes[3];
+  };
+  const Profile profiles[] = {
+    {"codex", {Command::CodexIdle, Command::CodexOpening, Command::CodexError},
+     {Mode::CodexIdle, Mode::CodexOpening, Mode::CodexError}},
+    {"deepseek", {Command::DeepseekIdle, Command::DeepseekOpening, Command::DeepseekError},
+     {Mode::DeepseekIdle, Mode::DeepseekOpening, Mode::DeepseekError}},
+    {"super", {Command::SuperIdle, Command::SuperOpening, Command::SuperError},
+     {Mode::SuperIdle, Mode::SuperOpening, Mode::SuperError}},
+    {"hermes", {Command::HermesIdle, Command::HermesOpening, Command::HermesError},
+     {Mode::HermesIdle, Mode::HermesOpening, Mode::HermesError}}
+  };
+  const char* states[] = {"idle", "opening", "error"};
+  for (const auto& profile : profiles) {
+    for (int i = 0; i < 3; ++i) {
+      const std::string prefix = std::string("{\"mode\":\"") + profile.name + "\",\"state\":\"" + states[i] + "\"";
+      const auto command = parseParams((prefix + ",\"ttl_ms\":15000}").c_str());
+      assert(command == profile.commands[i]);
+      for (const char* suffix : {"}", ",\"ttl_ms\":true}", ",\"ttl_ms\":15000.0}",
+           ",\"ttl_ms\":-1}", ",\"ttl_ms\":4294967296}", ",\"ttl_ms\":\"15000\"}",
+           ",\"ttl_ms\":14999}", ",\"ttl_ms\":15000,\"extra\":1}"})
+        assert(parseParams((prefix + suffix).c_str()) == Command::Invalid);
+      for (auto fallback : {Mode::Codex, Mode::Home}) {
+        Lease lease(fallback);
+        if (fallback == Mode::Home) {
+          assert(!lease.apply(command, 7, 0));
+          lease.apply(Command::Home, 7, 1);
+        }
+        assert(lease.apply(command, 7, 100));
+        assert(lease.mode() == profile.modes[i]);
+        assert(awaitingLaunch(lease.mode()));
+        assert(canOpen(lease.mode()) == (i != 1));
+        assert(!lease.apply(command, 8, 200));
+        assert(!lease.disconnect(8));
+        assert(!lease.apply(command, 7, 1000));
+        assert(!lease.expire(15999));
+        assert(lease.expire(16000));
+        assert(lease.mode() == fallback && !lease.hostReady());
+        if (fallback == Mode::Home) lease.apply(Command::Home, 7, 17000);
+        assert(lease.apply(command, 7, 18000));
+        assert(lease.disconnect(7));
+        if (fallback == Mode::Home) lease.apply(Command::Home, 7, 19000);
+        const auto start = std::numeric_limits<std::uint32_t>::max() - 9999;
+        assert(lease.apply(command, 7, start));
+        assert(!lease.expire(4999));
+        assert(lease.expire(5000));
+      }
+    }
+    const std::string prefix = std::string("{\"mode\":\"") + profile.name + "\",\"ttl_ms\":15000,\"state\":";
+    for (const char* value : {"null}", "true}", "42}", "\"active\"}", "\"IDLE\"}", "\"\"}"})
+      assert(parseParams((prefix + value).c_str()) == Command::Invalid);
+  }
+  assert(parseParams(R"({"mode":"unknown","state":"idle","ttl_ms":15000})") == Command::Invalid);
+}
+
 int main() {
+  testAllLaunchStates();
+  testDeepseekLease();
   assert(parseParams(R"({"mode":"hermes","ttl_ms":15000,"state":"idle"})") != workspace_mode::Command::Invalid);
   using namespace workspace_mode;
   for (const auto* invalid : {
       R"({"mode":"hermes","ttl_ms":15000,"state":null})",
       R"({"mode":"hermes","ttl_ms":15000,"state":"active"})",
-      R"({"mode":"super","ttl_ms":15000,"state":"idle"})",
+      R"({"mode":"home","ttl_ms":15000,"state":"idle"})",
       R"({"mode":"codex","state":"idle"})",
       R"({"mode":"hermes","ttl_ms":15000,"state":"idle","extra":1})"}) {
     assert(parseParams(invalid) == Command::Invalid);

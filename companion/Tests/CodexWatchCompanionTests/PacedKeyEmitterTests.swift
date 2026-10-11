@@ -40,8 +40,8 @@ import XCTest
     lazy var emitter = SystemProcessTargetedKeyEmitter(frontmostIdentity: { [unowned self] in front },
         identityForProcess: { [unowned self] _ in actual }, poster: poster, scheduler: clock,
         uptime: { [unowned self] in clock.now }, trusted: { [unowned self] in trusted })
-    init(hermes: Bool = false) {
-        target = ApplicationIdentity(processIdentifier: 202, bundleIdentifier: hermes ? "com.nousresearch.hermes" : "com.zarifpour.superconductor")
+    init(hermes: Bool = false, deepseek: Bool = false) {
+        target = ApplicationIdentity(processIdentifier: 202, bundleIdentifier: deepseek ? "com.deepseek.dsh" : (hermes ? "com.nousresearch.hermes" : "com.zarifpour.superconductor"))
         front = target; actual = target
     }
     func send(_ c: WorkspaceNavigationCommand) -> Bool { emitter.emit(c, to: target) }
@@ -50,6 +50,94 @@ import XCTest
     private func s(_ k: Int, _ down: Bool, _ flags: CGEventFlags) -> ProcessKeyStroke {
         ProcessKeyStroke(keyCode: CGKeyCode(k), keyDown: down, flags: flags)
     }
+    func testDeepseekCompleteChordsPacingAndRepeatedRightNeverRetainControl() {
+        let f = KeyFixture(deepseek: true)
+        let cases: [(WorkspaceNavigationCommand, Int)] = [(.previousDeepseekThread,126), (.nextDeepseekThread,125), (.toggleDeepseekView,124), (.toggleDeepseekView,124)]
+        for (command, code) in cases {
+            let before = f.poster.strokes.count
+            XCTAssertTrue(f.send(command))
+            XCTAssertFalse(f.send(command))
+            f.clock.advance(0.029)
+            XCTAssertEqual(f.poster.strokes.count, before + 1)
+            f.clock.advance(0.002)
+            XCTAssertEqual(f.poster.strokes.count, before + 2)
+            f.clock.advance(1)
+            XCTAssertEqual(f.poster.strokes.count, before + 3)
+            f.clock.drain()
+            let expected = [s(59,true,.maskControl),s(58,true,[.maskControl,.maskAlternate]),s(code,true,[.maskControl,.maskAlternate]),s(code,false,[.maskControl,.maskAlternate]),s(58,false,.maskControl),s(59,false,[])]
+            XCTAssertEqual(Array(f.poster.strokes.dropFirst(before)), expected)
+            XCTAssertEqual(WorkspaceKeySequence.strokes(for: command, controlHeld: true), expected)
+            XCTAssertTrue(f.clock.tasks.allSatisfy { $0.canceled })
+        }
+        XCTAssertEqual(Set(f.poster.pids), Set([f.target.processIdentifier]))
+        for (a,b) in zip(f.poster.times, f.poster.times.dropFirst()) { XCTAssertTrue(b-a >= 0.03) }
+        let before = f.poster.strokes.count
+        f.emitter.cancel(); f.clock.drain(); f.emitter.stop()
+        XCTAssertEqual(f.poster.strokes.count, before)
+    }
+
+    func testDeepseekEveryPartialCancellationAndStopFullyReleaseOriginalPID() {
+        for command: WorkspaceNavigationCommand in [.previousDeepseekThread, .nextDeepseekThread, .toggleDeepseekView] {
+            for count in 1...6 {
+                for stop in [false, true] {
+                    let f = KeyFixture(deepseek: true)
+                    XCTAssertTrue(f.send(command))
+                    for _ in 1..<count { f.clock.advance() }
+                    let before = f.poster.strokes
+                    var held: [CGKeyCode] = []
+                    for stroke in before {
+                        if stroke.keyDown { held.append(stroke.keyCode) }
+                        else { held.removeAll { $0 == stroke.keyCode } }
+                    }
+                    let stale = f.clock.tasks
+                    if stop { f.emitter.stop() } else { f.emitter.cancel(); f.emitter.cancel() }
+                    stale.forEach { $0.action() }; f.clock.drain()
+                    XCTAssertEqual(Array(f.poster.strokes.dropFirst(before.count)), WorkspaceKeySequence.releases(held: held))
+                    XCTAssertEqual(Set(f.poster.pids), Set([f.target.processIdentifier]))
+                    if !stop {
+                        for (a,b) in zip(f.poster.times,f.poster.times.dropFirst()) { XCTAssertTrue(b-a >= 0.03) }
+                    }
+                    f.emitter.stop()
+                    XCTAssertFalse(f.send(command))
+                }
+            }
+        }
+    }
+
+    func testDeepseekFocusLossCleansUpButPermissionOrIdentityLossNeverRetargets() {
+        for loss in 0..<4 {
+            let f = KeyFixture(deepseek: true)
+            XCTAssertTrue(f.send(.toggleDeepseekView)); f.clock.advance(); f.clock.advance()
+            XCTAssertEqual(f.poster.strokes.count, 3)
+            switch loss {
+            case 0: f.front = ApplicationIdentity(processIdentifier: 303, bundleIdentifier: "com.openai.codex")
+            case 1: f.trusted = false
+            case 2: f.actual = nil
+            default: f.actual = ApplicationIdentity(processIdentifier: 202, bundleIdentifier: "com.deepseek.dsh", launchDate: Date(timeIntervalSince1970: 2))
+            }
+            f.clock.drain()
+            if loss == 0 {
+                XCTAssertEqual(Array(f.poster.strokes.suffix(3)), [s(124,false,[.maskControl,.maskAlternate]),s(58,false,.maskControl),s(59,false,[])])
+            } else { XCTAssertEqual(f.poster.strokes.count, 3) }
+            XCTAssertEqual(Set(f.poster.pids), Set([f.target.processIdentifier]))
+            XCTAssertFalse(f.send(.toggleDeepseekView)); f.emitter.stop()
+        }
+        let f = KeyFixture(deepseek: true)
+        f.trusted = false
+        XCTAssertFalse(f.send(.previousDeepseekThread))
+        XCTAssertTrue(f.poster.strokes.isEmpty)
+        f.emitter.stop()
+    }
+
+    func testHermesOwnedControlCannotBecomeDeepseekChord() {
+        let f = KeyFixture(hermes: true)
+        XCTAssertTrue(f.send(.nextHermesTab)); f.clock.drain()
+        let before = f.poster.strokes.count
+        XCTAssertFalse(f.send(.toggleDeepseekView)); f.clock.drain()
+        XCTAssertEqual(Array(f.poster.strokes.dropFirst(before)), [s(59,false,[])])
+        f.emitter.stop()
+    }
+
     func testSuperPacingBusyRejectionAndNoCatchupBurst() {
         let cases: [(WorkspaceNavigationCommand, Int)] = [(.previousProject,126),(.nextProject,125),(.nextTab,124)]
         for (command,key) in cases {

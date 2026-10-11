@@ -7,6 +7,8 @@ finish = source.index('void finishTouchGesture(', start) or abort 'missing next 
 function = source[start...finish]
 fixture = <<~CPP
   #include <cassert>
+  #include <utility>
+  #include <initializer_list>
   #include "RobotHomeCharacter.h"
   #include "RobotHomeInteraction.h"
   #include "WorkspaceInputPolicy.h"
@@ -25,21 +27,26 @@ fixture = <<~CPP
   constexpr int kButtonHapticIntensity=11,kWakeHapticDurationMs=22;
   int sent=0,haptics=0,intensity=0,duration=0;
   int speech=0,cancels=0;
-  void requestRobotReaction(stopwatch_usb_mic::LocalSound sound){
-    assert(sound==stopwatch_usb_mic::LocalSound::RobotLaugh);++speech;
-    robotAnimation.talk(100,2400);
-  }
+  void requestRobotReaction(){++speech;robotAnimation.blink(100);}
   void stopRobotReaction(){++cancels;}
   unsigned millis(){return 100;}
   unsigned esp_random(){return 1;}
   bool directionalWorkspaceActive(){return state.workspaceMode!=workspace_mode::Mode::Codex;}
-  workspace_input::Control controlForSwipe(Direction){return workspace_input::Control::SwipeLeft;}
+  workspace_input::Control controlForSwipe(Direction d){
+    switch(d){
+      case Direction::Up:return workspace_input::Control::SwipeUp;
+      case Direction::Down:return workspace_input::Control::SwipeDown;
+      case Direction::Right:return workspace_input::Control::SwipeRight;
+      default:return workspace_input::Control::SwipeLeft;
+    }
+  }
   bool noteActivity(){bool was=awake;awake=true;return was;}
   void clearTouchCandidate(){robotTap.cancel();}
-  void sendSwipePress(Direction d){assert(d==Direction::Left);++sent;}
+  void sendSwipePress(Direction d){assert(d!=Direction::None);++sent;}
   void startHaptic(int i,int d){++haptics;intensity=i;duration=d;}
   void drawScreen(){}
-  struct {template<class F>void acceptSwipe(unsigned,F){}} workspacePalette;
+  int recolors=0;
+  struct {template<class F>void acceptSwipe(unsigned,F){++recolors;}} workspacePalette;
   struct {template<class... A>void printf(const char*,A...){}} Serial;
   #{function}
   void reset(bool resetCharacter=true){sent=haptics=speech=cancels=0;touchTracking=true;awake=true;activeSwipe=Direction::None;state.workspaceHostReady=true;if(resetCharacter)robotCharacters.reset();}
@@ -50,20 +57,59 @@ fixture = <<~CPP
     updateTouchGesture(130,200);assert(sent==1&&haptics==1);
     reset();state.workspaceHostReady=false;updateTouchGesture(140,200);
     assert(sent==0&&haptics==0&&robotAnimation.mood(100)==robot_home::Mood::Connect);
-    reset();updateTouchGesture(200,140);assert(sent==0&&haptics==0&&speech==0&&cancels==1);
+    reset();updateTouchGesture(200,140);assert(sent==0&&haptics==1&&speech==0&&cancels==1);
     assert(activeSwipe==Direction::None&&!touchTracking);
     assert(robotCharacters.character()==robot_home::Character::Optimus);
     reset(false);updateTouchGesture(200,140);
     assert(robotCharacters.character()==robot_home::Character::Bumblebee);
-    reset();updateTouchGesture(200,260);assert(sent==0&&haptics==0&&speech==0&&cancels==1);
+    reset();updateTouchGesture(200,260);assert(sent==0&&haptics==1&&speech==0&&cancels==1);
     assert(activeSwipe==Direction::None&&!touchTracking);
     assert(robotCharacters.character()==robot_home::Character::Megatron);
-    reset();updateTouchGesture(260,200);assert(sent==0&&haptics==0&&speech==0&&cancels==1);
+    reset();updateTouchGesture(260,200);assert(sent==0&&haptics==1&&speech==0&&cancels==1);
     assert(activeSwipe==Direction::None&&!touchTracking);
     assert(robotCharacters.character()==robot_home::Character::Starscream);
+    // Each accepted local character gesture gives exactly one existing swipe tick,
+    // even offline; held movement cannot repeat, and waking cannot change character.
+    for(const auto xy:{std::pair<int,int>{200,140},{200,260},{260,200}}){
+      for(bool ready:{false,true}){
+        reset();state.workspaceHostReady=ready;updateTouchGesture(xy.first,xy.second);
+        assert(sent==0&&speech==0&&haptics==1);
+        assert(intensity==kSwipeHapticIntensity&&duration==kSwipeHapticDurationMs);
+        updateTouchGesture(xy.first,xy.second);assert(haptics==1);
+        reset(false);state.workspaceHostReady=ready;updateTouchGesture(xy.first,xy.second);
+        assert(robotCharacters.character()==robot_home::Character::Bumblebee&&haptics==1);
+        reset();awake=false;updateTouchGesture(xy.first,xy.second);
+        assert(robotCharacters.character()==robot_home::Character::Bumblebee);
+        assert(sent==0&&haptics==1&&duration==kWakeHapticDurationMs&&!touchTracking);
+      }
+    }
     reset();updateTouchGesture(201,200);assert(sent==0&&haptics==0);
     reset();awake=false;updateTouchGesture(140,200);
     assert(sent==0&&haptics==1&&duration==kWakeHapticDurationMs&&!touchTracking&&speech==0);
+    state.workspaceMode=workspace_mode::Mode::Deepseek;
+    for(const auto xy : {std::pair<int,int>{200,140},{200,260},{260,200}}){
+      reset();recolors=0;updateTouchGesture(xy.first,xy.second);
+      assert(sent==1&&haptics==1&&recolors==1&&speech==0);
+      updateTouchGesture(xy.first,xy.second);assert(sent==1);
+      reset();awake=false;recolors=0;updateTouchGesture(xy.first,xy.second);
+      assert(sent==0&&recolors==0&&!touchTracking&&duration==kWakeHapticDurationMs);
+    }
+    reset();recolors=0;updateTouchGesture(140,200);
+    assert(sent==1&&haptics==1); // left remains the workspace cycle
+    for(auto mode:{workspace_mode::Mode::CodexIdle,workspace_mode::Mode::CodexOpening,workspace_mode::Mode::CodexError,
+        workspace_mode::Mode::DeepseekIdle,workspace_mode::Mode::DeepseekOpening,workspace_mode::Mode::DeepseekError,
+        workspace_mode::Mode::SuperIdle,workspace_mode::Mode::SuperOpening,workspace_mode::Mode::SuperError,
+        workspace_mode::Mode::HermesIdle,workspace_mode::Mode::HermesOpening,workspace_mode::Mode::HermesError}){
+      state.workspaceMode=mode;
+      for(const auto xy:{std::pair<int,int>{200,140},{200,260},{260,200}}){
+        reset();recolors=0;updateTouchGesture(xy.first,xy.second);
+        assert(sent==0&&haptics==0&&recolors==0);
+      }
+      reset();recolors=0;updateTouchGesture(140,200);
+      assert(sent==1&&haptics==1&&recolors==1);
+      reset();awake=false;updateTouchGesture(140,200);
+      assert(sent==0&&!touchTracking&&duration==kWakeHapticDurationMs);
+    }
   }
 CPP
 Dir.mktmpdir('robot-home-swipe-', '/private/tmp') do |dir|

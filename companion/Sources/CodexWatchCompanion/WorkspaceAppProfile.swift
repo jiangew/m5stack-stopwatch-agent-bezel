@@ -1,13 +1,14 @@
 import Foundation
 
 enum WorkspaceAppProfile: CaseIterable {
-    case codex, `super`, hermes
+    case codex, deepseek, `super`, hermes
 
     /// The bundle identifier used to launch a missing application.
     /// SUPER moved from its legacy identifier in the 2026-09 release.
     var bundleIdentifier: String {
         switch self {
         case .codex: return "com.openai.codex"
+        case .deepseek: return "com.deepseek.dsh"
         case .super: return "engineering.super.app"
         case .hermes: return "com.nousresearch.hermes"
         }
@@ -17,6 +18,8 @@ enum WorkspaceAppProfile: CaseIterable {
         switch self {
         case .codex:
             return ["com.openai.codex"]
+        case .deepseek:
+            return ["com.deepseek.dsh"]
         case .super:
             return ["engineering.super.app", "com.zarifpour.superconductor"]
         case .hermes:
@@ -36,7 +39,8 @@ enum WorkspaceAppProfile: CaseIterable {
 
     var next: Self {
         switch self {
-        case .codex: return .super
+        case .codex: return .deepseek
+        case .deepseek: return .super
         case .super: return .hermes
         case .hermes: return .codex
         }
@@ -44,6 +48,9 @@ enum WorkspaceAppProfile: CaseIterable {
 
     func command(for event: CompanionShortcutEvent) -> WorkspaceNavigationCommand? {
         switch (self, event) {
+        case (.deepseek, .up): return .previousDeepseekThread
+        case (.deepseek, .down): return .nextDeepseekThread
+        case (.deepseek, .right): return .toggleDeepseekView
         case (.super, .up): return .previousProject
         case (.super, .down): return .nextProject
         case (.super, .right): return .nextTab
@@ -57,11 +64,13 @@ enum WorkspaceAppProfile: CaseIterable {
 
 enum WorkspaceNavigationCommand: Equatable {
     case previousProject, nextProject, nextTab
+    case previousDeepseekThread, nextDeepseekThread, toggleDeepseekView
     case previousHermesTab, nextHermesTab, confirmHermesSelection
 
     var profile: WorkspaceAppProfile {
         switch self {
         case .previousProject, .nextProject, .nextTab: return .super
+        case .previousDeepseekThread, .nextDeepseekThread, .toggleDeepseekView: return .deepseek
         case .previousHermesTab, .nextHermesTab, .confirmHermesSelection: return .hermes
         }
     }

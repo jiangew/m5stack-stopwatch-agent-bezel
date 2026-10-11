@@ -1,4 +1,11 @@
-# Robot Home speech
+# Robot Home speech (legacy)
+
+> **Superseded by the five-workspace / silent-blink revision.** Current Home
+> center taps only blink the selected character's eyes; they do not request
+> speech or talking animation, even when a private audio header is present.
+> The playback helpers and the instructions below are retained for historical
+> provenance and audio regression tests, not to enable speech on current Home.
+> USB microphone input and Codex completion chimes are unchanged.
 
 ## Public source versus private audio
 

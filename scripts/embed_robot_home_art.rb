@@ -1,15 +1,16 @@
-# Convert the four approved 300x300 JPEG portraits into firmware flash data.
-# Usage: ruby scripts/embed_robot_home_art.rb assets/robot-home include/RobotHomeArtData.h
+# Embed derived ring-free portraits and eye-only blink frames.
+# Run prepare_robot_home_art.py first.
+# Usage: ruby scripts/embed_robot_home_art.rb assets/robot-home/generated include/RobotHomeArtData.h
 
 abort 'expected ASSET_DIRECTORY OUTPUT.h' unless ARGV.size == 2
 
 asset_directory, output_path = ARGV
-assets = {
-  'Bumblebee' => 'bumblebee.jpg',
-  'Optimus' => 'optimus.jpg',
-  'Megatron' => 'megatron.jpg',
-  'Starscream' => 'starscream.jpg'
-}
+assets = {}
+%w[Bumblebee Optimus Megatron Starscream].each do |name|
+  assets[name] = "#{name.downcase}-idle.jpg"
+  assets["#{name}Half"] = "#{name.downcase}-half.jpg"
+  assets["#{name}Closed"] = "#{name.downcase}-closed.jpg"
+end
 
 text = <<~HEADER
   // SPDX-License-Identifier: MIT

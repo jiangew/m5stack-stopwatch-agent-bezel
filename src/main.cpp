@@ -100,36 +100,17 @@ workspace_input::CenterTap workspaceCenterTap;
 robot_home::Tap robotTap;
 robot_home::Animation robotAnimation;
 robot_home::CharacterSelector robotCharacters;
-bool robotSpeechTracked = false;
-uint32_t robotSpeechSequence = 0;
-
 void stopRobotReaction() {
-  stopwatch_usb_mic::cancelRobotSpeech();
-  robotSpeechTracked = false;
   robotAnimation.react(robot_home::Mood::Idle, millis());
 }
 
-void requestRobotReaction(stopwatch_usb_mic::LocalSound sound) {
-  // No replay queue, including during a silent (recording-priority) response.
-  if (robotAnimation.mood(millis()) == robot_home::Mood::Talking ||
-      stopwatch_usb_mic::snapshotChimeStatus().pending) return;
-  const auto result = stopwatch_usb_mic::requestRobotSpeech(sound);
-  if (result == stopwatch_usb_mic::ChimeRequestResult::Busy) return;
-  robotSpeechTracked = result == stopwatch_usb_mic::ChimeRequestResult::Queued;
-  robotSpeechSequence = stopwatch_usb_mic::snapshotChimeStatus().sequence;
-  // The audio status ends the animation, not a guessed spoken duration.
-  // This cap is only a failsafe; skipped speech gets a short silent response.
-  robotAnimation.talk(millis(), robotSpeechTracked ? 6000 : 1200);
+void requestRobotReaction() {
+  // Local eye-only feedback: never request speech, haptics or host input.
+  robotAnimation.blink(millis());
 }
 
 void updateRobotReaction(bool visible) {
-  if (!visible) { stopRobotReaction(); return; }
-  if (!robotSpeechTracked) return;
-  const auto audio = stopwatch_usb_mic::snapshotChimeStatus();
-  if (!audio.pending || audio.sequence != robotSpeechSequence) {
-    robotSpeechTracked = false;
-    robotAnimation.react(robot_home::Mood::Idle, millis());
-  }
+  if (!visible) stopRobotReaction();
 }
 workspace_navigation::Gesture navigationGesture;
 int workspaceTouchEndX = 0;
@@ -501,14 +482,18 @@ super_workspace::PowerOverlay superPowerOverlay() {
 
 super_workspace::State superWorkspaceState() {
   super_workspace::State ui;
-  ui.profile = workspace_mode::isHermes(state.workspaceMode)
+  ui.profile = workspace_mode::isDeepseek(state.workspaceMode)
+                   ? super_workspace::Profile::Deepseek
+                   : workspace_mode::isHermes(state.workspaceMode)
                    ? super_workspace::Profile::Hermes : super_workspace::Profile::Super;
-  switch (state.workspaceMode) {
-    case workspace_mode::Mode::HermesIdle: ui.hermesPresentation = super_workspace::HermesPresentation::Idle; break;
-    case workspace_mode::Mode::HermesOpening: ui.hermesPresentation = super_workspace::HermesPresentation::Opening; break;
-    case workspace_mode::Mode::HermesError: ui.hermesPresentation = super_workspace::HermesPresentation::Error; break;
-    default: break;
-  }
+  // Retain the presentation field name for source compatibility; the three
+  // directional profiles share its launch state. Codex always uses dashboard.
+  if (workspace_mode::isIdle(state.workspaceMode))
+    ui.hermesPresentation = super_workspace::HermesPresentation::Idle;
+  else if (workspace_mode::isOpening(state.workspaceMode))
+    ui.hermesPresentation = super_workspace::HermesPresentation::Opening;
+  else if (workspace_mode::isError(state.workspaceMode))
+    ui.hermesPresentation = super_workspace::HermesPresentation::Error;
   ui.borderColors = workspacePalette.colors();
   ui.batteryPercent = batteryPercent;
   ui.charging = charging;
@@ -550,10 +535,13 @@ void drawScreen() {
   if(state.workspaceMode==workspace_mode::Mode::Home && renderedWorkspaceModeValid &&
      renderedWorkspaceMode==workspace_mode::Mode::Home &&
      powerOverlay==dashboard::PowerOverlay::None && millis()-lastDrawMs<50)return;
-  if (directionalWorkspaceActive()) {
+  // Drawing stays on the installed dashboard for every Codex launch state;
+  // directionalWorkspaceActive() still isolates pending-state input below.
+  if (directionalWorkspaceActive() && !workspace_mode::isCodex(state.workspaceMode)) {
     if (state.workspaceMode == workspace_mode::Mode::Home) {
       robot_home::State ui;
       ui.nowMs=millis();ui.mood=robotAnimation.mood(ui.nowMs);
+      ui.reactionElapsedMs=robotAnimation.elapsed(ui.nowMs);
       ui.character=robotCharacters.character();
       ui.transitionProgress=robotCharacters.transitionProgress(ui.nowMs);
       ui.batteryPercent=batteryPercent;ui.charging=charging;
@@ -734,6 +722,7 @@ void updateTouchGesture(int x, int y) {
       case touch_gesture::Direction::Right:
         stopRobotReaction();
         robotCharacters.select(direction,millis());
+        startHaptic(kSwipeHapticIntensity, kSwipeHapticDurationMs);
         activeSwipe=touch_gesture::Direction::None;
         touchTracking=false;
         drawScreen();
@@ -791,14 +780,13 @@ void finishTouchGesture(int x, int y) {
   if (directionalWorkspaceActive()) {
     if (state.workspaceMode == workspace_mode::Mode::Home) {
       if(robotTap.finish(x,y,millis(),kSwipeThresholdPx)&&noteActivity())
-        requestRobotReaction(stopwatch_usb_mic::LocalSound::RobotTask);
+        requestRobotReaction();
       clearTouchCandidate();return;
     }
     const bool tap = workspaceCenterTap.finish(x, y, millis(), kSwipeThresholdPx);
-    const bool canOpen = state.workspaceMode == workspace_mode::Mode::HermesIdle ||
-                         state.workspaceMode == workspace_mode::Mode::HermesError;
-    if (tap && canOpen && noteActivity()) {
-      codex.sendOpenHermes();
+    const bool canOpen = workspace_mode::canOpen(state.workspaceMode);
+    if (tap && canOpen && state.workspaceHostReady && noteActivity()) {
+      codex.sendOpenWorkspace();
       startHaptic(kTouchHapticIntensity, kTouchHapticDurationMs);
     }
     clearTouchCandidate();
@@ -1014,7 +1002,8 @@ void handleWorkspaceModeTransition(workspace_mode::Mode previous,
   stopHaptic();
   Serial.printf("WORKSPACE mode=%s\n",
                 workspace_mode::isHermes(next) ? "hermes" :
-                next == workspace_mode::Mode::Super ? "super" :
+                workspace_mode::isDeepseek(next) ? "deepseek" :
+                workspace_mode::isSuper(next) ? "super" :
                 next == workspace_mode::Mode::Home ? "home" : "codex");
 }
 #endif
@@ -1264,10 +1253,11 @@ void loop() {
       else {touchTracking=false;clearTouchCandidate();}
     } else
     if (!workspace_input::touchDownWakes(state.workspaceMode)) {
-      if (workspace_mode::isHermes(state.workspaceMode) && deskSleeping &&
+      if ((workspace_mode::awaitingLaunch(state.workspaceMode) ||
+           workspace_mode::isHermes(state.workspaceMode)) && deskSleeping &&
           workspace_input::inCenter(touchX, touchY)) {
         // Track a consumed wake gesture so a sustained hold can still reach
-        // the existing power flow, but its release can never launch Hermes.
+        // the existing power flow, but its release can never launch an app.
         beginTouchGesture(touchX, touchY);
         noteActivity();
         startHaptic(kButtonHapticIntensity, kWakeHapticDurationMs);

@@ -83,11 +83,46 @@ int main() {
   robot_home::State reaction;
   reaction.nowMs = 100;
   robot_home::render(idle, reaction);
-  Surface talking;
-  reaction.mood = robot_home::Mood::Talking;
-  robot_home::render(talking, reaction);
-  assert(idle.jpegs[0].y != talking.jpegs[0].y ||
-         idle.jpegs[0].scaleX != talking.jpegs[0].scaleX);
+  Surface blinking;
+  reaction.mood = robot_home::Mood::Blink;
+  reaction.reactionElapsedMs = 100;
+  robot_home::render(blinking, reaction);
+  assert(idle.jpegs[0].bytes != blinking.jpegs[0].bytes);
+  assert(idle.jpegs[0].x == blinking.jpegs[0].x);
+  assert(idle.jpegs[0].y == blinking.jpegs[0].y);
+  assert(idle.jpegs[0].scaleX == blinking.jpegs[0].scaleX);
+
+  // Drive the actual Animation -> State -> render path for every character,
+  // boundary and millisecond, including uptime rollover and post-sequence idle.
+  for (auto character : {robot_home::Character::Bumblebee,
+                         robot_home::Character::Optimus,
+                         robot_home::Character::Megatron,
+                         robot_home::Character::Starscream}) {
+    const auto open = robot_home::character_art::assetFor(character, robot_home::BlinkFrame::Open);
+    const auto half = robot_home::character_art::assetFor(character, robot_home::BlinkFrame::Half);
+    const auto closed = robot_home::character_art::assetFor(character, robot_home::BlinkFrame::Closed);
+    assert(open.bytes != half.bytes && half.bytes != closed.bytes && open.bytes != closed.bytes);
+    for (std::uint32_t start : {123u, 0xfffffff0u}) {
+      robot_home::Animation animation;
+      assert(animation.blink(start));
+      for (std::uint32_t ms = 0; ms <= 1800; ++ms) {
+        const auto phase = ms % 480;
+        const auto expected = ms >= 1320 || phase >= 360 ? open
+            : phase < 70 || phase >= 230 ? half : closed;
+        robot_home::State state;
+        state.character = character;
+        state.nowMs = start + ms;
+        state.mood = animation.mood(state.nowMs);
+        state.reactionElapsedMs = animation.elapsed(state.nowMs);
+        if (ms < 1320) assert(!animation.blink(state.nowMs));
+        Surface surface;
+        robot_home::render(surface, state);
+        assert(surface.jpegs.size() == 1);
+        assert(surface.jpegs[0].bytes == expected.bytes);
+        assert(surface.jpegs[0].size == expected.size);
+      }
+    }
+  }
 
   for (bool charging : {false, true})
     for (int battery : {-1, 0, 9, 78, 100})
@@ -121,19 +156,19 @@ int main() {
       }
 
   // Oversized/shifted animation frames must not collide with the status or
-  // battery. The JPEG's visible ring has >= 8px black margin on each edge.
-  // Sample the full 320ms Talking period and the complete transition range.
+  // battery. The ring-free JPEG has >= 8px black margin on each edge.
+  // Sample the full blink and the complete transition range.
   for (auto character : {robot_home::Character::Bumblebee,
                          robot_home::Character::Optimus,
                          robot_home::Character::Megatron,
                          robot_home::Character::Starscream})
     for (int progress = 0; progress <= 10; ++progress)
-      for (unsigned ms = 0; ms < 320; ++ms) {
+      for (unsigned ms = 0; ms <= robot_home::kBlinkDurationMs; ++ms) {
         Surface surface;
         robot_home::State state;
         state.character = character;
-        state.mood = robot_home::Mood::Talking;
-        state.nowMs = ms;
+        state.mood = robot_home::Mood::Blink;
+        state.reactionElapsedMs = ms;
         state.transitionProgress = progress / 10.0f;
         robot_home::render(surface, state);
         const auto& frame = surface.jpegs[0];

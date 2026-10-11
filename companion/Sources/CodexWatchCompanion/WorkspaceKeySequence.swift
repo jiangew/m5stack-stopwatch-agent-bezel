@@ -6,23 +6,31 @@ enum WorkspaceKeySequence {
         func key(_ code: Int, _ down: Bool, _ flags: CGEventFlags) -> ProcessKeyStroke {
             ProcessKeyStroke(keyCode: CGKeyCode(code), keyDown: down, flags: flags)
         }
-        if command == .confirmHermesSelection {
+        switch command {
+        case .confirmHermesSelection:
             return controlHeld ? [key(kVK_Control, false, [])] : []
-        }
-        if command.profile == .super {
-            let code = command == .previousProject ? kVK_UpArrow : (command == .nextProject ? kVK_DownArrow : kVK_RightArrow)
+        case .previousProject, .nextProject, .nextTab,
+             .previousDeepseekThread, .nextDeepseekThread, .toggleDeepseekView:
+            let code: Int
+            switch command {
+            case .previousProject, .previousDeepseekThread: code = kVK_UpArrow
+            case .nextProject, .nextDeepseekThread: code = kVK_DownArrow
+            default: code = kVK_RightArrow
+            }
+            // Deepseek's plugin uses complete chords, never Hermes' held Control.
             let flags: CGEventFlags = [.maskControl, .maskAlternate]
             return [key(kVK_Control,true,.maskControl),key(kVK_Option,true,flags),
                     key(code,true,flags),key(code,false,flags),
                     key(kVK_Option,false,.maskControl),key(kVK_Control,false,[])]
+        case .previousHermesTab, .nextHermesTab:
+            var result = controlHeld ? [] : [key(kVK_Control,true,.maskControl)]
+            let previous = command == .previousHermesTab
+            let flags: CGEventFlags = previous ? [.maskControl,.maskShift] : [.maskControl]
+            if previous { result.append(key(kVK_Shift,true,flags)) }
+            result += [key(kVK_Tab,true,flags),key(kVK_Tab,false,flags)]
+            if previous { result.append(key(kVK_Shift,false,.maskControl)) }
+            return result
         }
-        var result = controlHeld ? [] : [key(kVK_Control,true,.maskControl)]
-        let previous = command == .previousHermesTab
-        let flags: CGEventFlags = previous ? [.maskControl,.maskShift] : [.maskControl]
-        if previous { result.append(key(kVK_Shift,true,flags)) }
-        result += [key(kVK_Tab,true,flags),key(kVK_Tab,false,flags)]
-        if previous { result.append(key(kVK_Shift,false,.maskControl)) }
-        return result
     }
 
     static func releases(held: [CGKeyCode]) -> [ProcessKeyStroke] {

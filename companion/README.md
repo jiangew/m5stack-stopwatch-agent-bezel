@@ -75,8 +75,18 @@ does not select the intended local Codex installation.
 
 ## Robot Home and optional workspace controls
 
-Version 0.1.4 is a Companion-only navigation repair candidate; it keeps the Home
-firmware. Released SUPER/Hermes up/down/right gestures may repeat after 350ms.
+The Deepseek extension requires matching firmware with the fixed `deepseek`
+mode and four-direction dedicated navigation. It adds **Deepseek** between Codex
+and SUPER and activates only **DeepSeek Harness** (`com.deepseek.dsh`). It does not
+open a browser or web URL. Up/down select existing threads in sidebar order,
+including across project boundaries; right toggles chat/trajectory, including on
+repeated right gestures. These actions require the separately installed DeepSeek
+plugin registering `Control-Option-Up/Down/Right`; this host has no native bindings
+for them. Missing plugin support has no fallback. Center remains a no-op while
+Deepseek is active; on its waiting/error page it explicitly launches/reopens the app.
+
+The earlier version 0.1.4 navigation repair kept the Home firmware. Released
+Deepseek/SUPER/Hermes up/down/right gestures may repeat after 350ms.
 Left, native Codex events and central launch retain 800ms protection on both
 sides of a transition. Stroke pacing remains 30ms; gestures are not queued.
 On an explicit Hermes central launch, the Companion uses Accessibility only to
@@ -88,7 +98,8 @@ or another valid activation callback. Physical no-click behavior is pending.
 
 Companion 0.1.3 (build 4) requires the matching Home USB-mic firmware. Startup,
 attach, detach and stop select Home; Home ignores Mac foreground changes and
-does not activate apps. Left cycles Home → Codex → SUPER → HERMES → Home.
+does not activate apps. With the Deepseek extension, left cycles
+Home → Codex → Deepseek → SUPER → HERMES → Home.
 Home head taps/up/down/right are firmware-local reactions. All work pages now
 have a 15-second lease, renewed every 5 seconds, including Codex. On expiry or
 disconnect firmware returns Home and rejects stale renewals until Home is
@@ -108,22 +119,50 @@ modes do not create these controllers.
 
 | Foreground app | Left | Up | Down | Right |
 | --- | --- | --- | --- | --- |
-| Codex / ChatGPT (`com.openai.codex`) | SUPER | Existing ChatGPT binding | Existing ChatGPT binding | Existing ChatGPT binding |
+| Codex / ChatGPT (`com.openai.codex`) | Deepseek | Existing ChatGPT binding | Existing ChatGPT binding | Existing ChatGPT binding |
+| Deepseek / DeepSeek Harness (`com.deepseek.dsh`) | SUPER | Previous existing thread | Next existing thread | Toggle chat/trajectory |
 | SUPER (`engineering.super.app`, legacy `com.zarifpour.superconductor`) | HERMES | Previous Project | Next Project | Next Tab |
 | HERMES (`com.nousresearch.hermes`) | Home | Previous / browse | Next / browse | Open selection |
 
-From Home, left activates Codex first. This is a fixed
-cycle, not a remembered-return toggle. Codex/SUPER activation retains the exact
-bundle policy. SUPER → HERMES is now watch selection only: Mac foreground stays
-unchanged, and the center shows `TAP TO OPEN`. Center tap starts/activates
-`com.nousresearch.hermes` once and shows `OPENING`. Only actual foreground
-confirmation enables navigation; rejection or 3 seconds without confirmation
-shows `TAP TO RETRY`. There is no automatic launch retry. Left can exit all
-Hermes states to Home, including during a pending launch. Late completion
-callbacks cannot restore stale selection; real foreground notifications win.
-Up/down/right are ignored in waiting/opening/error, even if SUPER remains
-frontmost. External activation discards pending Hermes selection; reconnect and
-restart pin Home instead. Home status means the screen-control link is ready,
+Left always selects the next page in the fixed Home → Codex → Deepseek → SUPER
+→ HERMES → Home cycle, even when the corresponding app is absent. It never
+cold-launches an absent app. Missing Deepseek/SUPER processes show `TAP TO OPEN`;
+Codex retains its original dashboard UI unchanged in every state. Only a central
+tap opens the exact selected app, including an existing windowless process.
+Build14 applies the same rule to Codex, Deepseek, SUPER and Hermes: a foreground
+target is ready immediately, while a background or absent target waits for a
+center tap. Every explicit center request opens/reopens the selected app with
+`createsNewApplicationInstance = false`; activating a windowless process alone
+cannot restore its closed window. Deepseek, SUPER and Hermes require a usable AX
+application window; absent or unknown window state blocks navigation. A closed
+last window returns to `TAP TO OPEN` on the next one-second check even if its
+process remains foreground. Selection
+stays on the watch when another Mac app gains focus. One bounded 1Hz observer
+tracks the selected Agent, including quit/focus races; it never launches apps.
+Hermes window focus is restored on entry, not repeatedly while navigating.
+Existing build9 five-screen firmware is sufficient.
+
+A request enters Opening (visually labeled `OPENING` except on unchanged Codex),
+rejects duplicate taps and requires real foreground
+identity confirmation (including the previously selected PID/launch date for an
+already running app); launch submission success alone is not confirmation.
+Rejection or a 3-second timeout shows `TAP TO RETRY`. A new open request is
+central-tap only; there is no automatic relaunch. A fresh live check of the
+selected foreground window can clear the error once ready, so a slow reopen
+does not need a second center tap. Every waiting/opening/error page can still cycle left to the
+next page or exit Home, cancelling the pending generation. Waiting selections
+remain pinned despite unrelated or late Mac foreground notifications. Late
+completion/timer callbacks cannot restore abandoned selection; reconnect and
+restart pin Home. Up/down/right are ignored while waiting/opening/error. Once
+active, existing Codex Send, Deepseek/SUPER navigation and Hermes session controls
+are unchanged; generic center events do nothing on active pages.
+
+The fixed central event is `host.open_workspace` with empty `params: {}`; legacy
+`host.workspace_action` / `open_hermes` remains Hermes-only. Waiting Codex uses
+`host.workspace_navigation` with `workspace: "codex"`, direction `left` and the
+usual press/release phases; active Codex retains native radial reports. No new
+center token is translated into Codex Send. All four waiting-state wire modes use
+`state: "idle" | "opening" | "error"`, a 15-second lease and 5-second heartbeat. Home status means the screen-control link is ready,
 not that Codex quota is live. Screen changes/animation never wake a sleeping
 device; local animation is capped at 20 fps and reactions replace rather than queue.
 
@@ -153,7 +192,7 @@ permissions, change the app identity or create another watch process. Require
 both clean fresh logs and a successful physical gesture before calling it fixed.
 
 Missing Input Monitoring warns once without stopping quota sync. Missing
-Accessibility warns once and disables only SUPER/HERMES navigation; left
+Accessibility warns once and disables Deepseek/SUPER/HERMES navigation; left
 activation, display synchronization, quota and USB microphone remain separate.
 Hermes uses its native picker/Tab navigation, not sidebar project-tree order.
 The companion does not inspect picker state or read session/project data. A
@@ -161,18 +200,21 @@ Control is retained across Hermes up/down gestures and released by right to open
 the selection. Right without an owned selection is a no-op; no confirmation is retried.
 Test right both with and without the picker after installation; native keyboard
 confirmation alone does not prove process-targeted delivery or physical swipe.
-Up/down/right are companion no-ops in Codex and all other applications.
+Deepseek sends complete Control-Option arrow chords and releases every modifier
+after each command. It never uses Hermes held-Control browsing, Return, Command-T,
+a new-thread action or a message-send action. Native Codex up/down/right remain
+Companion no-ops, regardless of foreground app.
 Navigation uses complete fixed process-targeted CoreGraphics sequences, paced at
 least 30 ms apart without blocking the main RunLoop. Each action revalidates
 Accessibility, foreground identity, PID, bundle ID and application launch time. It never posts
 these keys globally or retries navigation commands. Physical acceptance must
-still confirm ChatGPT performs no background action in SUPER/HERMES.
+still confirm ChatGPT performs no background action in Deepseek/SUPER/HERMES.
 
 Companion 0.1.2 uses the same dedicated-direction firmware as 0.1.1; this pacing
 update does not require reflashing. Versions before the dedicated-direction
 firmware still require a matched upgrade.
-SUPER/HERMES send `host.workspace_navigation` with fixed source, direction and
-press/release fields instead of native `v.oai.rad`, which remains Codex-only.
+Deepseek/SUPER/HERMES send four directions through
+`host.workspace_navigation` with fixed source, direction and press/release fields instead of native `v.oai.rad`, which remains Codex-only.
 The source must match both selected workspace and actual foreground before keys
 are sent. A gesture releases through its original event family across a mode
 change. Do not use gestures during a mixed-version installation interval.
@@ -195,10 +237,9 @@ attempts release before exiting; forced termination or revoked permission cannot
 guarantee delivery. No global fallback or automatic permission reset is used.
 See [protocol and diagnostic limits](../docs/COMPANION_PROTOCOL.md#bounded-navigation-diagnostics).
 
-With matching USB-mic firmware, except for pinned Home and Hermes waiting selection,
-the watch follows the real foreground:
-SUPER and HERMES receive an immediate mode write and a heartbeat every
-5 seconds. Other foreground apps select Codex while on a work page. Each work-page lease is
+With matching USB-mic firmware, the selected Agent stays selected across Mac
+foreground changes. Its idle/active state is synchronized immediately and by a
+5-second heartbeat. Each work-page lease is
 15 seconds and each newly attached device is synchronized immediately. A
 failed Codex exit write is retried at most twice, 5 seconds apart, only for
 failed devices. A new mode, detach or stop cancels obsolete retries. Failures
@@ -221,15 +262,17 @@ submit a launch. Connection text remains device-link status, not client status.
 
 Foreground changes while asleep do not wake the display. Disabled short taps,
 Agent/Send and the left/right ChatGPT physical buttons do not wake or send HID
-actions in SUPER/HERMES. A swipe used to wake the sleeping screen is consumed
-as a wake gesture, not sent to the app. Four swipes, the red power button and
-the existing long-hold Travel Mode remain available. Held microphone/voice
+actions in Deepseek/SUPER/HERMES. Deepseek supports four directions (plus existing
+power/Travel Mode); center does not emit an action. A swipe used to
+wake the sleeping screen is consumed as a wake gesture, not sent to the app.
+SUPER/HERMES retain four swipes. The red power button and existing long-hold
+Travel Mode remain available. Held microphone/voice
 controls are released on entry and stale Agent transitions are silently
 baselined. Returning to Codex restores existing controls. The USB microphone
 endpoint is unchanged.
 
-The workspace channel sends only fixed `home`, `codex`, `super` or `hermes`, optional
-Hermes `idle`/`opening`/`error`, a fixed TTL and a local request number. Device
+The workspace channel sends only fixed `home`, `codex`, `deepseek`, `super` or
+`hermes`, optional Hermes `idle`/`opening`/`error`, a fixed TTL and a local request number. Device
 center input uses only `host.workspace_action` with `open_hermes`; the control
 resynchronization action uses fixed `show_home` and does not represent a tap.
 Dedicated direction input uses only fixed workspace/direction/phase enums. It does not inspect or
@@ -275,6 +318,7 @@ Diagnostics (direct workspace probes briefly change the physical screen):
 ```sh
 .build/release/codex-watch-companion --json-only
 swift ../scripts/hid_rpc_probe.swift --self-test
+swift ../scripts/hid_rpc_probe.swift --workspace-deepseek
 swift ../scripts/hid_rpc_probe.swift --workspace-super
 swift ../scripts/hid_rpc_probe.swift --workspace-hermes
 swift ../scripts/hid_rpc_probe.swift --workspace-codex
@@ -288,6 +332,28 @@ reconnect and local microphone recording/playback. New installations and app
 updates still need their own acceptance. Build/harness results do not establish
 hardware success, and the development host's missing XCTest remains an
 environment limitation rather than a passing XCTest suite.
+
+General center-launch follow-up: the updated production-source assertion harness
+passed 102 test bodies with warnings-as-errors. It covers all four absent targets,
+explicit launch/retry, complete cycle, cancellation while opening, unrelated/stale
+foreground events, running PID/launch-date identity, Hermes window focus, strict
+generic-center wire parsing and pending Codex dedicated-left isolation. Standard
+`swift build -c release` passed after an approved exact-command retry. No installation,
+service restart or physical acceptance was performed for this follow-up; installed
+build8 and navigation plugin 0.1.1 were left unchanged.
+
+Previous Deepseek directional source verification: a temporary assertion harness compiled
+current production Swift sources with `-warnings-as-errors` and passed all 100
+test bodies, including complete Deepseek chords, repeated right, every partial
+cancel/stop, PID/launch identity, foreground/profile/permission rejection,
+350ms/800ms release gating, fixed cycle, heartbeat and Home reconnect. It does not
+run XCTest: this host's installed CLT lacks `XCTest` (established in the preceding
+verification). The Release SwiftPM build with warnings-as-errors and the offline
+HID probe `--self-test` both passed after approved exact-command retries; initial
+attempts were blocked by nested sandbox/module-cache permissions. No app installation, real `--watch`,
+live HID probe, physical gesture, or quota/audio acceptance was performed for
+this directional extension. App-local sidebar/view semantics require the separate
+plugin tests and later physical acceptance.
 
 ## Optional USB-mic bootloader request
 
@@ -351,10 +417,21 @@ CoreBluetooth UUID, so another same-name peripheral is ignored.
 The companion sends the percentage and reset fields documented in
 [`docs/COMPANION_PROTOCOL.md`](../docs/COMPANION_PROTOCOL.md) over the private
 quota GATT service. In a real `--watch` run it additionally sends only the fixed
-`codex`/`super` display mode RPC over Report ID 6. Agent status, button events,
-and voice actions otherwise stay on the Codex Micro HID channel. The companion
-recognizes only the four fixed radial events described above and emits only the
-three fixed, process-targeted navigation key pairs; it does not capture
-keyboard text. It does not read or transmit project names, session titles,
+`home`/`codex`/`deepseek`/`super`/`hermes` display mode RPC over Report ID 6.
+Agent status, button events, and voice actions otherwise stay on the Codex Micro HID channel. The companion
+recognizes only fixed radial/dedicated/control events described above and emits
+only fixed Deepseek/SUPER/Hermes process-targeted key sequences. Deepseek's
+plugin performs sidebar thread selection and chat/trajectory toggling inside the
+app; no application content crosses the Companion/HID boundary. It does not capture keyboard text. It does not read or transmit project names, session titles,
 windows, Spaces, workspace state, credentials, prompts, conversation content,
 or audio. Audio is outside this companion's scope.
+
+### Build13 control availability
+
+See [diagnosis and acceptance](../docs/CONTROL_AVAILABILITY.zh-CN.md). macOS must
+grant both Input Monitoring and Accessibility to the current installed Companion.
+An enabled row can refer to an older ad-hoc signed binary. If permission checks
+still reject after toggling, remove the stale row, add the installed app again,
+and restart the Companion. Do not reset unrelated applications' permissions.
+Startup logs report the actual process Accessibility result. HID connection alone
+and local watch haptics do not prove navigation delivery.

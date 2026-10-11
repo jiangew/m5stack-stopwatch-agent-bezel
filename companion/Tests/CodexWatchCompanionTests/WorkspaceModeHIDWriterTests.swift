@@ -25,6 +25,29 @@ private final class StopwatchHIDOutputDeviceStub: StopwatchHIDOutputDevice {
 
 @MainActor
 final class WorkspaceModeHIDWriterTests: XCTestCase {
+    func testEveryWaitingModeUsesExactProfileStateAndLease() {
+        for (profile, name) in [(WorkspaceAppProfile.codex, "codex"), (.deepseek, "deepseek"), (.super, "super"), (.hermes, "hermes")] {
+            for state in ["idle", "opening", "error"] {
+                let device = StopwatchHIDOutputDeviceStub()
+                let mode = StopwatchWorkspaceMode.waiting(profile, state: state)
+                XCTAssertTrue(WorkspaceModeHIDWriter(device: device).send(mode))
+                XCTAssertEqual(String(decoding: reassembledPayload(device.writes), as: UTF8.self),
+                    #"{"method":"host.workspace_mode","params":{"mode":"\#(name)","ttl_ms":15000,"state":"\#(state)"},"id":1}"# + "\n")
+                XCTAssertEqual(mode.profile, profile)
+                XCTAssertEqual(mode.waitingState, state)
+            }
+        }
+    }
+
+    func testDeepseekUsesFixedLeaseWithoutHermesStateAndFullReports() {
+        let device = StopwatchHIDOutputDeviceStub()
+        let writer = WorkspaceModeHIDWriter(device: device, initialRequestID: 10)
+        XCTAssertTrue(writer.send(.deepseek))
+        XCTAssertEqual(String(decoding: reassembledPayload(device.writes), as: UTF8.self),
+            #"{"method":"host.workspace_mode","params":{"mode":"deepseek","ttl_ms":15000},"id":10}"# + "\n")
+        XCTAssertTrue(device.writes.allSatisfy { $0.reportID == 6 && $0.bytes.count == 64 })
+    }
+
     func testHomeUsesFixedModeWithoutLeaseOrDisplayContent() {
         let device=StopwatchHIDOutputDeviceStub()
         XCTAssertTrue(WorkspaceModeHIDWriter(device:device).send(.home))

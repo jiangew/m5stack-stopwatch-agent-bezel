@@ -12,6 +12,7 @@ __pycache__/
 artifacts/*
 !artifacts/dashboard-preview-v2-round.png
 !artifacts/super-workspace-preview.png
+!artifacts/deepseek-workspace-preview.png
 !artifacts/hermes-workspace-preview.png
 !artifacts/hermes-idle-preview.png
 !artifacts/hermes-opening-preview.png

@@ -13,6 +13,7 @@ struct State {
   Mood mood = Mood::Idle;
   Character character = Character::Bumblebee;
   std::uint32_t nowMs = 0;
+  std::uint32_t reactionElapsedMs = 0;
   float transitionProgress = 1.0f;
   int batteryPercent = -1;
   bool charging = false;
@@ -28,7 +29,7 @@ void render(Surface& surface, const State& state) {
   constexpr std::uint16_t kYellow = 0xFE67;
 
   surface.fillScreen(0);
-  renderCharacter(surface, state.character, state.mood, state.nowMs,
+  renderCharacter(surface, state.character, state.mood, state.reactionElapsedMs,
                   state.transitionProgress);
 
   surface.loadFont(dashboard::font_data::kSpaceMono18Vlw);

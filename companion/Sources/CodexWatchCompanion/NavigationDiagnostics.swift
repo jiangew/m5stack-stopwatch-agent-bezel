@@ -3,7 +3,7 @@ import Foundation
 
 enum NavigationDiagnosticStage: String {
     case nativeInput = "native_input", superInput = "super_input", hermesInput = "hermes_input"
-    case centerInput = "center_input", homeInput = "home_input"
+    case centerInput = "center_input", homeInput = "home_input", deepseekInput = "deepseek_input"
     case up, down, left, right
     case selectionRejected = "selection_rejected"
     case waitingRejected = "waiting_rejected"
@@ -50,9 +50,15 @@ final class NavigationDiagnostics {
     func recordInput(_ event: CompanionShortcutEvent) {
         switch event {
         case .showHome: record(.homeInput)
-        case .openHermes: record(.centerInput)
+        case .openHermes, .openSelectedWorkspace: record(.centerInput)
         case let .navigation(origin, direction):
-            record(origin == .home ? .homeInput : origin == .super ? .superInput : .hermesInput)
+            switch origin {
+            case .home: record(.homeInput)
+            case .codex: record(.nativeInput)
+            case .deepseek: record(.deepseekInput)
+            case .super: record(.superInput)
+            case .hermes: record(.hermesInput)
+            }
             switch direction {
             case .up: record(.up)
             case .down: record(.down)

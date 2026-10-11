@@ -46,12 +46,21 @@ final class WorkspaceCommandRouter {
             guard toggler.selectedProfile == .codex else { return }
             emitter.cancel()
             toggler.cycle()
+        case .openSelectedWorkspace:
+            guard toggler.selectedProfile != nil, !toggler.allowsNavigation else { return }
+            emitter.cancel()
+            toggler.openSelectedWorkspace()
         case .openHermes:
+            guard toggler.selectedProfile == .hermes else { return }
             toggler.openHermes()
         case .up, .down, .right:
             // Native reports belong to Codex and must not become dedicated keys.
             return
         case let .navigation(origin, direction):
+            guard origin.allows(direction) else { return }
+            // Dedicated Codex reports are waiting-page cycling only; active
+            // Codex keeps its native report path and original center action.
+            guard origin != .codex || !toggler.allowsNavigation else { return }
             guard toggler.selectedProfile == origin.profile else {
                 diagnose(.selectionRejected)
                 return
@@ -80,13 +89,13 @@ final class WorkspaceCommandRouter {
                 diagnose(.accessibilityRejected)
                 if !didWarnAboutAccessibility {
                     didWarnAboutAccessibility = true
-                    log("辅助功能权限未开启；super.engineering / Hermes 导航不可用")
+                    log("辅助功能权限未开启；Deepseek / super.engineering / Hermes 导航不可用")
                 }
                 return
             }
             diagnose(.accessibilityAllowed)
             guard emitter.emit(command, to: target) else {
-                log("super.engineering 导航按键发送失败")
+                log("工作区导航按键发送失败")
                 return
             }
         }

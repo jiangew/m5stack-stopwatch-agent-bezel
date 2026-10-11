@@ -4,9 +4,43 @@ import IOKit.hid
 enum StopwatchWorkspaceMode: Equatable {
     case home
     case codex
+    case deepseek
     case `super`
     case hermes
+    case codexIdle, codexOpening, codexError
+    case deepseekIdle, deepseekOpening, deepseekError
+    case superIdle, superOpening, superError
     case hermesIdle, hermesOpening, hermesError
+
+    var profile: WorkspaceAppProfile? {
+        switch self {
+        case .home: return nil
+        case .codex, .codexIdle, .codexOpening, .codexError: return .codex
+        case .deepseek, .deepseekIdle, .deepseekOpening, .deepseekError: return .deepseek
+        case .super, .superIdle, .superOpening, .superError: return .super
+        case .hermes, .hermesIdle, .hermesOpening, .hermesError: return .hermes
+        }
+    }
+
+    var waitingState: String? {
+        switch self {
+        case .codexIdle, .deepseekIdle, .superIdle, .hermesIdle: return "idle"
+        case .codexOpening, .deepseekOpening, .superOpening, .hermesOpening: return "opening"
+        case .codexError, .deepseekError, .superError, .hermesError: return "error"
+        default: return nil
+        }
+    }
+
+    static func waiting(_ profile: WorkspaceAppProfile, state: String = "idle") -> Self {
+        let modes: [Self]
+        switch profile {
+        case .codex: modes = [.codexIdle, .codexOpening, .codexError]
+        case .deepseek: modes = [.deepseekIdle, .deepseekOpening, .deepseekError]
+        case .super: modes = [.superIdle, .superOpening, .superError]
+        case .hermes: modes = [.hermesIdle, .hermesOpening, .hermesError]
+        }
+        return modes[state == "opening" ? 1 : (state == "error" ? 2 : 0)]
+    }
 
     var awaitingHermes: Bool {
         self == .hermesIdle || self == .hermesOpening || self == .hermesError
@@ -14,6 +48,7 @@ enum StopwatchWorkspaceMode: Equatable {
 
     static func foreground(_ bundle: String?) -> Self {
         switch WorkspaceAppProfile(bundleIdentifier: bundle) {
+        case .deepseek: return .deepseek
         case .super: return .super
         case .hermes: return .hermes
         default: return .codex
@@ -82,13 +117,24 @@ final class WorkspaceModeHIDWriter: WorkspaceModeSending {
             request = #"{"method":"host.workspace_mode","params":{"mode":"home"},"id":\#(requestID)}"# + "\n"
         case .codex:
             request = #"{"method":"host.workspace_mode","params":{"mode":"codex","ttl_ms":15000},"id":\#(requestID)}"# + "\n"
+        case .deepseek:
+            request = #"{"method":"host.workspace_mode","params":{"mode":"deepseek","ttl_ms":15000},"id":\#(requestID)}"# + "\n"
         case .super:
             request = #"{"method":"host.workspace_mode","params":{"mode":"super","ttl_ms":15000},"id":\#(requestID)}"# + "\n"
         case .hermes:
             request = #"{"method":"host.workspace_mode","params":{"mode":"hermes","ttl_ms":15000},"id":\#(requestID)}"# + "\n"
-        case .hermesIdle, .hermesOpening, .hermesError:
-            let state = mode == .hermesIdle ? "idle" : (mode == .hermesOpening ? "opening" : "error")
-            request = #"{"method":"host.workspace_mode","params":{"mode":"hermes","ttl_ms":15000,"state":"\#(state)"},"id":\#(requestID)}"# + "\n"
+        case .codexIdle, .codexOpening, .codexError,
+             .deepseekIdle, .deepseekOpening, .deepseekError,
+             .superIdle, .superOpening, .superError,
+             .hermesIdle, .hermesOpening, .hermesError:
+            let name: String
+            switch mode.profile! {
+            case .codex: name = "codex"
+            case .deepseek: name = "deepseek"
+            case .super: name = "super"
+            case .hermes: name = "hermes"
+            }
+            request = #"{"method":"host.workspace_mode","params":{"mode":"\#(name)","ttl_ms":15000,"state":"\#(mode.waitingState!)"},"id":\#(requestID)}"# + "\n"
         }
 
         for report in WorkspaceModeHIDReportFramer.reports(payloadBytes: Array(request.utf8)) {

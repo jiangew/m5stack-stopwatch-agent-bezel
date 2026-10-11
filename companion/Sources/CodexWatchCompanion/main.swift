@@ -656,6 +656,7 @@ private func run() throws {
     if options.startsHIDShortcutListener,
        options.startsWorkspaceModeCoordinator {
         let diagnostics = NavigationDiagnostics(log: { fputs("\($0)\n", stderr) })
+        fputs("导航权限：辅助功能=\(SystemAccessibilityTrustChecker().isTrusted ? "已授权" : "未授权")\n", stderr)
         let workspace = NSWorkspaceApplications()
         let toggler = WorkspaceCycleController(
             workspace: workspace,

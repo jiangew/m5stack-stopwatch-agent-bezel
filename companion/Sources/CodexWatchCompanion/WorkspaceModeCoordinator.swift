@@ -190,6 +190,7 @@ final class WorkspaceModeCoordinator {
 
     private func mode(for bundleIdentifier: String?) -> StopwatchWorkspaceMode {
         switch WorkspaceAppProfile(bundleIdentifier: bundleIdentifier) {
+        case .deepseek: return .deepseek
         case .super: return .super
         case .hermes: return .hermes
         default: return .codex
