@@ -129,6 +129,12 @@ private func makeRequest(mode: String) -> ProbeRequest {
             id: 4246,
             json: "{\"method\":\"host.workspace_mode\",\"params\":{\"mode\":\"super\",\"ttl_ms\":15000},\"id\":4246}\n"
         )
+    case "--workspace-deepseek":
+        return ProbeRequest(
+            mode: mode,
+            id: 4249,
+            json: #"{"method":"host.workspace_mode","params":{"mode":"deepseek","ttl_ms":15000},"id":4249}"# + "\n"
+        )
     case "--workspace-hermes":
         return ProbeRequest(
             mode: mode,
@@ -168,6 +174,11 @@ private func requireSelfTest(_ condition: @autoclosure () -> Bool, _ message: St
 }
 
 private func runSelfTest() {
+    requireSelfTest(
+        makeRequest(mode: "--workspace-deepseek").json ==
+            #"{"method":"host.workspace_mode","params":{"mode":"deepseek","ttl_ms":15000},"id":4249}"# + "\n",
+        "workspace Deepseek request changed"
+    )
     requireSelfTest(
         makeRequest(mode: "--workspace-hermes").json ==
             #"{"method":"host.workspace_mode","params":{"mode":"hermes","ttl_ms":15000},"id":4248}"# + "\n",
@@ -353,12 +364,13 @@ let knownModes = [
     "--completion-idle",
     "--completion-done",
     "--workspace-super",
+    "--workspace-deepseek",
     "--workspace-hermes",
     "--workspace-codex",
     "--self-test",
 ]
 guard arguments.count <= 1, arguments.allSatisfy({ knownModes.contains($0) }) else {
-    fail("Usage: hid_rpc_probe.swift [--device-status|--demo-lights|--completion-idle|--completion-done|--workspace-super|--workspace-hermes|--workspace-codex|--self-test]")
+    fail("Usage: hid_rpc_probe.swift [--device-status|--demo-lights|--completion-idle|--completion-done|--workspace-super|--workspace-deepseek|--workspace-hermes|--workspace-codex|--self-test]")
 }
 
 let mode = arguments.first ?? "--device-status"

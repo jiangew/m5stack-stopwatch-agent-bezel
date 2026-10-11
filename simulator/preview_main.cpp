@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <cstring>
 #include <cstdio>
+#include <cstdlib>
 #include <string>
 #include <vector>
 
@@ -74,12 +75,12 @@ super_workspace::State superPreviewState(const char* scenario) {
 
   const bool hermes = std::strncmp(scenario, "hermes", 6) == 0;
   if (hermes) state.profile = super_workspace::Profile::Hermes;
-  const char* suffix = scenario + (hermes ? 6 : 5);
-  if (hermes) {
-    if (std::strcmp(suffix, "-idle") == 0) state.hermesPresentation = super_workspace::HermesPresentation::Idle;
-    if (std::strcmp(suffix, "-opening") == 0) state.hermesPresentation = super_workspace::HermesPresentation::Opening;
-    if (std::strcmp(suffix, "-error") == 0) state.hermesPresentation = super_workspace::HermesPresentation::Error;
-  }
+  const bool deepseek = std::strncmp(scenario, "deepseek", 8) == 0;
+  if (deepseek) state.profile = super_workspace::Profile::Deepseek;
+  const char* suffix = scenario + (deepseek ? 8 : (hermes ? 6 : 5));
+  if (std::strcmp(suffix, "-idle") == 0) state.hermesPresentation = super_workspace::HermesPresentation::Idle;
+  if (std::strcmp(suffix, "-opening") == 0) state.hermesPresentation = super_workspace::HermesPresentation::Opening;
+  if (std::strcmp(suffix, "-error") == 0) state.hermesPresentation = super_workspace::HermesPresentation::Error;
   if (std::strcmp(suffix, "-battery-0") == 0) {
     state.batteryPercent = 0;
   } else if (std::strcmp(suffix, "-battery-9") == 0) {
@@ -114,17 +115,21 @@ super_workspace::State superPreviewState(const char* scenario) {
 }
 
 bool validScenario(const char* scenario) {
-  for (const char* name : {"home-optimus-talking", "home-megatron-talking", "home-starscream-talking"})
+  for (const char* name : {"home-optimus-blink", "home-megatron-blink", "home-starscream-blink", "home-half", "home-optimus-half", "home-megatron-half", "home-starscream-half"})
     if (std::strcmp(scenario, name) == 0) return true;
-  for(const char* name:{"home","home-bumblebee","home-optimus","home-megatron","home-starscream","home-optimus-transition","home-megatron-transition","home-starscream-transition","home-happy","home-surprise","home-sleep","home-offline","home-charging","home-unknown","home-low","home-power-hold","home-talking"})
+  for(const char* name:{"home","home-bumblebee","home-optimus","home-megatron","home-starscream","home-optimus-transition","home-megatron-transition","home-starscream-transition","home-happy","home-surprise","home-sleep","home-offline","home-charging","home-unknown","home-low","home-power-hold","home-blink"})
     if(std::strcmp(scenario,name)==0)return true;
   const bool hermes = std::strncmp(scenario, "hermes", 6) == 0;
   const bool super = std::strncmp(scenario, "super", 5) == 0;
-  if (hermes || super) {
-    const char* suffix = scenario + (hermes ? 6 : 5);
-    if (hermes && (std::strcmp(suffix, "-idle") == 0 ||
-                   std::strcmp(suffix, "-opening") == 0 ||
-                   std::strcmp(suffix, "-error") == 0)) return true;
+  const bool deepseek = std::strncmp(scenario, "deepseek", 8) == 0;
+  const bool codex = std::strncmp(scenario, "codex", 5) == 0;
+  if (hermes || super || deepseek || codex) {
+    const char* suffix = scenario + (deepseek ? 8 : (hermes ? 6 : 5));
+    if (std::strcmp(suffix, "-idle") == 0 ||
+        std::strcmp(suffix, "-opening") == 0 ||
+        std::strcmp(suffix, "-error") == 0) return true;
+    // Codex's active screen remains the existing live/dashboard scenarios.
+    if (codex) return false;
     for (const auto* known : {"", "-active-up", "-active-right", "-active-down",
                               "-active-left", "-offline", "-charging",
                               "-power-hold", "-unknown-battery", "-colors",
@@ -172,7 +177,8 @@ int main(int argc, char** argv) {
   if (!validScenario(scenario)) {
     std::fprintf(stderr,
                  "Unknown scenario '%s' (use live, ble, live-stale, offline, "
-                 "power-hold, power-off; super/hermes with optional "
+                 "power-hold, power-off; codex/super/hermes/deepseek accept "
+                 "-idle/-opening/-error; super/hermes/deepseek also accept "
                  "-active-up/-right/-down/-left, -offline, -charging, "
                  "-power-hold, -unknown-battery, -colors, -battery-0/-9/-100; "
                  "live also accepts -charging, -unknown-battery, -battery-0/-9/-100)\n",
@@ -195,7 +201,18 @@ int main(int argc, char** argv) {
     if(std::strcmp(scenario,"home-happy")==0)state.mood=robot_home::Mood::Happy;
     if(std::strcmp(scenario,"home-surprise")==0)state.mood=robot_home::Mood::Surprise;
     if(std::strcmp(scenario,"home-sleep")==0)state.mood=robot_home::Mood::Sleep;
-    if(std::strstr(scenario,"-talking")!=nullptr){state.mood=robot_home::Mood::Talking;state.nowMs=80;}
+    if(std::strstr(scenario,"-blink")!=nullptr){
+      // Optional elapsed milliseconds allow native pixel tests of every blink
+      // boundary using the same Animation -> render path as firmware.
+      const std::uint32_t elapsed = argc > 3 ? std::strtoul(argv[3], nullptr, 10) : 100;
+      robot_home::Animation animation;
+      constexpr std::uint32_t start = 0xfffffff0u;
+      animation.blink(start);
+      state.nowMs = start + elapsed;
+      state.mood = animation.mood(state.nowMs);
+      state.reactionElapsedMs = animation.elapsed(state.nowMs);
+    }
+    if(std::strstr(scenario,"-half")!=nullptr){state.mood=robot_home::Mood::Blink;state.reactionElapsedMs=20;}
     if(std::strcmp(scenario,"home-offline")==0)state.connected=false;
     if(std::strcmp(scenario,"home-charging")==0)state.charging=true;
     if(std::strcmp(scenario,"home-unknown")==0)state.batteryPercent=-1;
@@ -203,9 +220,12 @@ int main(int argc, char** argv) {
     if(std::strcmp(scenario,"home-power-hold")==0){state.powerOverlay=super_workspace::PowerOverlay::HoldToPowerOff;state.powerHoldProgress=.5f;}
     robot_home::render(framebuffer,state);
   } else if (std::strncmp(scenario, "super", 5) == 0 ||
-      std::strncmp(scenario, "hermes", 6) == 0) {
+      std::strncmp(scenario, "hermes", 6) == 0 ||
+      std::strncmp(scenario, "deepseek", 8) == 0) {
     super_workspace::render(framebuffer, superPreviewState(scenario));
   } else {
+    // Codex idle/opening/error intentionally use the unchanged live fixture:
+    // launch state changes input policy, never the installed dashboard UI.
     dashboard::render(framebuffer, previewState(scenario));
   }
   if (!writePpm(framebuffer, outputPath)) {

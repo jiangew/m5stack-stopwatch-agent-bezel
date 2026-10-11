@@ -20,8 +20,79 @@ private final class ListenerOutputDeviceStub: StopwatchHIDOutputDevice {
 
 @MainActor
 final class HIDShortcutDecoderTests: XCTestCase {
+    func testGenericCenterIsStrictAndSharesCooldownAndReleaseGate() {
+        var decoder = HIDShortcutDecoder()
+        func consume(_ text: String, _ now: Double) -> [CompanionShortcutEvent] {
+            WorkspaceModeHIDReportFramer.reports(payloadBytes: Array((text + "\n").utf8)).flatMap {
+                decoder.consume(reportID: 6, bytes: $0, now: now)
+            }
+        }
+        let center = #"{"method":"host.open_workspace","params":{}}"#
+        let left = #"{"method":"host.workspace_navigation","params":{"workspace":"codex","direction":"left","phase":"press"}}"#
+        for malformed in [
+            #"{"method":"host.open_workspace"}"#,
+            #"{"method":"host.open_workspace","params":[]}"#,
+            #"{"method":"host.open_workspace","params":{"workspace":"codex"}}"#,
+            #"{"method":"host.open_workspace","params":{},"id":1}"#
+        ] { XCTAssertEqual(consume(malformed, 0), []) }
+        XCTAssertEqual(consume(center, 1), [.openSelectedWorkspace])
+        XCTAssertEqual(consume(center, 1.7), [])
+        XCTAssertEqual(consume(left, 2), [.navigation(.codex, .left)])
+        XCTAssertEqual(consume(center, 3), [])
+        _ = consume(left.replacingOccurrences(of: "press", with: "release"), 3)
+        XCTAssertEqual(consume(center, 3), [.openSelectedWorkspace])
+        XCTAssertEqual(consume(left, 3.7), [])
+        _ = consume(left.replacingOccurrences(of: "press", with: "release"), 4)
+        for direction in ["up", "down", "right"] {
+            XCTAssertEqual(consume(left.replacingOccurrences(of: "left", with: direction), 5), [])
+        }
+        XCTAssertEqual(consume(left, 5), [.navigation(.codex, .left)])
+    }
+
+    func testDeepseekRequiresMatchingReleaseAndCycleCooldown() {
+        var decoder = HIDShortcutDecoder()
+        func consume(_ workspace: String, _ direction: String, _ phase: String, _ time: Double) -> [CompanionShortcutEvent] {
+            let json = "{\"method\":\"host.workspace_navigation\",\"params\":{\"workspace\":\"\(workspace)\",\"direction\":\"\(direction)\",\"phase\":\"\(phase)\"}}\n"
+            return WorkspaceModeHIDReportFramer.reports(payloadBytes: Array(json.utf8)).flatMap {
+                decoder.consume(reportID: 6, bytes: $0, now: time)
+            }
+        }
+        XCTAssertEqual(consume("Deepseek", "left", "press", 1), [])
+        XCTAssertEqual(consume("deepseek", "left", "press", 1), [.navigation(.deepseek, .left)])
+        _ = consume("super", "left", "release", 2)
+        _ = consume("deepseek", "right", "release", 2)
+        XCTAssertEqual(consume("deepseek", "left", "press", 2), [])
+        _ = consume("deepseek", "left", "release", 2)
+        XCTAssertEqual(consume("super", "up", "press", 2), [.navigation(.super, .up)])
+        _ = consume("super", "up", "release", 2.1)
+        XCTAssertEqual(consume("deepseek", "left", "press", 2.4), [])
+        _ = consume("deepseek", "left", "release", 2.5)
+        XCTAssertEqual(consume("deepseek", "left", "press", 2.9), [.navigation(.deepseek, .left)])
+        _ = consume("deepseek", "left", "release", 3)
+        XCTAssertEqual(consume("super", "down", "press", 3.3), [])
+    }
+
+    func testDeepseekDirectionsAndRepeatedRightRemainDedicatedAndReleaseGated() {
+        var decoder = HIDShortcutDecoder()
+        func consume(_ direction: WorkspaceSwipeDirection, _ phase: String, _ time: Double) -> [CompanionShortcutEvent] {
+            let json = "{\"method\":\"host.workspace_navigation\",\"params\":{\"workspace\":\"deepseek\",\"direction\":\"\(direction.rawValue)\",\"phase\":\"\(phase)\"}}\n"
+            return WorkspaceModeHIDReportFramer.reports(payloadBytes: Array(json.utf8)).flatMap {
+                decoder.consume(reportID: 6, bytes: $0, now: time)
+            }
+        }
+        var time = 10.0
+        for direction: WorkspaceSwipeDirection in [.up, .down, .right, .right] {
+            XCTAssertEqual(consume(direction, "press", time), [.navigation(.deepseek, direction)])
+            XCTAssertEqual(consume(direction, "press", time + 1), [])
+            _ = consume(direction == .up ? .down : .up, "release", time + 1)
+            XCTAssertEqual(consume(direction, "press", time + 1), [])
+            _ = consume(direction, "release", time + 1)
+            time += 2
+        }
+    }
+
     func testReleasedNavigationAcceptsFastBrowseButKeepsCycleGuard() {
-        for origin in ["super", "hermes"] {
+        for origin in ["deepseek", "super", "hermes"] {
             var decoder = HIDShortcutDecoder()
             func consume(_ direction: String, _ phase: String, _ time: Double) -> [CompanionShortcutEvent] {
                 let json = "{\"method\":\"host.workspace_navigation\",\"params\":{\"workspace\":\"\(origin)\",\"direction\":\"\(direction)\",\"phase\":\"\(phase)\"}}\n"

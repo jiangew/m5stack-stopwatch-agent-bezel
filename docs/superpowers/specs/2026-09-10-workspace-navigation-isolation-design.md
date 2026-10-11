@@ -14,6 +14,18 @@ same native event. Thus Companion process-targeting cannot isolate the original
 device event from Codex. Fixing this isolation defect does not by itself prove
 that Hermes navigation will work.
 
+## Current fixed-enum extensions
+
+The original design below is the historical isolation baseline. The matching
+Home/Deepseek extension adds fixed sources `home` and `deepseek`, each accepting
+only `left` plus its matching press/release. Deepseek identifies only DeepSeek
+Harness (`com.deepseek.dsh`), has no center/up/down/right action or shortcut,
+and joins Home → Codex → Deepseek → SUPER → Hermes → Home. Its fixed mode is
+`deepseek` with integer `ttl_ms: 15000`; the 5-second heartbeat, Home pinning,
+lease ownership/reconnect acknowledgment and Hermes waiting behavior remain.
+Activation failure never skips Deepseek. Current wire shapes and timing are
+specified in [Companion protocol](../../COMPANION_PROTOCOL.md).
+
 ## Firmware event separation
 
 Codex retains its native direction reports. In the USB-mic build only, SUPER and

@@ -17,6 +17,8 @@ private final class WorkspaceFake: WorkspaceApplications {
         return true
     }
 
+    func windowPresence(_ identity: ApplicationIdentity) -> ApplicationWindowPresence { .available }
+
     func focusWindow(_ identity: ApplicationIdentity) -> Bool { true }
 
     func launchAndActivate(bundleIdentifier: String, completion: @MainActor @escaping (Bool) -> Void) {
@@ -88,9 +90,11 @@ private func checkActivation(_ bundleIdentifier: String) {
     let controller = WorkspaceCycleController(workspace: workspace, observer: observer, scheduler: clock, log: { _ in })
     controller.start()
     controller.resetToForeground()
-    controller.cycle()
-    check(workspace.activations == [target], "activation failed for \(bundleIdentifier)")
-    check(workspace.launchRequests.isEmpty, "running app was relaunched")
+    while controller.selectedProfile != .super { controller.cycle() }
+    check(workspace.launchRequests.isEmpty && workspace.activations.isEmpty, "selection opened an app before a central tap")
+    controller.openSelectedWorkspace()
+    check(workspace.launchRequests == [bundleIdentifier], "central reopen used the wrong bundle ID")
+    check(workspace.activations.isEmpty, "central reopen merely activated a windowless process")
     workspace.frontmost = target
     observer.change(to: bundleIdentifier)
     check(controller.displayMode == .super, "foreground did not select SUPER")
@@ -103,7 +107,9 @@ private func checkCurrentLaunch() {
     let controller = WorkspaceCycleController(workspace: workspace, observer: observer, scheduler: clock, log: { _ in })
     controller.start()
     controller.resetToForeground()
-    controller.cycle()
+    while controller.selectedProfile != .super { controller.cycle() }
+    check(workspace.launchRequests.isEmpty && workspace.activations.isEmpty, "selection opened an app before a central tap")
+    controller.openSelectedWorkspace()
     check(workspace.launchRequests == ["engineering.super.app"], "missing SUPER used the wrong bundle ID")
     workspace.frontmost = ApplicationIdentity(processIdentifier: 2, bundleIdentifier: "engineering.super.app")
     observer.change(to: "engineering.super.app")
@@ -121,8 +127,10 @@ private func checkCurrentPrecedence() {
     let controller = WorkspaceCycleController(workspace: workspace, observer: observer, scheduler: clock, log: { _ in })
     controller.start()
     controller.resetToForeground()
-    controller.cycle()
-    check(workspace.activations == [current], "current SUPER did not take priority")
+    while controller.selectedProfile != .super { controller.cycle() }
+    check(workspace.launchRequests.isEmpty && workspace.activations.isEmpty, "selection opened an app before a central tap")
+    controller.openSelectedWorkspace()
+    check(workspace.launchRequests == [current.bundleIdentifier], "current SUPER did not take priority")
 }
 
 @MainActor
@@ -158,7 +166,7 @@ private struct BundleIDRegression {
             checkCurrentPrecedence()
             checkKeySequence("engineering.super.app")
             checkKeySequence("com.zarifpour.superconductor")
-            print("PASS: current and legacy SUPER activation, cold launch, priority, foreground, paced keys")
+            print("PASS: current and legacy SUPER central reopen, cold launch, priority, foreground, paced keys")
         }
     }
 }

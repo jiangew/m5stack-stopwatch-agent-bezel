@@ -84,7 +84,9 @@ class SecurityCallbacks final : public BLESecurityCallbacks {
 void clearIncompatibleBondsOnce() {
   Preferences preferences;
   if (!preferences.begin("codex-mic", false)) return;
-  constexpr uint8_t kGattRevision = 1;
+  // Revision 3 clears stale device-side keys left behind when macOS forgets
+  // the peripheral. This migration runs once and preserves all non-BLE state.
+  constexpr uint8_t kGattRevision = 3;
   if (preferences.getUChar("gatt-rev", 0) >= kGattRevision) {
     preferences.end();
     return;
@@ -412,6 +414,10 @@ void CodexMicroBle::sendKey(const char* key, uint8_t action, int8_t agent) {
   serializeJson(message, json);
   sendJson(json);
   Serial.printf("HID key=%s action=%u\n", key, action);
+}
+
+void CodexMicroBle::sendOpenWorkspace() {
+  sendJson(R"({"method":"host.open_workspace","params":{}})");
 }
 
 void CodexMicroBle::sendOpenHermes() {

@@ -11,7 +11,12 @@
 namespace {
 
 struct RecordingSurface {
-  struct TextDraw { std::string text; int x; int y; textdatum_t datum; };
+  struct TextDraw {
+    std::string text; int x; int y; textdatum_t datum;
+    const std::uint8_t* font; float size; int width;
+  };
+  const std::uint8_t* font = nullptr;
+  float textSize = 1.0f;
   std::vector<TextDraw> textDraws;
   std::vector<std::array<int, 6>> roundRectangles;
   textdatum_t datum = middle_center;
@@ -25,18 +30,45 @@ struct RecordingSurface {
   void fillSmoothRoundRect(int x, int y, int w, int h, int r, int c) {
     roundRectangles.push_back({x, y, w, h, r, c});
   }
-  void loadFont(const std::uint8_t*) { fontLoaded = true; }
-  void unloadFont() { fontLoaded = false; }
+  void loadFont(const std::uint8_t* value) { font = value; fontLoaded = true; }
+  void unloadFont() { font = nullptr; fontLoaded = false; }
   int textWidth(const char* text) {
     assert(fontLoaded);
-    return static_cast<int>(std::strlen(text)) * 11;
+    // Read the embedded VLW metrics, matching M5GFX's fixed-point advance and
+    // final glyph extent instead of pretending large-font glyphs are 11px.
+    auto read32 = [](const std::uint8_t* p) -> std::int32_t {
+      return (std::uint32_t(p[0]) << 24) | (std::uint32_t(p[1]) << 16)
+          | (std::uint32_t(p[2]) << 8) | p[3];
+    };
+    const int scale = static_cast<int>(65536 * textSize);
+    int left = 0, right = 0;
+    for (; *text; ++text) {
+      const std::uint8_t* glyph = nullptr;
+      for (int i = 0; i < read32(font); ++i) {
+        const auto* candidate = font + 24 + i * 28;
+        if (read32(candidate) == *text) { glyph = candidate; break; }
+      }
+      if (*text == ' ') {
+        const int advance = ((std::max(read32(font + 8), read32(font + 16) + read32(font + 20)) * 2 / 7) * scale) >> 16;
+        left += advance;
+        right = left;
+        continue;
+      }
+      assert(glyph != nullptr);
+      const int offset = (read32(glyph + 20) * scale) >> 16;
+      const int advance = (read32(glyph + 12) * scale) >> 16;
+      if (left == 0 && right == 0 && offset < 0) left = right = -offset;
+      right = left + std::max(advance, ((read32(glyph + 8) * scale) >> 16) + offset);
+      left += advance;
+    }
+    return right;
   }
   void setTextDatum(textdatum_t value) { datum = value; }
-  void setTextSize(float) {}
+  void setTextSize(float value) { textSize = value; }
   void setTextColor(int) {}
   void drawString(const char* text, int x, int y) {
     texts.emplace_back(text);
-    textDraws.push_back({text, x, y, datum});
+    textDraws.push_back({text, x, y, datum, font, textSize, textWidth(text)});
   }
 };
 
@@ -44,7 +76,7 @@ void testBatteryAndLabelAreCenteredAsOneMeasuredGroup() {
   struct Case { int percent; const char* label; int textWidth; };
   const Case cases[] = {{0, "0%", 22}, {9, "9%", 22}, {78, "78%", 33},
                         {100, "100%", 44}, {-1, "--%", 33}};
-  for (auto profile : {super_workspace::Profile::Super, super_workspace::Profile::Hermes}) {
+  for (auto profile : {super_workspace::Profile::Super, super_workspace::Profile::Hermes, super_workspace::Profile::Deepseek}) {
     for (bool charging : {false, true}) {
       for (const auto& item : cases) {
         super_workspace::State state;
@@ -88,13 +120,14 @@ void testSharedRendererDoesNotCoverTriangleBases() {
   assert(!contains("BACK") && !contains("TAB"));
 }
 
-void testPendingHermesShowsPromptWithoutLosingConnectionOrBattery() {
+void testPendingProfilesShowPromptWithoutLosingConnectionOrBattery() {
   using namespace super_workspace;
+  for (auto profile : {Profile::Super, Profile::Deepseek, Profile::Hermes})
   for (auto item : {std::make_pair(HermesPresentation::Idle, "TAP TO OPEN"),
                     std::make_pair(HermesPresentation::Opening, "OPENING"),
                     std::make_pair(HermesPresentation::Error, "TAP TO RETRY")}) {
     State state;
-    state.profile = Profile::Hermes;
+    state.profile = profile;
     state.hermesPresentation = item.first;
     state.connected = true;
     state.batteryPercent = 100;
@@ -103,7 +136,9 @@ void testPendingHermesShowsPromptWithoutLosingConnectionOrBattery() {
     auto has = [&](const char* text) {
       return std::find(surface.texts.begin(), surface.texts.end(), text) != surface.texts.end();
     };
-    assert(has("HERMES") && has(item.second) && has("CONNECTED") && has("100%"));
+    const char* title = profile == Profile::Deepseek ? "DeepSeek"
+        : profile == Profile::Hermes ? "HERMES" : "SUPER";
+    assert(has(title) && has(item.second) && has("CONNECTED") && has("100%"));
     for (const auto& draw : surface.textDraws) {
       if (draw.text == item.second) assert(draw.x == 233 && draw.y == 222);
       if (draw.text == "CONNECTED") assert(draw.x == 233 && draw.y == 247);
@@ -242,8 +277,64 @@ void testNoUserContentOrCodexTelemetryFields() {
 
 }  // namespace
 
+void testDeepseekSharesFourDirectionalControls() {
+  super_workspace::State state;
+  state.profile = super_workspace::Profile::Deepseek;
+  RecordingSurface surface;
+  super_workspace::render(surface, state);
+  auto has = [&](const char* text) {
+    return std::find(surface.texts.begin(), surface.texts.end(), text) != surface.texts.end();
+  };
+  assert(has("DeepSeek") && !has("Deepseek") && !has("DEEPSEEK"));
+  assert(has("CYCLE") && has("OFFLINE") && has("--%"));
+  assert(has("PREV") && has("NEXT") && has("VIEW"));
+  assert(!has("TAB") && !has("OPEN"));
+  assert(surface.triangleColors.size() == 8);
+  for (std::size_t i = 0; i < 4; ++i)
+    assert(surface.triangleColors[i * 2] == state.borderColors[i]);
+}
+
+void testTitlesShareFontAndFitMeasuredInterior() {
+  using namespace super_workspace;
+  for (auto profile : {Profile::Super, Profile::Hermes, Profile::Deepseek}) {
+    for (auto presentation : {HermesPresentation::Active, HermesPresentation::Idle,
+                              HermesPresentation::Opening, HermesPresentation::Error}) {
+      State state;
+      state.profile = profile;
+      state.hermesPresentation = presentation;
+      RecordingSurface surface;
+      surface.setTextSize(2.0f); // renderer must reset before measuring
+      drawCenterPanel(surface, state);
+      const auto& title = surface.textDraws.at(0);
+      assert(title.font == dashboard::font_data::kSpaceMono46Vlw);
+      assert(title.datum == middle_center && title.x == 233);
+      assert(title.y == (presentation == HermesPresentation::Active ? 190 : 182));
+      assert(title.width <= 178);
+      if (presentation == HermesPresentation::Active) {
+        surface.loadFont(title.font);
+        surface.setTextSize(1.0f);
+        std::printf("PASS title %s: base width %dpx, scale %.6f, drawn width %dpx\n",
+                    title.text.c_str(), surface.textWidth(title.text.c_str()), title.size, title.width);
+        surface.unloadFont();
+      }
+      assert(title.x - title.width / 2 >= 144);
+      assert(title.x + (title.width + 1) / 2 <= 322);
+      if (profile == Profile::Deepseek) {
+        assert(title.text == "DeepSeek" && title.text.size() == 8);
+        assert(title.size < 1.0f && title.size > 0.7f);
+        assert(title.width >= 168);
+      } else {
+        assert(title.size == 1.0f);
+      }
+      assert(!surface.fontLoaded);
+    }
+  }
+}
+
 int main() {
-  testPendingHermesShowsPromptWithoutLosingConnectionOrBattery();
+  testTitlesShareFontAndFitMeasuredInterior();
+  testDeepseekSharesFourDirectionalControls();
+  testPendingProfilesShowPromptWithoutLosingConnectionOrBattery();
   testBatteryAndLabelAreCenteredAsOneMeasuredGroup();
   testSharedRendererDoesNotCoverTriangleBases();
   testDirectionalGeometryAndPalette();

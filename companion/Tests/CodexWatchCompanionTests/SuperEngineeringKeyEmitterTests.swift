@@ -9,6 +9,30 @@ import XCTest
     }
 }
 @MainActor final class SuperEngineeringKeyEmitterTests: XCTestCase {
+    func testDeepseekCommandsRejectExitedBackgroundReusedAndWrongProfileIdentities() {
+        let target = ApplicationIdentity(processIdentifier: 404, bundleIdentifier: "com.deepseek.dsh", launchDate: Date(timeIntervalSince1970: 1))
+        let reused = ApplicationIdentity(processIdentifier: 404, bundleIdentifier: "com.deepseek.dsh", launchDate: Date(timeIntervalSince1970: 2))
+        let superApp = ApplicationIdentity(processIdentifier: 202, bundleIdentifier: "engineering.super.app")
+        let cases: [(ApplicationIdentity?, ApplicationIdentity?, ApplicationIdentity)] = [
+            (target,nil,target), (target,reused,target), (superApp,target,target),
+            (superApp,superApp,superApp),
+        ]
+        for command: WorkspaceNavigationCommand in [.previousDeepseekThread, .nextDeepseekThread, .toggleDeepseekView] {
+            for (front,actual,requested) in cases {
+                let poster = GuardPoster()
+                let emitter = SystemProcessTargetedKeyEmitter(frontmostIdentity:{front},identityForProcess:{_ in actual},poster:poster,trusted:{true})
+                XCTAssertFalse(emitter.emit(command,to:requested))
+                XCTAssertEqual(poster.count,0); emitter.stop()
+            }
+        }
+        for command: WorkspaceNavigationCommand in [.previousProject, .nextTab, .nextHermesTab, .confirmHermesSelection] {
+            let poster = GuardPoster()
+            let emitter = SystemProcessTargetedKeyEmitter(frontmostIdentity:{target},identityForProcess:{_ in target},poster:poster,trusted:{true})
+            XCTAssertFalse(emitter.emit(command,to:target))
+            XCTAssertEqual(poster.count,0); emitter.stop()
+        }
+    }
+
     func testRightWithoutOwnedHermesSelectionPostsNothing() {
         let hermes = ApplicationIdentity(processIdentifier:303,bundleIdentifier:"com.nousresearch.hermes")
         let poster = GuardPoster()

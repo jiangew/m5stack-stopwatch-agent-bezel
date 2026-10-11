@@ -3,48 +3,49 @@
 [English](README.md)
 
 **Stopwatch AgentBezel C152** 是面向 **M5Stack StopWatch Dev Kit C152**
-的独立、非官方开源四屏控制界面：机器人首页、Codex Micro 兼容面板、super.engineering
+的独立、非官方开源五屏控制界面：机器人首页、Codex Micro 兼容面板、DeepSeek Harness 激活、super.engineering
 项目控制、Hermes Desktop 会话控制，并提供本地额度面板和可选 USB 麦克风。
 
 Codex Micro 兼容性为实验性且未文档化功能。运行标识、配对身份、音频名称与
-Companion 身份保持不变。四屏体验需要匹配的源码构建 USB-mic 固件与 Companion。
+Companion 身份保持不变。五屏体验需要匹配的源码构建 USB-mic 固件与 Companion。
 验证仅覆盖一套本地环境，不代表所有应用版本均兼容。
 
 ## 当前版本速览
 
-文档更新于 **2026-09-22**；当前 Companion 为 **0.1.4（build 5）**。
+Companion build14 统一四个 Agent 桌面的前后台处理：左滑仅选择桌面；目标已在前台时
+直接操作，未启动或在后台时点击中央启动或唤起。Mac 切换应用后保留手表所选桌面，
+目标退到后台时恢复中央唤起状态。中央点按同时支持“进程仍在但窗口已关闭”的重新打开。
+DeepSeek、SUPER、Hermes 还检查实际窗口：关闭最后一个窗口后，下一次每秒检查恢复
+**TAP TO OPEN**；慢速唤起即使曾超时，窗口真正就绪后也自动恢复操作，不需再次点中央。
+本次仅更新 Companion，沿用 build9 五屏固件。
+详见[功能诊断与验收记录](docs/CONTROL_AVAILABILITY.zh-CN.md)。
 
-- 四屏循环：机器人首页 → Codex / ChatGPT → SUPER → HERMES → 首页。
-- 首页：四款电影风格机器人；上/下/右静音切角色，中央点按使用统一说话动画及可选本地语音。
-- 最新布局：放大且完整闭合的人物圆圈，连接文字、圆圈、电量居中，上下留白等距。
-  中央语音 PCM 振幅降为此前的 50%（约 −6 dB，不等于主观响度必然减半）。
-- SUPER：上下切项目、右滑切会话 Tab；Hermes：点中央启动或恢复窗口，上下选择、右滑打开。
-- 专属方向导航采用 350ms 冷却和释放门控；切屏及中央启动保留 800ms 保护，按键序列间隔 30ms。
+- 五屏循环：机器人首页 → Codex / ChatGPT → Deepseek → SUPER → HERMES → 首页。
+- 首页：四角色去掉装饰性边界圆圈；上/下/右继续静音切角色，中央点按连续眨眼三次，
+  不播放语音、不做说话动画、不振动，也不发送 Mac 操作；动画中连点不排队或重启。
+- DeepSeek：与 SUPER 相同的四色三角布局和标题字体；上下按侧栏顺序切换已有 thread、跨项目边界，
+  右滑切“对话／轨迹”。需要配套导航插件；已激活时中央与实体操作键保持无动作。
+- 所有 harness 未运行时，左滑仅选择对应桌面，中央点按才启动；启动中阻止连点，失败可重试。
+  **CODEX 所有状态始终保留原仪表盘 UI**，不改四向布局、不添加新提示；仅未启动时中央改为启动／重试。
+  另外三个桌面显示启动提示。已运行时保留既有控制；四个 Agent 均按真实前台状态决定是否等待中央点按。
+- 专属导航保留 350ms 释放门控；切屏/启动保留 800ms 保护，按键序列间隔 30ms。
 
-[最新首页验收](docs/superpowers/plans/2026-09-21-home-equal-spacing-half-volume.md)
-记录用户确认的布局、音量、角色选择及四屏操作。
-[此前导航与录音验收](docs/superpowers/plans/2026-09-12-paced-navigation-verification.md)
-属于历史证据，不表示每次更新都重新做过全部测试。公开构建**不含语音素材**，设备上的私有音频不上传。
+详见[变更及验证记录](docs/DEEPSEEK_BLINK.md)。
+**本次版本尚未刷机或通过实机验收。**
+[此前首页验收](docs/superpowers/plans/2026-09-21-home-equal-spacing-half-volume.md)和
+[导航验收](docs/superpowers/plans/2026-09-12-paced-navigation-verification.md)
+只证明历史版本，不代表本次改动已在设备验证。
 
-## 机器人首页与三个工作区
+## 机器人首页与四个工作区
 
-**公开仓库不包含语音素材。** 默认构建仅显示说话动画；需要发声时按
-[语音配置说明](docs/ROBOT_SPEECH.md)提供有权使用的本地音频。
-下述台词描述的是已实测的私人安装，不代表仓库附带这些声音。
-
-首页沿用现有 Companion 0.1.4，并需要匹配的 USB-mic 固件。用户已在本机 C152 上确认
-四角色选择、首页居中等距布局、中央语音降低音量及四桌面操作正常；不代表其他环境均已验证，
-详见[实机验收记录](docs/superpowers/plans/2026-09-21-home-equal-spacing-half-volume.md)。开机、重连和 Companion 启动
-都选中首页，不激活 Mac 应用，
-Mac 前台变化也不会离开首页。语音版固件中央点按播放“愚蠢的人类，快给我下发任务吧！”，
+首页需要匹配的源码构建 Companion 和 USB-mic 固件。开机、重连和 Companion 启动
+都选中首页，不激活 Mac 应用，Mac 前台变化也不会离开首页。中央点按改为静音眨眼。
 上滑选择擎天柱、下滑选择威震天、右滑选择红蜘蛛；对当前角色重复同一方向则返回大黄蜂。
-角色选择静音、无振动、完全在手表本地完成，不向 Mac 发送操作。四个角色中央点按都沿用
-同一条任务语音和说话动画。
-熄屏后第一次触摸只亮屏；重复输入不排队、不叠加。离开首页、熄屏或电源确认时停止语音。
-USB 录音优先：正在收音时仅显示短暂无声动画；播放期间开始收音则中断语音并恢复麦克风。
-不新增 USB 扬声器接口、麦克风录音、联网合成、振动或应用内容读取。
-详见[语音来源与验证](docs/ROBOT_SPEECH.md)。最新语音音量已由用户在设备上确认；
-本次布局与音量微调未另行执行新的麦克风录音测试。
+角色切换保持无声，恢复每次有效切换一次 40ms 滑动振动反馈（离线也有效），不向 Mac 发送操作。
+同方向切回大黄蜂也振动；唤醒手势只保留短唤醒反馈、不切角色。中央三连眨眼仍不振动。四款画像均移除装饰外圈。
+熄屏后第一次触摸只亮屏；离开首页、熄屏或电源确认时停止动画。
+即使编入私人音频，首页也不再请求播放；保留的语音工具属于历史功能，不是当前点按行为。
+USB 麦克风和 Codex 完成提示音保持原样，不新增 USB 扬声器、联网合成或应用内容读取。
 首页亮屏且 Companion 就绪时，左滑触发与其他桌面相同的一次振动；离线左滑仍无振动。
 振动仅确认手势反馈，不代表 Mac 激活成功。
 连接和电量来自真实状态，不使用预览中的固定示例值。
@@ -63,30 +64,32 @@ USB 录音优先：正在收音时仅显示短暂无声动画；播放期间开�
 运行时网络素材。离开首页后，下次进入会重置为大黄蜂。
 
 <table>
-  <tr><th>Codex Micro</th><th>super.engineering</th><th>Hermes Desktop</th></tr>
+  <tr><th>Codex Micro</th><th>Deepseek</th><th>super.engineering</th><th>Hermes Desktop</th></tr>
   <tr>
-    <td width="33%"><img src="artifacts/dashboard-preview-v2-round.png" alt="含六项控制、额度与电量的 Codex Micro 面板"></td>
-    <td width="33%"><img src="artifacts/super-workspace-preview.png" alt="四色三角形、无独立中心边框的 SUPER 屏幕"></td>
-    <td width="33%"><img src="artifacts/hermes-workspace-preview.png" alt="含 CYCLE、PREV、NEXT、OPEN 的 HERMES 屏幕"></td>
+    <td width="25%"><img src="artifacts/dashboard-preview-v2-round.png" alt="含六项控制、额度与电量的 Codex Micro 面板"></td>
+    <td width="25%"><img src="artifacts/deepseek-workspace-preview.png" alt="Deepseek 四向 CYCLE、PREV、NEXT、VIEW 布局"></td>
+    <td width="25%"><img src="artifacts/super-workspace-preview.png" alt="四色三角形、无独立中心边框的 SUPER 屏幕"></td>
+    <td width="25%"><img src="artifacts/hermes-workspace-preview.png" alt="含 CYCLE、PREV、NEXT、OPEN 的 HERMES 屏幕"></td>
   </tr>
 </table>
 
 以上是 native framebuffer 设计预览，不是真机照片。
 
-**左滑循环：首页 → Codex / ChatGPT → SUPER → HERMES → 首页。**
+**左滑循环：首页 → Codex / ChatGPT → Deepseek → SUPER → HERMES → 首页。**
 当前 Codex / ChatGPT 入口使用 `com.openai.codex`，只算一个目标，不拆成两个。
-从首页左滑激活 Codex，返回首页不改变 Mac 前台。找不到或无法激活的目标不会被自动跳过。
+从首页左滑选择 Codex：未运行时仅显示待启动页，点中央才启动；已在前台时直接可操作，后台运行时等待中央点按唤起。
+返回首页不改变 Mac 前台。找不到或无法激活的目标不会被自动跳过，错误页可点中央重试或左滑继续。
 原来的“返回之前应用”已被固定循环替代。
 
-| 输入 | 机器人首页 | Codex Micro | SUPER | HERMES |
-| --- | --- | --- | --- | --- |
-| 左实体键 / 右实体键 | 无动作¹ | Push to talk / Voice Chat | 无动作¹ | 无动作¹ |
-| 中心短点 | 说话动画＋可选本地语音 | Send | 无动作¹ | 待启动时启动或重试；操作页无动作 |
-| 左滑 | 激活 Codex | 进入 SUPER | 选中 HERMES 待启动页 | 进入首页 |
-| 上滑 | 擎天柱／返回大黄蜂 | 应用现有映射 | 上一个项目 | 浏览上一个会话 |
-| 下滑 | 威震天／返回大黄蜂 | 应用现有映射 | 下一个项目 | 浏览下一个会话 |
-| 右滑 | 红蜘蛛／返回大黄蜂 | 应用现有映射 | 下一个会话 Tab | 打开本次选择；无选择则无动作 |
-| 电源操作 | 桌面休眠 / 旅行关机 | 相同 | 相同 | 相同 |
+| 输入 | 机器人首页 | Codex Micro | Deepseek | SUPER | HERMES |
+| --- | --- | --- | --- | --- | --- |
+| 左实体键 / 右实体键 | 无动作¹ | Push to talk / Voice Chat | 无动作¹ | 无动作¹ | 无动作¹ |
+| 中心短点 | 静音连续眨眼三次 | 待启动时启动／重试；操作页 Send | 待启动时启动／重试；操作页无动作 | 待启动时启动／重试；操作页无动作 | 待启动时启动／重试；操作页无动作 |
+| 左滑 | 选择 Codex | 选择 DeepSeek | 选择 SUPER | 选中 HERMES 待启动页 | 进入首页 |
+| 上滑 | 擎天柱／返回大黄蜂 | 应用现有映射 | 上一条 thread | 上一个项目 | 浏览上一个会话 |
+| 下滑 | 威震天／返回大黄蜂 | 应用现有映射 | 下一条 thread | 下一个项目 | 浏览下一个会话 |
+| 右滑 | 红蜘蛛／返回大黄蜂 | 应用现有映射 | 对话／轨迹切换 | 下一个会话 Tab | 打开本次选择；无选择则无动作 |
+| 电源操作 | 桌面休眠 / 旅行关机 | 相同 | 相同 | 相同 | 相同 |
 
 ¹ 专属屏幕和设备侧隔离需要用户明确选择、且匹配的 `usb-mic` 固件。
 默认无线固件仍显示 Codex 面板；Companion 方向控制仅在真实 `--watch` 中启用。
@@ -114,27 +117,47 @@ ChatGPT Desktop 仅暴露一个 Mic key，而非单独的 `ACT10` 和 `ACT11`：
 较慢旅行模式兜底。物理电源切换的 soak 测试仍待完成，因此时间和唤醒行为在
 清单完成前均为实验性。
 
+## DeepSeek Harness 工作区
+
+**Deepseek** 通过准确的应用 bundle `com.deepseek.dsh` 激活桌面客户端，不打开浏览器 URL
+或 CLI。从 Codex 左滑进入；从 Deepseek 左滑选择 SUPER。四色三角形布局与 SUPER 一致：
+上 PREV、下 NEXT、右 VIEW、左 CYCLE。上/下按侧栏顺序选上一条/下一条已有 thread，
+到项目边界继续相邻项目；右滑在当前主工作窗口“对话／轨迹”之间切换。未启动时中央用于启动／重试；
+真实激活后的中央及实体操作键无动作。待启动／启动中／错误页仅允许左滑和有效的中央启动，不发送导航键。
+
+当前 Harness 没有对应原生快捷键，需要另行审阅并安装本项目的
+[DeepSeek 导航插件](deepseek-plugin/README.md)。Companion 仅向复核后的前台 DeepSeek 进程
+投递固定 `Control-Option-Up/Down/Right`，由插件接收，不发送 Codex 原生方向事件。
+插件仅在浏览器本地识别结构性行 ID，不读取标题、消息正文、草稿、凭据，也不创建新会话。
+轨迹页必须已可用；界面结构不符或状态有歧义时不执行，不自动开启开发者工具。
+上一轮插件 **0.1.1** 与 build8 已完成用户实机导航验收；不要安装导致启动故障的旧插件 0.1.0。
+build9 新增三连眨眼／角色振动／通用中央启动已另行实机验收；更新签名后曾重新授权 Companion 并重启，三向导航恢复正常。
+
+激活失败不跳过目标；共享 5 秒心跳、15 秒租约和回首页机制。额度仍为 Codex 额度。
+
 ## super.engineering 工作区
 
-仅匹配 `com.zarifpour.superconductor`。在应用快捷键中配置：
+识别运行中应用时兼容当前 bundle `engineering.super.app` 和旧 bundle
+`com.zarifpour.superconductor`；启动缺失应用时使用当前 bundle。在应用快捷键中配置：
 Previous Project = `Control-Option-Up`、Next Project = `Control-Option-Down`、
 Next Tab = `Control-Option-Right`。上/下/右仅定向发送给该前台进程。
 左滑进入 Hermes，不再返回任意旧应用。
 
 ## Hermes Desktop 工作区
 
-使用 **Companion 0.1.4（build 5）** 与匹配的四屏 USB-mic 固件。
+使用本次源码构建的 **Companion** 与匹配的五屏 USB-mic 固件。
 SUPER/HERMES 使用专属 `host.workspace_navigation`，不同时发送 Codex 原生方向事件。
 Codex 上/下/右绑定保持不变，并实测 Codex 无后台动作；安装、回滚保持组件兼容。
 构建号、源码提交及默认关闭的限时导航诊断详见 [Companion 文档](companion/README.md)。
 
-从 SUPER 左滑仅在手表选中 **HERMES / TAP TO OPEN**，Mac 保持原前台，
-不会启动或激活后台 Hermes。短点中央正方形内部才启动客户端，显示 **OPENING**。
+从 SUPER 左滑选择 HERMES：已在前台时直接启用导航；否则显示 **TAP TO OPEN**，
+Mac 保持原前台，不启动或激活后台 Hermes。短点中央正方形内部才启动客户端，显示 **OPENING**。
 实际确认 Hermes 前台后才启用下面的方向导航。失败或 3 秒未确认时显示
-**TAP TO RETRY**，不自动重试；等待期间忽略重复点按。
+**TAP TO RETRY**，不自动发起打开请求；后续实时确认所选前台窗口就绪后自动恢复操作。
+等待期间忽略重复点按。
 待启动、启动中、失败状态均屏蔽上/下/右，左滑均进入首页。
-Dock、Command-Tab 切换会取消待启动选择；重连或 Companion 重启则选中首页。
-离开首页后仍按真实前台同步。包括 Codex 在内的工作页每 5 秒续租，15 秒到期后回首页；
+Dock、Command-Tab 切换保留手表所选桌面；目标退到后台时恢复中央唤起状态。
+重连或 Companion 重启则选中首页。包括 Codex 在内的工作页每 5 秒续租，15 秒到期后回首页；
 必须收到首页确认才能再次接受工作页心跳，防止旧心跳把首页覆盖。切换页面不唤醒屏幕。
 本次需成套安装、成套回滚，详见[首页验证记录](docs/superpowers/plans/2026-09-15-robot-home-verification.md)。
 
@@ -150,7 +173,8 @@ gateway/dashboard 不变。其他安装不一定有这个任务，不应盲目�
 
 中央启动统一调用 `NSWorkspace.openApplication`，包括 Hermes 已在后台运行时；
 启用激活、禁止创建新实例。针对前台 Hermes 的准确进程，辅助功能只获取 focused/main
-窗口句柄并请求窗口聚焦，不读取内容、标题或窗口列表，用于修复“进程已前台，但必须点击
+窗口句柄并请求窗口聚焦，不读取内容或标题；三个快捷操作桌面另在本机有限检查 AX 窗口句柄
+和角色，用于同步关窗状态。这些检查用于修复“进程已前台，但必须点击
 标题栏才能导航”的情况。用户已确认交互恢复；接口返回成功不能代替其他安装上的可见窗口验收。
 
 <table><tr><th>待启动</th><th>启动中</th><th>点按重试</th></tr><tr>
@@ -174,7 +198,7 @@ Project 树排序。无需 Hermes 插件或源码扩展。Companion 不检测选
 
 ## 共用配置与屏幕行为
 
-1. 安装三个目标桌面应用。需要独立 Space 时，人工使用
+1. 安装四个目标桌面应用。需要独立 Space 时，人工使用
    **Dock → Options → Assign To → This Desktop** 分配。
    Companion 激活应用并恢复 Hermes focused/main 窗口焦点；不创建/枚举 Space，也不按窗口内容选窗。
 2. 为 `CodexWatchCompanion.app` 开启输入监控、辅助功能，并保留额度同步所需的蓝牙权限。
@@ -188,8 +212,8 @@ SUPER/HERMES 使用四个向外三角形，不绘制独立中心方框。电池�
 配色反馈独立执行 800ms 冷却；重绘、心跳、额度变化和 Dock/Command-Tab 切换不换色。
 换色只是本地输入反馈，不证明 Mac 快捷键执行成功。
 
-除固定首页和手动选中的 Hermes 待启动页外，屏幕跟随真实前台，心跳 5 秒、连接所有者租约 15 秒。离开两个方向桌面时发送 Codex；
-失败时最多再间隔 5 秒重试两次，租约过期或所有者断开则恢复首页。
+所有桌面保留手表的手动选择，目标退到后台时进入同一 Agent 的中央唤起状态。
+心跳 5 秒、连接所有者租约 15 秒；租约过期或所有者断开则恢复首页。
 前台变化不唤醒屏幕；禁用短点和实体控制也不唤醒方向桌面，真实滑动可以唤醒，
 但该次唤醒滑动不同时执行看不见的操作。中央长按及红色电源行为保留。
 
@@ -225,16 +249,16 @@ USB-C 线，以及已登录且支持 Codex Micro 的 ChatGPT Desktop。本移植
 
 | 体验 | 固件 | 包含功能 |
 | --- | --- | --- |
-| 上文完整四屏 AgentBezel | 明确选择 `pio run -d usb-mic`＋Companion 0.1.4 | 机器人首页、Codex、SUPER、HERMES、纯输入 USB 麦克风；本地语音可选 |
-| 基础 Codex 兼容面板 | `pio run -e m5stack-stopwatch` | Codex 面板和 BLE 控制，使用 Mac 所选麦克风；不含四屏首页及角色选择 |
+| 上文完整五屏 AgentBezel | 明确选择 `pio run -d usb-mic`＋匹配的源码构建 Companion | 首页眨眼、Codex、Deepseek、SUPER、HERMES、纯输入 USB 麦克风 |
+| 基础 Codex 兼容面板 | `pio run -e m5stack-stopwatch` | Codex 面板和 BLE 控制，使用 Mac 所选麦克风；不含多屏首页及角色选择 |
 
-以下提示词**明确选择四屏 USB-mic 版本**。如果只需要基础 Codex 面板，请改用手动章节的
+以下提示词**明确选择五屏 USB-mic 版本**。如果只需要基础 Codex 面板，请改用手动章节的
 基础构建目标，不要混用两种固件的启动检查。连接 C152，切勿猜测串口，再粘贴给 Codex：
 
 ```text
-请在我的 M5Stack StopWatch Dev Kit C152 上安装四屏 AgentBezel。
-我选择独立 USB-mic 固件及匹配的 Companion，包含首页、Codex、SUPER、HERMES。
-公开仓库不附带语音素材。
+请在我的 M5Stack StopWatch Dev Kit C152 上安装五屏 AgentBezel。
+我选择独立 USB-mic 固件及匹配的 Companion，包含首页、Codex、Deepseek、SUPER、HERMES。
+首页点按仅静音眨眼。
 
 开始前完整阅读 AGENTS.md 和 README.zh-CN.md。请自主完成安装流程，但严格遵守：
 
@@ -255,7 +279,7 @@ USB-C 线，以及已登录且支持 Codex Micro 的 ChatGPT Desktop。本移植
    日志和生成的 app 都不能进入 Git。
 10. 引导我完成 Companion 输入监控/辅助功能、SUPER 快捷键及可选的人工 Space 分配；
     不静默改权限或应用设置，保留原有 LaunchAgent 配置和私有设备绑定。
-11. 验证四屏循环、角色选择、Hermes 中央启动及导航、SUPER 控制、Codex 原操作、
+11. 验证五屏循环、角色选择、Hermes 中央启动及导航、SUPER 控制、Codex 原操作、
     输入隔离、熄屏/重连、额度及短时间本地麦克风录音；验收后删除录音。
 12. 未提供有权使用的本地音频时保持公开构建静音，不上传私有语音。
     只把真机实际观察到的结果记为通过，替换前保留匹配的固件及 Companion 备份。
@@ -305,7 +329,7 @@ Server，并读取 `account/rateLimits/read`。它只通过项目自有额度 GA
 明确绑定的手表发送剩余百分比和 reset 倒计时；兼容 HID 接口不包含账户额度。
 
 在真实 `--watch` 运行中，可选工作区集成还仅通过 vendor HID Report ID 6 发送
-固定的 `home`、`codex`、`super` 或 `hermes` 显示模式枚举及 Hermes 可选的
+固定的 `home`、`codex`、`deepseek`、`super` 或 `hermes` 显示模式枚举及 Hermes 可选的
 `idle`/`opening`/`error` 状态；中央点按仅发送固定 `open_hermes` 动作。
 专属方向事件仅携带固定的桌面、方向、按下/释放枚举，不含项目或会话数据。
 它不会发送 API key、token、账户标识、
@@ -313,7 +337,8 @@ Server，并读取 `account/rateLimits/read`。它只通过项目自有额度 GA
 使用云中继、检查键盘文本、调用 shell 或 AppleScript、使用私有 Space API，或
 检查 super.engineering 或 Hermes 设置。
 Hermes 中央启动有一项有限的辅助功能操作：仅在本机使用 focused/main 窗口句柄和焦点状态，
-抬起并聚焦准确进程的窗口；不读取或向手表发送窗口标题、内容、窗口列表。
+抬起并聚焦准确进程的窗口；三个快捷操作桌面只在本机有限检查 AX 窗口句柄和角色，
+不读取窗口标题或内容，也不向手表发送窗口列表。
 
 设备 MAC 地址、CoreBluetooth UUID、用户名、home-directory path 和日志均为
 本地安装数据，绝不能提交。BLE 配对使用平台的无 passkey Just Works 流程：请在
@@ -407,8 +432,9 @@ swift build -c release
 
 ### 可选工作区导航不可用
 
-- 确认前台 bundle 是 `com.zarifpour.superconductor` 或 `com.nousresearch.hermes`，对应快捷键能由物理
-  键盘使用，且 `CodexWatchCompanion.app` 已开启辅助功能。
+- 确认 SUPER 前台 bundle 是 `engineering.super.app` 或旧 `com.zarifpour.superconductor`，
+  HERMES 是 `com.nousresearch.hermes`；对应快捷键能由物理键盘使用，
+  且 `CodexWatchCompanion.app` 已开启辅助功能。
 - 输入监控是接收径向手势所必需的。若缺少辅助功能，仅项目/标签导航会被禁用；
   左滑循环、额度和 USB 麦克风输入仍可用。
 - Hermes 应先进入待启动页，点中央并等到操作页；下/下/上移动选择，右滑释放后打开。

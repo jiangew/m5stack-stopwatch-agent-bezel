@@ -95,7 +95,7 @@ static constexpr std::array<DirectionalControl, 4> kDirectionalControls = {{
      0x53DF, 0x0862, 0x8D1F, 0x1929},
 }};
 
-enum class Profile : std::uint8_t { Super, Hermes };
+enum class Profile : std::uint8_t { Super, Hermes, Deepseek };
 enum class HermesPresentation : std::uint8_t { Active, Idle, Opening, Error };
 
 struct State {
@@ -112,9 +112,9 @@ struct State {
 
 template <typename Surface>
 void drawText(Surface& surface, const char* text, int x, int y,
-              textdatum_t datum, std::uint16_t color) {
+              textdatum_t datum, std::uint16_t color, float textSize = 1.0f) {
   surface.setTextDatum(datum);
-  surface.setTextSize(1.0f);
+  surface.setTextSize(textSize);
   surface.setTextColor(color);
   surface.drawString(text, x, y);
 }
@@ -196,11 +196,19 @@ void drawCenterPanel(Surface& surface, const State& state) {
                    kCenterSquare.bottom - kCenterSquare.top - 1,
                    kCenterFill);
 
-  const bool pending = state.profile == Profile::Hermes &&
-                       state.hermesPresentation != HermesPresentation::Active;
+  const bool pending = state.hermesPresentation != HermesPresentation::Active;
+  const char* title = state.profile == Profile::Deepseek ? "DeepSeek"
+      : state.profile == Profile::Hermes ? "HERMES" : kTitle;
+  // All titles use the same font asset. Measure at the preferred size before
+  // shrinking longer names to the 178px interior; never stretch shorter names.
   surface.loadFont(dashboard::font_data::kSpaceMono46Vlw);
-  drawText(surface, state.profile == Profile::Hermes ? "HERMES" : kTitle,
-           kCenterX, pending ? 182 : 190, middle_center, kText);
+  surface.setTextSize(1.0f);
+  constexpr int titleWidth = kCenterSquare.right - kCenterSquare.left - 1;
+  const int measuredWidth = surface.textWidth(title);
+  const float titleSize = measuredWidth > titleWidth
+      ? static_cast<float>(titleWidth) / measuredWidth : 1.0f;
+  drawText(surface, title, kCenterX, pending ? 182 : 190,
+           middle_center, kText, titleSize);
   surface.unloadFont();
 
   surface.loadFont(dashboard::font_data::kSpaceMono18Vlw);
@@ -262,7 +270,9 @@ void render(Surface& surface, const State& state) {
     const auto& control = kDirectionalControls[i];
     const char* label = state.profile == Profile::Hermes &&
                         control.direction == touch_gesture::Direction::Right
-                            ? "OPEN" : control.label;
+                            ? "OPEN" : (state.profile == Profile::Deepseek &&
+                         control.direction == touch_gesture::Direction::Right
+                            ? "VIEW" : control.label);
     drawDirectionalControl(surface, control,
                            state.swipeDirection == control.direction,
                            state.borderColors[i], label);

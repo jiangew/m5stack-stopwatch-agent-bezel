@@ -63,6 +63,7 @@ class CodexMicroBle {
 #if defined(CODEX_STOPWATCH_USB_MIC)
   void sendNavigation(const workspace_navigation::Event& event);
 #endif
+  void sendOpenWorkspace();
   void sendOpenHermes();
   bool connected();
   CodexMicroState snapshot();

@@ -4,6 +4,7 @@ import Foundation
 protocol WorkspaceCycling: AnyObject {
     func cycle()
     func openHermes()
+    func openSelectedWorkspace()
     func showHome()
     var allowsNavigation: Bool { get }
     var selectedProfile: WorkspaceAppProfile? { get }
@@ -11,6 +12,7 @@ protocol WorkspaceCycling: AnyObject {
 
 extension WorkspaceCycling {
     func openHermes() {}
+    func openSelectedWorkspace() {}
     func showHome() {}
     var allowsNavigation: Bool { true }
     var selectedProfile: WorkspaceAppProfile? { .codex }
@@ -20,15 +22,13 @@ extension WorkspaceCycling {
 final class WorkspaceCycleController: WorkspaceCycling {
     private(set) var displayMode = StopwatchWorkspaceMode.home
     var modeDidChange: ((StopwatchWorkspaceMode) -> Void)?
-    var allowsNavigation: Bool { displayMode != .home && !displayMode.awaitingHermes }
-    var selectedProfile: WorkspaceAppProfile? {
-        switch displayMode {
-        case .home: return nil
-        case .codex: return .codex
-        case .super: return .super
-        case .hermes, .hermesIdle, .hermesOpening, .hermesError: return .hermes
-        }
+    var allowsNavigation: Bool {
+        guard displayMode.waitingState == nil, let profile = selectedProfile,
+              let target = workspace.frontmost, target.processIdentifier > 0,
+              profile.matches(target.bundleIdentifier) else { return false }
+        return profile == .codex || workspace.windowPresence(target) == .available
     }
+    var selectedProfile: WorkspaceAppProfile? { displayMode.profile }
     private let workspace: WorkspaceApplications
     private let observer: ForegroundApplicationObserving
     private let scheduler: WorkspaceModeScheduling
@@ -36,8 +36,10 @@ final class WorkspaceCycleController: WorkspaceCycling {
     private var started = false
     private var generation: UInt64 = 0
     private var lifecycleGeneration: UInt64 = 0
-    private var pending: (generation: UInt64, origin: String?, target: String)?
+    private var pending: (generation: UInt64, profile: WorkspaceAppProfile, identity: ApplicationIdentity?)?
     private var timeout: WorkspaceModeScheduledTask?
+    private var windowMonitor: WorkspaceModeScheduledTask?
+    private var windowMonitorGeneration: UInt64 = 0
 
     init(workspace: WorkspaceApplications,
          observer: ForegroundApplicationObserving,
@@ -64,32 +66,37 @@ final class WorkspaceCycleController: WorkspaceCycling {
     func stop() {
         started = false
         lifecycleGeneration &+= 1
-        generation &+= 1
-        clearPending()
-        setMode(.home)
+        showHome()
         observer.stop()
     }
 
     func cycle() {
         guard started else { return }
-        if displayMode == .hermes || displayMode.awaitingHermes {
-            showHome()
-            return
-        }
-        guard pending == nil else { return }
-        let target = (displayMode == .home ? WorkspaceAppProfile.codex :
-                      displayMode == .codex ? .super : .hermes).bundleIdentifier
-        if target == WorkspaceAppProfile.hermes.bundleIdentifier {
-            setMode(.hermesIdle)
-            return
-        }
-        requestActivation(target)
+        guard selectedProfile != .hermes else { showHome(); return }
+        let target = selectedProfile?.next ?? .codex
+        generation &+= 1
+        clearPending()
+        // Swiping selects a page; only a central tap may launch or activate.
+        setMode(.waiting(target))
+        foregroundChanged(workspace.frontmost?.bundleIdentifier)
     }
 
     func openHermes() {
-        guard started, displayMode == .hermesIdle || displayMode == .hermesError else { return }
-        setMode(.hermesOpening)
-        requestActivation(WorkspaceAppProfile.hermes.bundleIdentifier, reopen: true)
+        guard selectedProfile == .hermes else { return }
+        openSelectedWorkspace()
+    }
+
+    func openSelectedWorkspace() {
+        guard started, let profile = selectedProfile else { return }
+        // Recheck foreground before interpreting a tap, including a notification race.
+        if displayMode.waitingState == nil {
+            foregroundChanged(workspace.frontmost?.bundleIdentifier)
+        }
+        guard displayMode.waitingState == "idle" || displayMode.waitingState == "error" else { return }
+        let identity = runningIdentity(for: profile)
+        // Opening an existing app sends its reopen request, restoring a closed
+        // last window. Merely activating its process can leave no usable UI.
+        requestActivation(profile, identity: identity)
     }
 
     func resetToForeground() {
@@ -103,73 +110,109 @@ final class WorkspaceCycleController: WorkspaceCycling {
         clearPending()
         let unchanged = displayMode == .home
         setMode(.home)
-        // An already-pinned Home still acknowledges a device's resync request.
         if unchanged { modeDidChange?(.home) }
     }
 
-    private func requestActivation(_ target: String, reopen: Bool = false) {
-        let origin = workspace.frontmost?.bundleIdentifier
+    private func runningIdentity(for profile: WorkspaceAppProfile) -> ApplicationIdentity? {
+        profile.acceptedBundleIdentifiers.lazy.compactMap {
+            self.workspace.runningApplication(bundleIdentifier: $0)
+        }.first(where: { profile.matches($0.bundleIdentifier) && $0.processIdentifier > 0 })
+    }
+
+    private func requestActivation(_ profile: WorkspaceAppProfile, identity: ApplicationIdentity?) {
         generation &+= 1
         let request = generation
-        pending = (request, origin, target)
+        clearPending()
+        pending = (request, profile, identity)
+        setMode(.waiting(profile, state: "opening"))
         timeout = scheduler.scheduleRepeating(every: 3) { [weak self] in
             guard let self, self.started, self.pending?.generation == request else { return }
             self.clearPending()
-            if self.displayMode == .hermesOpening { self.setMode(.hermesError) }
-            self.log("桌面切换等待超时；保持真实前台")
+            self.setMode(.waiting(profile, state: "error"))
+            self.log("桌面尚未就绪；就绪后自动恢复，也可轻触中心重试")
         }
-        // A Hermes central tap must request reopening, not merely activate a
-        // running process whose last window may have been closed.
-        let acceptedBundleIdentifiers = WorkspaceAppProfile(bundleIdentifier: target)?
-            .acceptedBundleIdentifiers ?? [target]
-        if !reopen,
-           let identity = acceptedBundleIdentifiers.lazy.compactMap({
-               self.workspace.runningApplication(bundleIdentifier: $0)
-           }).first {
-            completeRequest(request, accepted: workspace.activate(identity))
-        } else {
-            workspace.launchAndActivate(bundleIdentifier: target) { [weak self] accepted in
-                self?.completeRequest(request, accepted: accepted)
-            }
+        // Reuse the exact running bundle (including legacy SUPER), and never
+        // request a second instance. A real foreground identity is still required.
+        workspace.launchAndActivate(bundleIdentifier: identity?.bundleIdentifier ?? profile.bundleIdentifier) { [weak self] accepted in
+            self?.completeRequest(request, accepted: accepted)
         }
     }
 
     private func completeRequest(_ request: UInt64, accepted: Bool) {
-        guard started, pending?.generation == request else { return }
-        if !accepted {
+        guard started, let pending, pending.generation == request else { return }
+        guard accepted else {
             clearPending()
-            if displayMode == .hermesOpening { setMode(.hermesError) }
+            setMode(.waiting(pending.profile, state: "error"))
             log("找不到或无法激活目标桌面应用")
-        } else {
-            // Successful submission alone is not proof of a foreground change.
-            if workspace.frontmost?.bundleIdentifier == pending?.target {
-                foregroundChanged(workspace.frontmost?.bundleIdentifier)
-            }
+            return
         }
+        // Successful submission alone is never foreground/PID confirmation.
+        foregroundChanged(workspace.frontmost?.bundleIdentifier)
     }
 
     private func foregroundChanged(_ bundle: String?) {
-        if pending?.target == "com.nousresearch.hermes",
-           bundle == pending?.target, displayMode == .hermesOpening {
-            guard let target = workspace.frontmost,
-                  target.bundleIdentifier == bundle,
-                  workspace.focusWindow(target) else { return }
-        }
-        if displayMode == .home && (pending == nil || pending?.target != bundle) {
+        if let pending {
+            guard pending.profile.matches(bundle),
+                  let target = workspace.frontmost, target.bundleIdentifier == bundle,
+                  target.processIdentifier > 0,
+                  pending.identity.map({ $0 == target }) ?? true else { return }
+            if pending.profile != .codex {
+                guard workspace.windowPresence(target) == .available else { return }
+            }
+            if pending.profile == .hermes {
+                guard workspace.focusWindow(target), workspace.frontmost == target else { return }
+            }
             generation &+= 1
             clearPending()
+            setMode(.foreground(target.bundleIdentifier))
             return
         }
-        // A real activation supersedes selection, even if it reactivates the
-        // origin app. Submission callbacks never synthesize this notification.
-        generation &+= 1
-        clearPending()
-        setMode(.foreground(bundle))
+        // Selection belongs to the watch. Other foreground apps never replace it.
+        // Late callbacks remain invalid. A fresh observation of the selected
+        // foreground window can recover readiness after a slow reopen timeout.
+        guard let profile = selectedProfile,
+              displayMode.waitingState == nil || displayMode.waitingState == "idle"
+                || displayMode.waitingState == "error" else { return }
+        guard let target = workspace.frontmost, target.bundleIdentifier == bundle,
+              profile.matches(bundle), target.processIdentifier > 0,
+              profile == .codex || workspace.windowPresence(target) == .available,
+              profile != .hermes || displayMode == .hermes || workspace.focusWindow(target),
+              workspace.frontmost == target else {
+            // Keep a failed request retryable while its actual window is absent.
+            if displayMode.waitingState != "error" { setMode(.waiting(profile)) }
+            return
+        }
+        setMode(.foreground(target.bundleIdentifier))
+    }
+
+    private func inspectSelectedWorkspace() {
+        guard started, selectedProfile != nil else { return }
+        // Polling also detects a terminated app or a window appearing after activation.
+        foregroundChanged(workspace.frontmost?.bundleIdentifier)
     }
 
     private func setMode(_ mode: StopwatchWorkspaceMode) {
         guard displayMode != mode else { return }
+        if displayMode.profile != mode.profile {
+            windowMonitorGeneration &+= 1
+            windowMonitor?.cancel()
+            windowMonitor = nil
+        }
         displayMode = mode
+        // One bounded 1Hz observer while an Agent page is selected. No launch here.
+        if mode.profile != nil && windowMonitor == nil && started {
+            windowMonitorGeneration &+= 1
+            let token = windowMonitorGeneration
+            windowMonitor = scheduler.scheduleRepeating(every: 1) { [weak self] in
+                guard let self, self.started, self.windowMonitorGeneration == token,
+                      self.selectedProfile != nil else { return }
+                self.inspectSelectedWorkspace()
+            }
+        } else if mode.profile == nil {
+            windowMonitorGeneration &+= 1
+            windowMonitor?.cancel()
+            windowMonitor = nil
+        }
         modeDidChange?(mode)
     }
 

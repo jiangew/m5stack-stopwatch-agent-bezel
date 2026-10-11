@@ -3,13 +3,31 @@
 #include <cstdint>
 #include "TouchGesture.h"
 namespace robot_home {
-enum class Mood : std::uint8_t { Idle, Happy, Surprise, Sleep, Connect, Talking };
+enum class Mood : std::uint8_t { Idle, Happy, Surprise, Sleep, Connect, Blink };
+enum class BlinkFrame : std::uint8_t { Open, Half, Closed };
+constexpr std::uint32_t kBlinkCount = 3;
+constexpr std::uint32_t kBlinkCycleMs = 360;
+constexpr std::uint32_t kBlinkOpenGapMs = 120;
+constexpr std::uint32_t kBlinkPeriodMs = kBlinkCycleMs + kBlinkOpenGapMs;
+constexpr std::uint32_t kBlinkDurationMs =
+    kBlinkCount * kBlinkCycleMs + (kBlinkCount - 1) * kBlinkOpenGapMs;
+// Elapsed from the accepted tap, never the absolute uptime phase. Keep the
+// reaction active through both open gaps so taps cannot restart or queue it.
+constexpr BlinkFrame blinkFrame(std::uint32_t elapsed) {
+  if (elapsed >= kBlinkDurationMs) return BlinkFrame::Open;
+  const auto phase = elapsed % kBlinkPeriodMs;
+  return phase < 70 ? BlinkFrame::Half
+       : phase < 230 ? BlinkFrame::Closed
+       : phase < kBlinkCycleMs ? BlinkFrame::Half : BlinkFrame::Open;
+}
 class Animation {
  public:
   void react(Mood mood, std::uint32_t now) { mood_=mood; since_=now; duration_=2400; }
-  void talk(std::uint32_t now, std::uint32_t duration) {
-    mood_=Mood::Talking;since_=now;duration_=duration;
+  bool blink(std::uint32_t now) {
+    if (mood(now) == Mood::Blink) return false; // no restart or replay queue
+    mood_=Mood::Blink;since_=now;duration_=kBlinkDurationMs;return true;
   }
+  std::uint32_t elapsed(std::uint32_t now) const { return now-since_; }
   Mood mood(std::uint32_t now) const {
     return static_cast<std::uint32_t>(now-since_) >= duration_ ? Mood::Idle : mood_;
   }

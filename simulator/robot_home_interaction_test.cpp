@@ -1,15 +1,40 @@
 #include <cassert>
+#include <initializer_list>
 #include "RobotHomeCharacter.h"
 #include "RobotHomeInteraction.h"
 int main() {
   using namespace robot_home;
+  static_assert(kBlinkDurationMs == 1320);
+  for (std::uint32_t start : {100u, 0xfffffff0u}) {
+    Animation blink;
+    assert(blink.blink(start));
+    unsigned closures = 0;
+    BlinkFrame previous = BlinkFrame::Open;
+    // Test every millisecond, including all half/closed/open boundaries and
+    // both open gaps. Retapping throughout must preserve the original start.
+    for (std::uint32_t ms = 0; ms < 1320; ++ms) {
+      assert(blink.mood(start + ms) == Mood::Blink);
+      assert(!blink.blink(start + ms));
+      assert(blink.elapsed(start + ms) == ms);
+      const auto phase = ms % 480;
+      const auto expected = phase < 70 ? BlinkFrame::Half
+          : phase < 230 ? BlinkFrame::Closed
+          : phase < 360 ? BlinkFrame::Half : BlinkFrame::Open;
+      const auto actual = blinkFrame(blink.elapsed(start + ms));
+      assert(actual == expected);
+      if (actual == BlinkFrame::Closed && previous != actual) ++closures;
+      previous = actual;
+    }
+    assert(closures == 3);
+    assert(blink.mood(start + 1320) == Mood::Idle);
+    assert(blink.mood(start + 1800) == Mood::Idle); // no queued replay
+    assert(blinkFrame(1320) == BlinkFrame::Open);
+    assert(blinkFrame(1440) == BlinkFrame::Open); // no fourth blink
+    assert(blinkFrame(0xffffffffu) == BlinkFrame::Open);
+    assert(blink.blink(start + 1800)); // next independent tap is accepted
+    assert(blink.elapsed(start + 1800) == 0);
+  }
   Animation a;
-  a.talk(100, 3516);
-  assert(a.mood(3615) == Mood::Talking);
-  assert(a.mood(3616) == Mood::Idle);
-  a.talk(0xfffffff0u, 100);
-  assert(a.mood(83) == Mood::Talking);
-  assert(a.mood(84) == Mood::Idle);
   a.react(Mood::Happy, 100);
   assert(a.mood(2499) == Mood::Happy);
   a.react(Mood::Sleep, 2499);

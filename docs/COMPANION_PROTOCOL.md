@@ -73,13 +73,19 @@ request; the writer does not continue its remaining fragments.
 {"method":"host.workspace_mode","params":{"mode":"hermes","ttl_ms":15000,"state":"error"},"id":6}
 {"method":"host.workspace_mode","params":{"mode":"home"},"id":7}
 {"method":"host.workspace_mode","params":{"mode":"codex","ttl_ms":15000},"id":8}
+{"method":"host.workspace_mode","params":{"mode":"deepseek","ttl_ms":15000},"id":9}
+{"method":"host.workspace_mode","params":{"mode":"codex","ttl_ms":15000,"state":"idle"},"id":10}
+{"method":"host.workspace_mode","params":{"mode":"deepseek","ttl_ms":15000,"state":"opening"},"id":11}
+{"method":"host.workspace_mode","params":{"mode":"super","ttl_ms":15000,"state":"error"},"id":12}
 ```
 
-These are the only mode/parameter shapes. SUPER/HERMES require exactly integer
-`ttl_ms: 15000`; Codex accepts legacy `mode` alone or the leased form above.
-Home permits only `mode`. Only Hermes accepts optional `state`,
-strictly `idle`, `opening` or `error`; omission means the existing active page.
-Home/SUPER/Codex reject `state`. Missing or extra fields, wrong types,
+These are the only mode/parameter shapes. Deepseek/SUPER/HERMES require exactly integer
+`ttl_ms: 15000`; Codex without state retains legacy `mode` alone or the leased form above.
+Home permits only `mode`. All four known non-Home profiles accept optional `state`,
+strictly `idle`, `opening` or `error`, always with integer `ttl_ms: 15000`;
+omission means the existing active page. Home and unknown modes reject `state`.
+The nine new Codex/Deepseek/SUPER state modes and commands are appended to the
+firmware enums; existing ordinals are unchanged. Missing or extra fields, wrong types,
 negative, floating, overflowing or different TTL values yield
 `-32602 Invalid params` without changing or renewing the lease.
 
@@ -111,14 +117,27 @@ Home navigation uses `workspace: home`, `direction: left`, and press/release;
 all other Home reactions stay on-device. No payload or device identity is logged.
 
 Only real companion `--watch` mode observes exact foreground bundle IDs:
-`com.zarifpour.superconductor` → SUPER, `com.nousresearch.hermes` → HERMES,
+`com.deepseek.dsh` → Deepseek (DeepSeek Harness; exact identifier only),
+`engineering.super.app` or legacy `com.zarifpour.superconductor` → SUPER,
+`com.nousresearch.hermes` → HERMES,
 everything else → Codex while a work page is selected. Home is a pinned override
-that ignores foreground changes until an explicit left swipe activates Codex.
-Explicit SUPER-left selection is another override:
-Hermes idle is displayed without activating the Mac app. A center request shows
-opening, with error after rejection/3 seconds; only actual Hermes foreground
-enables active mode. External foreground events cancel the selection. Attach
-and restart discard pending requests and select Home in the matched build.
+that ignores foreground changes until an explicit left swipe selects Codex.
+The fixed left cycle is Home → Codex → Deepseek → SUPER → HERMES → Home.
+Every target remains selectable even when its application is not running; left
+never launches a stopped app or skips a target. An already-running application
+may be activated by bundle identifier. A stopped target is pinned as its idle
+page, with a center launch/retry control. Launching uses the fixed profile bundle
+identifier, never a browser, URL, arbitrary text, or keyboard shortcut.
+A center request shows opening, with error after rejection/3 seconds; actual
+matching foreground enables the active page. Left while pending selects the
+next workspace without launching the current or next stopped application.
+SUPER windowless reopen (Companion build10 follow-up) uses only window-level
+presence metadata, never titles/contents. While selected, a 1Hz monitor changes
+confirmed no-window state to existing `super/idle`; no extra firmware event is
+needed. Center rechecks absence before reopening; existing windows remain no-op,
+unknown/permission failure does not imply absence. Reopen completion additionally
+requires a window and the original foreground process identity. Attach and
+restart discard pending requests and select Home in the matched build.
 Entry/attach synchronizes immediately; one 5-second timer renews the current
 mode, including Codex and Home in the matched build. Legacy mode without the
 interaction controller stops renewals on Codex. Failed Codex writes additionally
@@ -129,10 +148,15 @@ Lifecycle generations reject delayed callbacks after stop/restart.
 Failures log at most once per 60 seconds and do not stop HID input, quota or the
 main RunLoop. All observer, timer and writer operations are MainActor-serialized.
 
-Mode changes never wake a sleeping display. SUPER/HERMES isolate Agent, Send,
-voice controls and ChatGPT physical buttons, retaining four swipes and existing
-power/Travel Mode behavior. Disabled short taps do not wake; a swipe that wakes
-the display is consumed without sending navigation.
+Mode changes never wake a sleeping display. Deepseek/SUPER/HERMES and pending
+Codex isolate Agent, Send, voice controls and ChatGPT physical buttons, retaining
+existing power/Travel Mode behavior. Active Deepseek/SUPER/HERMES support four
+swipes and ignore center taps. Every pending page allows only left navigation
+and center launch/retry in idle/error; opening ignores center taps. Pending
+Codex keeps the original dashboard UI unchanged, just like active Codex; no
+four-triangle replacement or launch-status overlay is rendered. Only its pending
+input behavior changes; active Codex retains its original controls. A pending-page sleeping center tap wakes but cannot launch; a
+swipe that wakes the display is consumed without sending navigation.
 
 Palette changes are firmware-local: an accepted awake four-direction swipe selects
 four distinct colors from a fixed 12-color pool, with an 800ms visual cooldown.
@@ -152,27 +176,33 @@ The device sends this fixed newline-terminated event through the existing
 Report 6 fragment channel (not quota GATT or a keyboard Send event):
 
 ```json
-{"method":"host.workspace_action","params":{"action":"open_hermes"}}
+{"method":"host.open_workspace","params":{}}
 ```
 
-Only those two top-level keys and the single string action are accepted; extra
-fields, unknown actions and wrong types are ignored. Center events share the
+Only those two top-level keys and an empty params object are accepted. The
+selected idle/error profile determines the launch target; no target name or
+arbitrary launch parameter is accepted. Compatibility readers also retain
+`host.open_hermes` with `{}` and the previous fixed event
+`{"method":"host.workspace_action","params":{"action":"open_hermes"}}`,
+which can launch only selected Hermes idle/error. Extra fields, unknown actions
+and wrong types are ignored. Center events share the
 800ms direction cooldown and cannot bypass a held radial press. Central input
 must begin/end inside the existing square, last under 500ms and never cross
 the swipe threshold. The sleeping-screen wake gesture is consumed. Long holds
 retain power behavior and cannot emit this event.
 
-The MainActor interaction controller accepts center actions only in Hermes
-idle/error. Opening ignores duplicates, and active Hermes ignores center input.
-One request has a 3-second foreground-confirmation deadline and never retries
-automatically. Directions in idle/opening/error are suppressed; left exits to
-Codex. Late launch callbacks are generation-checked; true foreground activation
+The MainActor interaction controller accepts generic center actions only in a
+selected Codex/Deepseek/SUPER/Hermes idle/error page. Opening ignores duplicates,
+and active pages ignore the generic center event. One request has a 3-second
+foreground-confirmation deadline and never retries automatically. Up/down/right
+in idle/opening/error are suppressed on firmware and host; left advances the fixed
+cycle (Hermes left returns Home). Late launch callbacks are generation-checked; true foreground activation
 still wins. The 5-second writer heartbeat never calls a launch API. A separate
 Desktop KeepAlive LaunchAgent is an installation policy, not this protocol.
 
 ## Host-side direction mapping
 
-Companion 0.1.4 changes host timing only: dedicated SUPER/Hermes up/down/right
+The current Companion retains 0.1.4 timing: dedicated Deepseek/SUPER/Hermes up/down/right
 use a 350ms cooldown between released gestures. The required interval is the
 larger of the previous and current accepted action's cooldown; left, launch and
 native actions therefore retain 800ms protection. Rejected presses still require
@@ -180,8 +210,8 @@ their matching release. Framing, firmware, key mappings and 30ms stroke spacing
 are unchanged. Hermes central opening also requests window-level focus through
 Accessibility; only window handles/state are read, never titles or contents.
 
-In the matching USB-mic firmware and Companion 0.1.1, SUPER and all HERMES states
-send only this dedicated event for each direction press/release:
+In the matching USB-mic firmware and Companion, Deepseek/SUPER/Hermes and pending
+Codex send only dedicated events for accepted direction press/release:
 
 ```json
 {"method":"host.workspace_navigation","params":{"workspace":"hermes","direction":"up","phase":"press"}}
@@ -189,28 +219,60 @@ send only this dedicated event for each direction press/release:
 ```
 
 Exactly `method` and `params` are accepted. Params must contain exactly the three
-string fields: workspace (`super`/`hermes`/`home`), direction (`left`/`up`/`down`/`right`),
+string fields: workspace (`codex`/`deepseek`/`super`/`hermes`/`home`), direction (`left`/`up`/`down`/`right`),
 phase (`press`/`release`). Unknown, missing, extra or wrong-type fields are ignored.
-Home accepts only left. Home up/down/right and head taps do not emit these events.
-Framing remains newline-delimited Report 6. Each press latches its source and
+Home and dedicated Codex accept only left. Active Deepseek/SUPER/Hermes accept
+all four directions; pending pages emit/accept only left. Active Deepseek center
+has no action; pending Deepseek uses the generic center event above. Home
+up/down/right and head taps stay local. Deepseek uses these fixed press/release shapes (direction may also be
+`up`, `down` or `right`):
+
+```json
+{"method":"host.workspace_navigation","params":{"workspace":"deepseek","direction":"left","phase":"press"}}
+{"method":"host.workspace_navigation","params":{"workspace":"deepseek","direction":"left","phase":"release"}}
+```
+
+Deepseek left shares the 800ms cycle cooldown; up/down/right use 350ms, with the
+same matching-origin release gate. Framing remains newline-delimited Report 6. Each press latches its source and
 direction; a matching release rearms the per-device decoder, including after a
 mode transition. A wrong-source/direction release cannot rearm it. Center actions
 share the 800ms cooldown. Disconnect clears that device's latch.
 
-Codex retains native `v.oai.rad` directions. Dedicated workspace presses never
+Active Codex retains native `v.oai.rad` directions unchanged. Pending Codex emits
+only dedicated `workspace: codex` left press/release. Dedicated workspace presses never
 also send native radial input; a prior Codex press still receives its native
 release when switching modes. Native up/down/right are never forwarded to
-SUPER/Hermes. Dedicated directions require matching selected and actual foreground
+Deepseek/SUPER/Hermes. Dedicated up/down/right require matching selected and actual foreground
 profiles and Accessibility; left cycles the matching selected workspace, including
-waiting Hermes. This fixes a native-event leakage path, but must still be physically
+all waiting profiles. This fixes a native-event leakage path, but must still be physically
 verified to cause no background Codex action. Install and roll back matched pairs:
 old firmware with new Companion cannot provide dedicated navigation.
+
+### Deepseek plugin shortcuts
+
+The separate DeepSeek plugin must register `Control-Option-Up`,
+`Control-Option-Down` and `Control-Option-Right`; these are not native shortcuts
+on this host. Companion maps them to `previousDeepseekThread`,
+`nextDeepseekThread` and `toggleDeepseekView`, all with profile `.deepseek`.
+Up/down select existing threads in sidebar order across project boundaries.
+Right toggles chat/trajectory on each accepted gesture; it never creates a thread
+or sends a message. The plugin owns those app-local semantics; Companion does not
+read sidebar/thread content, use AX scraping or transmit thread identifiers.
+
+Each chord is Control down → Option down → arrow down/up → Option up → Control up,
+with the existing 30ms pacing and no global-key/native Codex fallback. Selected
+profile, exact `com.deepseek.dsh` foreground identity, live PID/launch identity and
+Accessibility must all pass; the emitter revalidates identity and permission for
+every scheduled stroke. Cancellation releases only already-submitted held keys
+to their still-valid original PID. Deepseek never enters Hermes' held-Control
+selection lifecycle. Missing plugin support yields no app action, not a fallback.
+Center and the fixed left-cycle behavior are unchanged.
 
 Companion 0.1.2 retains Control across Hermes up/down selection and maps right
 to release of that owned Control (virtual key 59, no flags on release). Without
 owned selection, right is a no-op. Modifier transitions use `flagsChanged` events;
-complete sequences are paced at least 30 ms apart on the main RunLoop. SUPER
-releases all modifiers after each command. Each action validates foreground, PID,
+complete sequences are paced at least 30 ms apart on the main RunLoop.
+Deepseek and SUPER release all modifiers after each command. Each action validates foreground, PID,
 bundle ID, launch time and Accessibility. Cleanup releases only owned keys to
 the original still-valid process; normal SIGTERM/SIGINT attempts cleanup before
 exit. Forced termination and revoked permission cannot guarantee delivery.
@@ -226,7 +288,8 @@ process is this diagnostic-capable version, send that signal to its exact PID to
 enable at most 120 fixed `NAV` records over 300 seconds. Repeated triggers do not
 extend or replenish the budget. Never signal an older Companion (the signal may
 terminate it), start a second watch, or change LaunchAgent arguments for tracing.
-Records identify input origin/direction, rejection stage or submission outcome;
+Records identify input origin/direction (including fixed `deepseek_input`),
+rejection stage or submission outcome;
 they contain no raw reports, arbitrary app names, PIDs, device identifiers or
 user content. `sequence_accepted` records acceptance for scheduling and
 `sequence_busy` records ignored overlapping input. `submitted` marks completion

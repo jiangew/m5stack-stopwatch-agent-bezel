@@ -19,13 +19,20 @@ static std::string json(const Event& event) {
 }
 
 int main() {
+  {
+    Gesture gesture; Event press{}, release{};
+    assert(gesture.begin(Mode::Deepseek, Direction::Left, press));
+    assert(json(press) == "{\"method\":\"host.workspace_navigation\",\"params\":{\"workspace\":\"deepseek\",\"direction\":\"left\",\"phase\":\"press\"}}");
+    assert(gesture.end(release));
+    assert(release.workspace == press.workspace && !release.pressed);
+    assert(json(release).find("v.oai.rad") == std::string::npos);
+  }
   for(auto direction:{Direction::Up,Direction::Down,Direction::Right}){
     Gesture home;Event event{};assert(!home.begin(Mode::Home,direction,event));
   }
   {Gesture home;Event event{};assert(home.begin(Mode::Home,Direction::Left,event));
    assert(json(event)=="{\"method\":\"host.workspace_navigation\",\"params\":{\"workspace\":\"home\",\"direction\":\"left\",\"phase\":\"press\"}}");}
-  for (auto mode : {Mode::Codex, Mode::Super, Mode::Hermes,
-                    Mode::HermesIdle, Mode::HermesOpening, Mode::HermesError}) {
+  for (auto mode : {Mode::Codex, Mode::Deepseek, Mode::Super, Mode::Hermes}) {
     for (auto direction : {Direction::Up, Direction::Down, Direction::Left,
                            Direction::Right}) {
       Gesture gesture;
@@ -53,7 +60,7 @@ int main() {
         assert(up.find("v.oai.rad") == std::string::npos);
         assert(down.find("\"phase\":\"press\"") != std::string::npos);
         assert(up.find("\"phase\":\"release\"") != std::string::npos);
-        assert(down.find(mode == Mode::Super ? "\"workspace\":\"super\"" :
+        assert(down.find(mode == Mode::Deepseek ? "\"workspace\":\"deepseek\"" : mode == Mode::Super ? "\"workspace\":\"super\"" :
                          "\"workspace\":\"hermes\"") != std::string::npos);
       }
       assert(gesture.begin(mode, direction, press));
@@ -63,8 +70,23 @@ int main() {
       assert(press.family == Family::Native);
     }
   }
-  Gesture gesture;
-  Event event{};
-  assert(gesture.begin(Mode::HermesIdle, Direction::Up, event));
-  assert(json(event) == "{\"method\":\"host.workspace_navigation\",\"params\":{\"workspace\":\"hermes\",\"direction\":\"up\",\"phase\":\"press\"}}");
+  for (auto mode : {Mode::CodexIdle, Mode::CodexOpening, Mode::CodexError,
+       Mode::DeepseekIdle, Mode::DeepseekOpening, Mode::DeepseekError,
+       Mode::SuperIdle, Mode::SuperOpening, Mode::SuperError,
+       Mode::HermesIdle, Mode::HermesOpening, Mode::HermesError}) {
+    Gesture gesture; Event event{}, release{};
+    for (auto direction : {Direction::Up, Direction::Down, Direction::Right})
+      assert(!gesture.begin(mode, direction, event));
+    assert(gesture.begin(mode, Direction::Left, event));
+    const char* profile = workspace_mode::isCodex(mode) ? "codex" :
+        workspace_mode::isDeepseek(mode) ? "deepseek" :
+        workspace_mode::isSuper(mode) ? "super" : "hermes";
+    assert(json(event) == std::string("{\"method\":\"host.workspace_navigation\",\"params\":{\"workspace\":\"") + profile + "\",\"direction\":\"left\",\"phase\":\"press\"}}");
+    assert(!gesture.begin(Mode::Codex, Direction::Right, release));
+    assert(gesture.end(release));
+    assert(release.family == Family::Dedicated && release.workspace == event.workspace);
+    assert(!release.pressed && release.direction == Direction::Left);
+    assert(json(release).find("v.oai.rad") == std::string::npos);
+    assert(!gesture.end(release));
+  }
 }

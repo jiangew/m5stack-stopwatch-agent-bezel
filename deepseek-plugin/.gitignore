@@ -1,0 +1,5 @@
+# Package-manager operational logs/cache may contain machine-local paths.
+artifacts/npm-cache/
+node_modules/
+# New release tarballs and pack cache remain local and ignored.
+outputs/local/
