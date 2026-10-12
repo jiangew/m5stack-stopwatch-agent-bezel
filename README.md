@@ -1,4 +1,4 @@
-# Stopwatch AgentBezel C152
+# StopWatch AgentBezel based on M5Stack C152 StopWatch Dev Kit（ESP32-S3R8）
 
 [简体中文](README.zh-CN.md)
 
@@ -19,22 +19,22 @@ Companion build14 unifies foreground handling for all four Agent pages. Left
 selects a page without activating a background app. A foreground target is ready
 immediately; a missing or background target waits for a center tap to launch or
 activate and reopen a closed last window. Mac foreground changes preserve the selected page. This Companion-only
-update uses the existing build9 five-screen firmware. Deepseek, SUPER and Hermes
+update uses the existing build9 five-screen firmware. DSH, SUPER and Hermes
 check for an actual application window; closing the last window returns to
 **TAP TO OPEN** on the next one-second check. A slow reopen automatically becomes
 operational when its real foreground window is ready, including after a timeout.
 See the
 [control diagnosis and acceptance record](docs/CONTROL_AVAILABILITY.zh-CN.md).
 
-- Five screens: robot Home → Codex / ChatGPT → Deepseek → SUPER → HERMES → Home.
+- Five screens: robot Home → Codex / ChatGPT → DSH → SUPER → HERMES → Home.
 - Home: four robot portraits without decorative boundary rings; up/down/right
   still select characters. Center tap blinks the selected character's eyes three
   times, without speech, talking animation, haptics or Mac input. Repeated taps
   during the sequence do not restart it or queue another sequence.
-- Deepseek: the same four-triangle layout as SUPER. Up/down navigate existing
+- DSH: the same four-triangle layout as SUPER. Up/down navigate existing
   threads in sidebar order across project boundaries; right switches Chat /
   Trajectory. Requires the optional navigation plugin; center and physical
-  action buttons remain disabled when active. The title is exactly `DeepSeek`
+  action buttons remain disabled when active. The title is exactly `DSH`
   using the same font as SUPER/HERMES, fitted within the center panel.
 - When a harness is not running, left selects its waiting page without launching;
   center explicitly launches/retries. Opening rejects repeated taps. Existing
@@ -87,10 +87,10 @@ JPEG assets. They are not film frames, official logos, or network-fetched media.
 Leaving Home resets the next visit to Bumblebee.
 
 <table>
-  <tr><th>Codex Micro</th><th>Deepseek</th><th>super.engineering</th><th>Hermes Desktop</th></tr>
+  <tr><th>Codex Micro</th><th>DSH</th><th>super.engineering</th><th>Hermes Desktop</th></tr>
   <tr>
     <td width="25%"><img src="artifacts/dashboard-preview-v2-round.png" alt="Codex Micro dashboard with six controls, quota and battery"></td>
-    <td width="25%"><img src="artifacts/deepseek-workspace-preview.png" alt="Deepseek with CYCLE, PREV, NEXT and VIEW"></td>
+    <td width="25%"><img src="artifacts/deepseek-workspace-preview.png" alt="DSH with CYCLE, PREV, NEXT and VIEW"></td>
     <td width="25%"><img src="artifacts/super-workspace-preview.png" alt="SUPER with four colored triangles and no separate center border"></td>
     <td width="25%"><img src="artifacts/hermes-workspace-preview.png" alt="HERMES with CYCLE, PREV, NEXT and OPEN controls"></td>
   </tr>
@@ -98,18 +98,18 @@ Leaving Home resets the next visit to Bumblebee.
 
 These are native framebuffer design previews, not hardware photographs.
 
-**Swipe left to cycle: Home → Codex / ChatGPT → Deepseek → SUPER → HERMES → Home.**
+**Swipe left to cycle: Home → Codex / ChatGPT → DSH → SUPER → HERMES → Home.**
 The current Codex / ChatGPT entry uses `com.openai.codex`; it is one target,
 not two. Left selects Codex; if absent, only center launches it. A foreground target is ready immediately; a running background target
 waits for a center tap to activate. Returning Home leaves the Mac unchanged. Missing or rejected
 targets show their waiting/error page; center retries, left continues the cycle. The former “return to previous
 app” behavior is replaced by this fixed cycle.
 
-| Input | Robot Home | Codex Micro | Deepseek | SUPER | HERMES |
+| Input | Robot Home | Codex Micro | DSH | SUPER | HERMES |
 | --- | --- | --- | --- | --- | --- |
 | Left physical / right physical | No action¹ | Push to talk / Voice Chat | No action¹ | No action¹ | No action¹ |
 | Center tap | Three silent blinks | Launch/retry when waiting; Send when active | Launch/retry when waiting; no action when active | Launch/retry when waiting; no action when active | Launch/retry when waiting; no action when active |
-| Swipe left | Select Codex | Select DeepSeek | Select SUPER | Select HERMES | Enter Home |
+| Swipe left | Select Codex | Select DSH | Select SUPER | Select HERMES | Enter Home |
 | Swipe up | Optimus / back to Bumblebee | Existing app mapping | Previous thread | Previous project | Browse previous session |
 | Swipe down | Megatron / back to Bumblebee | Existing app mapping | Next thread | Next project | Browse next session |
 | Swipe right | Starscream / back to Bumblebee | Existing app mapping | Chat / Trajectory | Next session Tab | Open owned selection; otherwise no action |
@@ -150,8 +150,8 @@ experimental until that checklist is complete.
 
 ## DeepSeek Harness workspace
 
-The **Deepseek** page uses the exact app bundle `com.deepseek.dsh`, not a browser
-URL or CLI. Left from Codex selects it; left from Deepseek selects SUPER.
+The **DSH** page uses the exact app bundle `com.deepseek.dsh`, not a browser
+URL or CLI. Left from Codex selects it; left from DSH selects SUPER.
 The CYCLE / PREV / NEXT / VIEW triangles share SUPER's geometry and palette.
 Up/down select the previous/next existing thread in sidebar order, continuing
 across project boundaries; right switches the main Chat / Trajectory view.
@@ -323,7 +323,7 @@ Choose the intended experience before building:
 
 | Experience | Firmware | What you get |
 | --- | --- | --- |
-| Five-screen AgentBezel described above | Explicitly choose `pio run -d usb-mic` + matching source-built Companion | Robot Home blinking, Codex, Deepseek, SUPER, HERMES, input-only USB microphone |
+| Five-screen AgentBezel described above | Explicitly choose `pio run -d usb-mic` + matching source-built Companion | Robot Home blinking, Codex, DSH, SUPER, HERMES, input-only USB microphone |
 | Basic Codex-only compatibility | `pio run -e m5stack-stopwatch` | Codex dashboard and BLE controls, Mac-selected microphone; no multi-screen Home/selector |
 
 The following prompt **explicitly selects the five-screen USB-mic variant**.
@@ -334,7 +334,7 @@ serial port, and paste this into Codex:
 ```text
 Install the five-screen AgentBezel experience on my M5Stack StopWatch Dev Kit C152.
 I choose the isolated USB-mic firmware and matching Companion, including Home,
-Codex, Deepseek, SUPER and HERMES. Home taps blink silently.
+Codex, DSH, SUPER and HERMES. Home taps blink silently.
 
 Read AGENTS.md and README.md completely before acting. Work through the setup
 autonomously, but follow these safety rules:

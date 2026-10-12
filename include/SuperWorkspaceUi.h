@@ -197,7 +197,7 @@ void drawCenterPanel(Surface& surface, const State& state) {
                    kCenterFill);
 
   const bool pending = state.hermesPresentation != HermesPresentation::Active;
-  const char* title = state.profile == Profile::Deepseek ? "DeepSeek"
+  const char* title = state.profile == Profile::Deepseek ? "DSH"
       : state.profile == Profile::Hermes ? "HERMES" : kTitle;
   // All titles use the same font asset. Measure at the preferred size before
   // shrinking longer names to the 178px interior; never stretch shorter names.

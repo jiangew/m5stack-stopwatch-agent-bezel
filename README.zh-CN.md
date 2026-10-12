@@ -1,4 +1,4 @@
-# Stopwatch AgentBezel C152
+# StopWatch AgentBezel based on M5Stack C152 StopWatch Dev Kit（ESP32-S3R8）
 
 [English](README.md)
 
@@ -20,10 +20,10 @@ DeepSeek、SUPER、Hermes 还检查实际窗口：关闭最后一个窗口后，
 本次仅更新 Companion，沿用 build9 五屏固件。
 详见[功能诊断与验收记录](docs/CONTROL_AVAILABILITY.zh-CN.md)。
 
-- 五屏循环：机器人首页 → Codex / ChatGPT → Deepseek → SUPER → HERMES → 首页。
+- 五屏循环：机器人首页 → Codex / ChatGPT → DSH → SUPER → HERMES → 首页。
 - 首页：四角色去掉装饰性边界圆圈；上/下/右继续静音切角色，中央点按连续眨眼三次，
   不播放语音、不做说话动画、不振动，也不发送 Mac 操作；动画中连点不排队或重启。
-- DeepSeek：与 SUPER 相同的四色三角布局和标题字体；上下按侧栏顺序切换已有 thread、跨项目边界，
+- DSH：桌面标题显示为 `DSH`，沿用 SUPER 的四色三角布局和标题字体；上下按侧栏顺序切换已有 thread、跨项目边界，
   右滑切“对话／轨迹”。需要配套导航插件；已激活时中央与实体操作键保持无动作。
 - 所有 harness 未运行时，左滑仅选择对应桌面，中央点按才启动；启动中阻止连点，失败可重试。
   **CODEX 所有状态始终保留原仪表盘 UI**，不改四向布局、不添加新提示；仅未启动时中央改为启动／重试。
@@ -64,10 +64,10 @@ USB 麦克风和 Codex 完成提示音保持原样，不新增 USB 扬声器、�
 运行时网络素材。离开首页后，下次进入会重置为大黄蜂。
 
 <table>
-  <tr><th>Codex Micro</th><th>Deepseek</th><th>super.engineering</th><th>Hermes Desktop</th></tr>
+  <tr><th>Codex Micro</th><th>DSH</th><th>super.engineering</th><th>Hermes Desktop</th></tr>
   <tr>
     <td width="25%"><img src="artifacts/dashboard-preview-v2-round.png" alt="含六项控制、额度与电量的 Codex Micro 面板"></td>
-    <td width="25%"><img src="artifacts/deepseek-workspace-preview.png" alt="Deepseek 四向 CYCLE、PREV、NEXT、VIEW 布局"></td>
+    <td width="25%"><img src="artifacts/deepseek-workspace-preview.png" alt="DSH 四向 CYCLE、PREV、NEXT、VIEW 布局"></td>
     <td width="25%"><img src="artifacts/super-workspace-preview.png" alt="四色三角形、无独立中心边框的 SUPER 屏幕"></td>
     <td width="25%"><img src="artifacts/hermes-workspace-preview.png" alt="含 CYCLE、PREV、NEXT、OPEN 的 HERMES 屏幕"></td>
   </tr>
@@ -75,17 +75,17 @@ USB 麦克风和 Codex 完成提示音保持原样，不新增 USB 扬声器、�
 
 以上是 native framebuffer 设计预览，不是真机照片。
 
-**左滑循环：首页 → Codex / ChatGPT → Deepseek → SUPER → HERMES → 首页。**
+**左滑循环：首页 → Codex / ChatGPT → DSH → SUPER → HERMES → 首页。**
 当前 Codex / ChatGPT 入口使用 `com.openai.codex`，只算一个目标，不拆成两个。
 从首页左滑选择 Codex：未运行时仅显示待启动页，点中央才启动；已在前台时直接可操作，后台运行时等待中央点按唤起。
 返回首页不改变 Mac 前台。找不到或无法激活的目标不会被自动跳过，错误页可点中央重试或左滑继续。
 原来的“返回之前应用”已被固定循环替代。
 
-| 输入 | 机器人首页 | Codex Micro | Deepseek | SUPER | HERMES |
+| 输入 | 机器人首页 | Codex Micro | DSH | SUPER | HERMES |
 | --- | --- | --- | --- | --- | --- |
 | 左实体键 / 右实体键 | 无动作¹ | Push to talk / Voice Chat | 无动作¹ | 无动作¹ | 无动作¹ |
 | 中心短点 | 静音连续眨眼三次 | 待启动时启动／重试；操作页 Send | 待启动时启动／重试；操作页无动作 | 待启动时启动／重试；操作页无动作 | 待启动时启动／重试；操作页无动作 |
-| 左滑 | 选择 Codex | 选择 DeepSeek | 选择 SUPER | 选中 HERMES 待启动页 | 进入首页 |
+| 左滑 | 选择 Codex | 选择 DSH | 选择 SUPER | 选中 HERMES 待启动页 | 进入首页 |
 | 上滑 | 擎天柱／返回大黄蜂 | 应用现有映射 | 上一条 thread | 上一个项目 | 浏览上一个会话 |
 | 下滑 | 威震天／返回大黄蜂 | 应用现有映射 | 下一条 thread | 下一个项目 | 浏览下一个会话 |
 | 右滑 | 红蜘蛛／返回大黄蜂 | 应用现有映射 | 对话／轨迹切换 | 下一个会话 Tab | 打开本次选择；无选择则无动作 |
@@ -119,8 +119,8 @@ ChatGPT Desktop 仅暴露一个 Mic key，而非单独的 `ACT10` 和 `ACT11`：
 
 ## DeepSeek Harness 工作区
 
-**Deepseek** 通过准确的应用 bundle `com.deepseek.dsh` 激活桌面客户端，不打开浏览器 URL
-或 CLI。从 Codex 左滑进入；从 Deepseek 左滑选择 SUPER。四色三角形布局与 SUPER 一致：
+**DSH** 通过准确的应用 bundle `com.deepseek.dsh` 激活桌面客户端，不打开浏览器 URL
+或 CLI。从 Codex 左滑进入；从 DSH 左滑选择 SUPER。四色三角形布局与 SUPER 一致：
 上 PREV、下 NEXT、右 VIEW、左 CYCLE。上/下按侧栏顺序选上一条/下一条已有 thread，
 到项目边界继续相邻项目；右滑在当前主工作窗口“对话／轨迹”之间切换。未启动时中央用于启动／重试；
 真实激活后的中央及实体操作键无动作。待启动／启动中／错误页仅允许左滑和有效的中央启动，不发送导航键。
@@ -249,7 +249,7 @@ USB-C 线，以及已登录且支持 Codex Micro 的 ChatGPT Desktop。本移植
 
 | 体验 | 固件 | 包含功能 |
 | --- | --- | --- |
-| 上文完整五屏 AgentBezel | 明确选择 `pio run -d usb-mic`＋匹配的源码构建 Companion | 首页眨眼、Codex、Deepseek、SUPER、HERMES、纯输入 USB 麦克风 |
+| 上文完整五屏 AgentBezel | 明确选择 `pio run -d usb-mic`＋匹配的源码构建 Companion | 首页眨眼、Codex、DSH、SUPER、HERMES、纯输入 USB 麦克风 |
 | 基础 Codex 兼容面板 | `pio run -e m5stack-stopwatch` | Codex 面板和 BLE 控制，使用 Mac 所选麦克风；不含多屏首页及角色选择 |
 
 以下提示词**明确选择五屏 USB-mic 版本**。如果只需要基础 Codex 面板，请改用手动章节的
@@ -257,7 +257,7 @@ USB-C 线，以及已登录且支持 Codex Micro 的 ChatGPT Desktop。本移植
 
 ```text
 请在我的 M5Stack StopWatch Dev Kit C152 上安装五屏 AgentBezel。
-我选择独立 USB-mic 固件及匹配的 Companion，包含首页、Codex、Deepseek、SUPER、HERMES。
+我选择独立 USB-mic 固件及匹配的 Companion，包含首页、Codex、DSH、SUPER、HERMES。
 首页点按仅静音眨眼。
 
 开始前完整阅读 AGENTS.md 和 README.zh-CN.md。请自主完成安装流程，但严格遵守：

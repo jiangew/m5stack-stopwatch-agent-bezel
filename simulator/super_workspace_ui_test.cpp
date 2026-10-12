@@ -136,7 +136,7 @@ void testPendingProfilesShowPromptWithoutLosingConnectionOrBattery() {
     auto has = [&](const char* text) {
       return std::find(surface.texts.begin(), surface.texts.end(), text) != surface.texts.end();
     };
-    const char* title = profile == Profile::Deepseek ? "DeepSeek"
+    const char* title = profile == Profile::Deepseek ? "DSH"
         : profile == Profile::Hermes ? "HERMES" : "SUPER";
     assert(has(title) && has(item.second) && has("CONNECTED") && has("100%"));
     for (const auto& draw : surface.textDraws) {
@@ -285,7 +285,7 @@ void testDeepseekSharesFourDirectionalControls() {
   auto has = [&](const char* text) {
     return std::find(surface.texts.begin(), surface.texts.end(), text) != surface.texts.end();
   };
-  assert(has("DeepSeek") && !has("Deepseek") && !has("DEEPSEEK"));
+  assert(has("DSH") && !has("DeepSeek") && !has("Deepseek") && !has("DEEPSEEK"));
   assert(has("CYCLE") && has("OFFLINE") && has("--%"));
   assert(has("PREV") && has("NEXT") && has("VIEW"));
   assert(!has("TAB") && !has("OPEN"));
@@ -320,12 +320,9 @@ void testTitlesShareFontAndFitMeasuredInterior() {
       assert(title.x - title.width / 2 >= 144);
       assert(title.x + (title.width + 1) / 2 <= 322);
       if (profile == Profile::Deepseek) {
-        assert(title.text == "DeepSeek" && title.text.size() == 8);
-        assert(title.size < 1.0f && title.size > 0.7f);
-        assert(title.width >= 168);
-      } else {
-        assert(title.size == 1.0f);
+        assert(title.text == "DSH" && title.text.size() == 3);
       }
+      assert(title.size == 1.0f);
       assert(!surface.fontLoaded);
     }
   }

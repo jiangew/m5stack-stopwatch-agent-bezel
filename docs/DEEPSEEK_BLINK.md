@@ -1,5 +1,17 @@
 # Five workspaces and silent Home blinking
 
+## DSH display label (2026-10-12)
+
+The DeepSeek Harness page now displays `DSH` in active, idle, opening and error
+states. It uses the existing SpaceMono46 font at its normal size within the same
+center panel. The `deepseek` protocol mode, `com.deepseek.dsh` application bundle,
+plugin bindings and navigation behavior are unchanged. Both README titles and
+page labels, plus the public native-rendered preview, are synchronized.
+
+Validation covers the existing native UI regression and headless framebuffer
+previews. This label update has not been flashed or physically accepted. The
+`DeepSeek` title and scaling notes below describe earlier versions.
+
 ## Build9 installed acceptance and SUPER windowless follow-up
 
 Build9 and matching USB-mic application firmware were installed with separate
