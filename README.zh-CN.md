@@ -31,10 +31,10 @@ DeepSeek、SUPER、Hermes 还检查实际窗口：关闭最后一个窗口后，
 - 专属导航保留 350ms 释放门控；切屏/启动保留 800ms 保护，按键序列间隔 30ms。
 
 详见[变更及验证记录](docs/DEEPSEEK_BLINK.md)。
-**本次版本尚未刷机或通过实机验收。**
+**DSH 命名更新已于 2026-10-12 刷入；用户确认标题及上／下／右操作正常。**
 [此前首页验收](docs/superpowers/plans/2026-09-21-home-equal-spacing-half-volume.md)和
 [导航验收](docs/superpowers/plans/2026-09-12-paced-navigation-verification.md)
-只证明历史版本，不代表本次改动已在设备验证。
+上述记录覆盖历史版本；本次 DSH 验收范围见当前变更记录。
 
 ## 机器人首页与四个工作区
 

@@ -45,10 +45,10 @@ See the
   retains 800ms protection and key sequences retain 30ms pacing.
 
 See [change details and validation](docs/DEEPSEEK_BLINK.md).
-**This revision has not been flashed or physically accepted.** Historical
+**The DSH label update was flashed on 2026-10-12; the user confirmed the title and up/down/right controls normal.** Historical
 [Home acceptance](docs/superpowers/plans/2026-09-21-home-equal-spacing-half-volume.md)
 and [navigation acceptance](docs/superpowers/plans/2026-09-12-paced-navigation-verification.md)
-refer to earlier images, not these changes.
+cover earlier images; the current change record documents the DSH acceptance scope.
 
 ## Robot Home and four workspaces
 

@@ -8,9 +8,15 @@ center panel. The `deepseek` protocol mode, `com.deepseek.dsh` application bundl
 plugin bindings and navigation behavior are unchanged. Both README titles and
 page labels, plus the public native-rendered preview, are synchronized.
 
-Validation covers the existing native UI regression and headless framebuffer
-previews. This label update has not been flashed or physically accepted. The
-`DeepSeek` title and scaling notes below describe earlier versions.
+Native UI, production draw/launch regressions and headless framebuffer previews
+passed. Firmware built from source commit `ee80260` was flashed to the existing
+USB-mic app0 partition after exact-device confirmation on 2026-10-12. Written
+data and an independent device digest check passed; partition table, NVS and OTA
+metadata remained byte-identical. Companion build15 and its LaunchAgent remained
+unchanged; USB microphone enumeration and a fresh Companion HID connection were
+observed after reboot. The user confirmed the `DSH` title and up/down/right
+navigation normal. This acceptance covers the label update and those controls.
+The `DeepSeek` title and scaling notes below describe earlier versions.
 
 ## Build9 installed acceptance and SUPER windowless follow-up
 
