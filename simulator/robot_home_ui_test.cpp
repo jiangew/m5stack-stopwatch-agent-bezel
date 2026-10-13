@@ -30,9 +30,11 @@ struct Surface {
 };
 int main(){
   using namespace robot_home;
+  assert(kCharacterCount==9&&kFullbodyCount==8);
   std::vector<const std::uint8_t*> identities;
   for(auto c:{Character::Bumblebee,Character::BumblebeeFullbody,Character::Optimus,
-              Character::Jazz,Character::Hotrod,Character::Wheeljack,Character::Hound}) {
+              Character::Jazz,Character::Hotrod,Character::Wheeljack,Character::Hound,
+              Character::Ironhide,Character::Ratchet}) {
     State state;state.character=c;state.connected=true;state.batteryPercent=82;
     Surface idle;render(idle,state);
     assert(idle.portraits.size()==1&&idle.effects==0);
@@ -54,4 +56,5 @@ int main(){
     state.mood=Mood::Idle;state.transitionProgress=0;
     Surface arrival;render(arrival,state);assert(arrival.portraits[0].scale<portrait.scale);
   }
+  assert(identities.size()==9);
 }

@@ -8,7 +8,7 @@ namespace robot_home {
 struct PortraitImage { const std::uint8_t* bytes; std::uint32_t size; };
 
 // Sprite is injected so allocation/decode failures can be tested on the host.
-// Full cache: 7 * 300 * 300 * 2 bytes in PSRAM. Fallback: one reused sprite.
+// Full cache: 9 * 300 * 300 * 2 bytes in PSRAM. Fallback: one reused sprite.
 template <class Sprite>
 class PortraitCache {
  public:
@@ -77,7 +77,7 @@ class PortraitCache {
       allocated_[i] = decoded_[i] = false;
     }
   }
-  static constexpr std::size_t kCapacity = 7;
+  static constexpr std::size_t kCapacity = 9;
   std::array<Sprite, kCapacity> sprites_;
   std::array<PortraitImage, kCapacity> images_{};
   std::array<bool, kCapacity> allocated_{}, decoded_{}, failed_{};

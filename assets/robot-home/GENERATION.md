@@ -1,8 +1,8 @@
 # Home Autobot artwork
 
-The shipped roster contains seven 300×300 baseline RGB JPEGs on black. Their
+The shipped roster contains nine 300×300 baseline RGB JPEGs on black. Their
 outer 18px remains black within 12/255 JPEG tolerance so the 1.18× Home
-animation can stay clear of the status and battery rows. The six full-body
+animation can stay clear of the status and battery rows. The eight full-body
 images are built-in imagegen fan illustrations of recognizable Transformers
 characters. The preserved portrait and new images are unofficial, unlicensed
 artwork embedded in firmware; Home does not fetch images over a network.
@@ -13,8 +13,8 @@ artwork embedded in firmware; Home does not fetch images over a network.
   JPEG is preserved byte for byte at SHA-256
   `f1bb7e24fe30631b15e1999c35a0b8d4024d3fc52b222aa0ad6c5d6676a9d191`.
 - `bumblebeefullbody.png`, `optimus.png`, `jazz.png`, `hotrod.png`,
-  `wheeljack.png`, and `hound.png` are fitted 300px, black-backed production
-  inputs. All six original full-resolution illustrations were produced with
+  `wheeljack.png`, `hound.png`, `ironhide.png`, and `ratchet.png` are fitted 300px,
+  black-backed production inputs. All eight original full-resolution illustrations were produced with
   the built-in imagegen tool. The unmodified full-resolution files stay in
   local task outputs, outside Git. Fitting crops only near-black outer canvas,
   scales each complete figure to at most 246×264, and centers it on 300×300
@@ -35,6 +35,13 @@ artwork embedded in firmware; Home does not fetch images over a network.
   small engineering wrench; Hound adds olive jeep armor, circular lamps,
   off-road wheels, radio antenna and a salute. Their complete prompt text is
   retained in the local task output `new-character-prompts.md`.
+- Ironhide and Ratchet use the same three-head-tall, cel-shaded, black-background
+  style. Ironhide has a red van-cab chest, black windshield, silver thighs and
+  a stocky veteran pose. Ratchet has white ambulance armor, red medical marks,
+  blue eyes and a friendly medic pose. Their exact built-in imagegen prompts
+  and full-resolution originals remain in the local task output
+  `home-autobots-ironhide-ratchet`; the committed 300px PNGs are the fitted
+  production inputs. No external image service or API key was used.
 
 The generated imagery may include small insignia-like armor graphics. Asset
 provenance describes how the files were made; it does not claim ownership of
@@ -52,7 +59,7 @@ swift -module-cache-path /private/tmp/autobot-swift-cache simulator/robot_home_a
 ```
 
 The preparation script preserves the accepted Bumblebee radial crop and JPEG
-encoder settings. It serializes the other six black-backed PNGs without resizing
+encoder settings. It serializes the other eight black-backed PNGs without resizing
 them, then removes retired generated JPEGs. The embed script validates the JPEG
 boundary and 50 KiB ceiling. The tests check exact header payloads, ImageIO
 decoding, margins, distinct decoded artwork, deterministic regeneration and the

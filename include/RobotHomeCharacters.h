@@ -20,6 +20,8 @@ inline Asset assetFor(Character character) {
     case Character::Hotrod: return {art_data::kHotrodJpg,art_data::kHotrodJpgSize};
     case Character::Wheeljack: return {art_data::kWheeljackJpg,art_data::kWheeljackJpgSize};
     case Character::Hound: return {art_data::kHoundJpg,art_data::kHoundJpgSize};
+    case Character::Ironhide: return {art_data::kIronhideJpg,art_data::kIronhideJpgSize};
+    case Character::Ratchet: return {art_data::kRatchetJpg,art_data::kRatchetJpgSize};
   }
   return {art_data::kBumblebeeJpg,art_data::kBumblebeeJpgSize};
 }

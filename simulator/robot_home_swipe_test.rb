@@ -61,6 +61,15 @@ fixture = <<~CPP
     reset();updateTouchGesture(200,140);assert(sent==0&&haptics==1&&speech==0&&cancels==1);
     assert(activeSwipe==Direction::None&&!touchTracking);
     assert(robotCharacters.character()==robot_home::Character::BumblebeeFullbody);
+    // The actual gesture path can reach both added bodies from the portrait.
+    for(const auto xy:{std::pair<int,int>{200,140},{200,260},{260,200}}){
+      reset();entropy=6;updateTouchGesture(xy.first,xy.second);
+      assert(robotCharacters.character()==robot_home::Character::Ironhide&&entropyCalls==1);
+      reset();entropy=7;updateTouchGesture(xy.first,xy.second);
+      assert(robotCharacters.character()==robot_home::Character::Ratchet&&entropyCalls==1);
+    }
+    entropy=0;
+    reset();updateTouchGesture(200,140);
     reset(false);updateTouchGesture(200,140);
     assert(robotCharacters.character()==robot_home::Character::Optimus);
     assert(sent==0&&haptics==1&&entropyCalls==1);

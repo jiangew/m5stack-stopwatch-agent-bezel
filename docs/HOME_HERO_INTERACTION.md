@@ -1,7 +1,7 @@
 # Home hero interaction — 2026-10-13
 
 This source update replaces the former triple blink with press/release skills
-for **Bumblebee portrait, Bumblebee full body, Optimus Prime, Jazz, Hot Rod, Wheeljack and Hound**. It requires the
+for **Bumblebee portrait, Bumblebee full body, Optimus Prime, Jazz, Hot Rod, Wheeljack, Hound, Ironhide and Ratchet**. It requires the
 five-screen `m5stack-stopwatch-usb-mic` firmware; the default wireless image
 remains the Codex dashboard. The existing Companion and protocol are unchanged.
 
@@ -13,7 +13,7 @@ remains the Codex dashboard. The existing Companion and protocol are unchanged.
 | Release before 500ms, remaining inside the portrait area | Release one 420ms skill and request one short 25ms haptic |
 | New press during a skill | Interrupt and immediately begin new energy feedback |
 | Move outside portrait area or at least 52px from start | Cancel the tap; a classified swipe may select a hero or cycle workspaces |
-| Up / down / right | From the default portrait, uniformly choose one of six full-body heroes; thereafter choose among the other five full bodies, with one existing 40ms swipe haptic |
+| Up / down / right | From the default portrait, uniformly choose one of eight full-body heroes; thereafter choose among the other seven full bodies, with one existing 40ms swipe haptic |
 | Left | Existing workspace cycle; no new Mac action is attached to skills |
 | First touch while asleep | Wake only; no skill or hero change |
 | Leave Home / sleep / power overlay | Cancel the reaction; existing long-hold power flow remains |
@@ -34,13 +34,15 @@ repetition is forbidden. One held swipe never repeats selection.
 | Hot Rod | Orange speed streaks |
 | Wheeljack | Green electrical arcs |
 | Hound | Green scanning rings |
+| Ironhide | Red and orange impact circles |
+| Ratchet | Cyan scan with a red diagnostic marker |
 
 All skills are silent. State and battery retain their existing positions and
 real data sources. Preview values are fixtures, not device telemetry.
 
 ## Rendering and failure behavior
 
-- Seven 300×300 RGB565 sprites require approximately 1,260,000 bytes and are
+- Nine 300×300 RGB565 sprites require approximately 1,620,000 bytes and are
   predecoded in PSRAM on entering Home. Animation reuses these pixels instead
   of repeatedly decoding JPEGs.
 - Allocation failure frees the partial set and attempts one reusable buffer.
@@ -63,7 +65,7 @@ real data sources. Preview values are fixtures, not device telemetry.
 The original Bumblebee portrait source and accepted idle JPEG are preserved;
 the idle JPEG SHA-256 is
 `f1bb7e24fe30631b15e1999c35a0b8d4024d3fc52b222aa0ad6c5d6676a9d191`.
-The six full-body PNGs come from built-in imagegen output and are fitted to the
+The eight full-body PNGs come from built-in imagegen output and are fitted to the
 300px black-backed source tiles. The earlier Optimus portrait has been retired
 from the active Home roster. Generation briefs and reproduction details are in
 [artwork provenance](../assets/robot-home/GENERATION.md). This is unofficial
@@ -83,19 +85,27 @@ The implementation includes:
   ordering, wake/hold isolation, random swipes and existing Agent controls.
 - Actual `drawScreen` tests for crossing reaction/transition expiry during a
   simulated panel transfer and Codex dashboard pixel equality.
-- Decoded native sequence checks for all seven choices: immediate visible press
+- Decoded native sequence checks for all nine choices: immediate visible press
   and skill, identical status/battery pixels and final idle-frame equality.
 - Real JPEG/header-byte/determinism checks through Python and independent
   ImageIO decoding through Swift.
 - Compression-tolerant artwork identity checks reject re-encoded duplicates
-  of all seven images while accepting the distinct shipped figures.
+  of all nine images while accepting the distinct shipped figures.
 
-Validation record for the seven-choice source build: **5 Python artwork tests**,
+Validation record for the earlier seven-choice source build: **5 Python artwork tests**,
 **7 ImageIO decodes**, seven native spacing sequences, real gesture and production
 draw regressions passed. Native preview, default firmware and five-screen USB-mic
 firmware built successfully. Exact commands and outputs are recorded in the local
 Task 2 validation report. One upstream M5GFX Clang VLA-extension
 warning remains in native compilation; no new source compile errors occurred.
+
+The current nine-image source build passed the same five Python artwork tests,
+nine independent ImageIO decodes, selector/cache/frame/interaction/UI tests,
+actual gesture/reaction/launch/draw regressions, and nine native spacing
+sequences (270 retained frames). Native preview, default firmware, and selected
+five-screen USB-mic firmware built. The two new README previews were exported
+from the native framebuffer. This source build has not been flashed or accepted
+on physical C152 hardware; see the current Task 1 report for command results.
 
 Run the core checks from the repository root:
 
@@ -151,7 +161,7 @@ Private backups, firmware and detailed device logs stay local.
 
 The user later confirmed the earlier interaction felt normal in use; that was
 subjective acceptance, not a measured response-latency result. The current
-seven-choice source build has not been written to hardware. Physical acceptance
+nine-image, eight-body source build has not been written to hardware. Physical acceptance
 for this build must cover each choice's perceived response, repeated taps,
 random swipes, wake/long hold, left cycling, Agent navigation and microphone
 streaming. Measure at least 30 responses per hero, with a target P95 of 80ms or

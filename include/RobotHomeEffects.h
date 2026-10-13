@@ -17,6 +17,8 @@ inline std::uint16_t tint(Character c) {
     case Character::Hotrod:return 0xFC00;
     case Character::Wheeljack:return 0x07E0;
     case Character::Hound:return 0x47E8;
+    case Character::Ironhide:return 0xF800;
+    case Character::Ratchet:return 0x07FF;
   }
   return 0xFFFF;
 }
@@ -108,6 +110,24 @@ void render(Surface& surface,Character character,Mood mood,std::uint32_t elapsed
         surface.drawCircle(cx,cy,std::max(3,r*ring/3),fade(color,1.0f-.18f*(3-ring)));
       const float a=-kTau/4+kTau*t;
       stroke(surface,cx,cy,point(cx+r*std::cos(a)),point(cy+r*std::sin(a)),color);
+      break;
+    }
+    case Character::Ironhide: {
+      const int radius=14+point(44*std::sqrt(t));
+      surface.drawCircle(cx,cy,radius,color);
+      surface.drawCircle(cx,cy,std::max(3,radius-16),fade(0xFC00,1-.55f*t));
+      for(int side:{-1,1}) {
+        const int x=cx+side*(radius+5);
+        stroke(surface,x,cy-11,x+side*12,cy-22,fade(0xFC00,1-.55f*t));
+      }
+      break;
+    }
+    case Character::Ratchet: {
+      const int y=160+point(145*t);
+      for(int dy=-1;dy<=1;++dy)stroke(surface,151,y+dy,315,y+dy,color);
+      const int markX=233+point(56*std::sin(kTau*t));
+      stroke(surface,markX,y-12,markX,y+12,fade(0xF800,1-.45f*t));
+      surface.drawCircle(markX,y,9,fade(0xF800,1-.45f*t));
       break;
     }
   }

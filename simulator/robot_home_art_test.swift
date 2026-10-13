@@ -4,7 +4,7 @@ import CoreGraphics
 import ImageIO
 
 let root = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : "assets/robot-home/generated"
-let names = ["bumblebee", "bumblebeefullbody", "optimus", "jazz", "hotrod", "wheeljack", "hound"]
+let names = ["bumblebee", "bumblebeefullbody", "optimus", "jazz", "hotrod", "wheeljack", "hound", "ironhide", "ratchet"]
 var portraits = [[UInt8]]()
 var failures = 0
 for name in names {

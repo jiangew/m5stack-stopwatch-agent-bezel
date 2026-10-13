@@ -15,10 +15,12 @@ enum class Character : std::uint8_t {
   Hotrod,
   Wheeljack,
   Hound,
+  Ironhide,
+  Ratchet,
 };
 
-inline constexpr std::uint8_t kCharacterCount = 7;
-inline constexpr std::uint8_t kFullbodyCount = 6;
+inline constexpr std::uint8_t kCharacterCount = 9;
+inline constexpr std::uint8_t kFullbodyCount = 8;
 
 class CharacterSelector {
  public:

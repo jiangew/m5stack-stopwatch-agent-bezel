@@ -1,4 +1,4 @@
-"""Decode the shipped seven-hero JPEGs and verify reproducible embedding.
+"""Decode the shipped nine-portrait JPEGs and verify reproducible embedding.
 
 Run with a Python environment providing Pillow and numpy. Identity is checked
 by distinct pixels/palette and exact name-to-header payloads; the generation
@@ -18,7 +18,16 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / 'assets/robot-home/generated'
-HEROES = ('Bumblebee', 'BumblebeeFullbody', 'Optimus', 'Jazz', 'Hotrod', 'Wheeljack', 'Hound')
+HEROES = ('Bumblebee', 'BumblebeeFullbody', 'Optimus', 'Jazz', 'Hotrod', 'Wheeljack', 'Hound', 'Ironhide', 'Ratchet')
+PRESERVED = {
+    'bumblebee': 'f1bb7e24fe30631b15e1999c35a0b8d4024d3fc52b222aa0ad6c5d6676a9d191',
+    'bumblebeefullbody': '6a8b98ad78c0b872d121fba3c785a65db655bd8c461014b3b96888e9427e06a6',
+    'optimus': '81baea5cfdf87850c56756b53f920e1e8e1ffac084b37bed8c6db375cbb149d7',
+    'jazz': '85603f6a2b668aa796b6c4173d020c92cd7f675eb2dbe13f5c8f6e8eb9e6fe08',
+    'hotrod': '46a4a235e29b49420ff0dc1c22474a3efaf92176608f3822bcd8160e2b4934bf',
+    'wheeljack': '5633b4a2f7353838b4b363e7fc835a11bc6b09fbae7e16d53b9c9672e44e35e9',
+    'hound': '6dafdb61e4e349cb99cbb61919106f2d4e092d3bfd398412ae03cc71a559862c',
+}
 HEADER = ROOT / 'include/RobotHomeArtData.h'
 
 
@@ -45,12 +54,14 @@ def visually_distinct(first, second):
 
 
 class HeroArtTest(unittest.TestCase):
-    def test_exactly_seven_idle_assets_are_embedded(self):
+    def test_exactly_nine_idle_assets_are_embedded(self):
         embedded = payloads(HEADER.read_text())
         self.assertEqual(set(embedded), set(HEROES))
         for name in HEROES:
             with self.subTest(hero=name):
                 shipped = (ASSETS / f'{name.lower()}-idle.jpg').read_bytes()
+                if name.lower() in PRESERVED:
+                    self.assertEqual(sha256(shipped).hexdigest(), PRESERVED[name.lower()])
                 self.assertEqual(embedded[name], shipped)
                 self.assertIn(f'k{name}JpgSize = sizeof(k{name}Jpg)', HEADER.read_text())
                 # Decode bytes from the actual header, not a surrogate source.
@@ -78,7 +89,7 @@ class HeroArtTest(unittest.TestCase):
                 self.assertGreater(int((pixels.max(axis=2) > 70).sum()), 6000, name)
                 fingerprints.append(sha256(data).hexdigest())
                 decoded.append(pixels)
-        self.assertEqual(len(set(fingerprints)), 7, 'heroes must not alias one JPEG')
+        self.assertEqual(len(set(fingerprints)), 9, 'heroes must not alias one JPEG')
         for index, first in enumerate(decoded):
             for second in decoded[index + 1:]:
                 self.assertTrue(visually_distinct(first, second),

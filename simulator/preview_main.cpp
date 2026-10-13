@@ -117,7 +117,8 @@ super_workspace::State superPreviewState(const char* scenario) {
 
 bool validScenario(const char* scenario) {
   for (const char* base : {"home","home-bumblebee","home-bumblebeefullbody",
-                           "home-optimus","home-jazz","home-hotrod","home-wheeljack","home-hound"})
+                           "home-optimus","home-jazz","home-hotrod","home-wheeljack","home-hound",
+                           "home-ironhide","home-ratchet"})
     for (const char* suffix : {"","-press","-skill","-transition"})
       if (std::string(scenario)==std::string(base)+suffix) return true;
   for (const char* name : {"home-offline","home-charging","home-unknown","home-low","home-power-hold"})
@@ -178,7 +179,7 @@ bool writeHomeSequence(const char* directory) {
   frame.setColorDepth(16);
   if(!frame.createSprite(466,466))return false;
   frame.setTextWrap(false);frame.preparePortraits();
-  const char* names[]={"bumblebee","bumblebeefullbody","optimus","jazz","hotrod","wheeljack","hound"};
+  const char* names[]={"bumblebee","bumblebeefullbody","optimus","jazz","hotrod","wheeljack","hound","ironhide","ratchet"};
   for(int hero=0;hero<robot_home::kCharacterCount;++hero)for(int i=0;i<30;++i) {
     robot_home::State state;state.character=static_cast<robot_home::Character>(hero);
     state.connected=true;state.batteryPercent=82;
@@ -223,6 +224,8 @@ int main(int argc, char** argv) {
     if(std::strncmp(scenario,"home-hotrod",11)==0)state.character=robot_home::Character::Hotrod;
     if(std::strncmp(scenario,"home-wheeljack",14)==0)state.character=robot_home::Character::Wheeljack;
     if(std::strncmp(scenario,"home-hound",10)==0)state.character=robot_home::Character::Hound;
+    if(std::strncmp(scenario,"home-ironhide",13)==0)state.character=robot_home::Character::Ironhide;
+    if(std::strncmp(scenario,"home-ratchet",12)==0)state.character=robot_home::Character::Ratchet;
     if(std::strstr(scenario,"-transition")!=nullptr)state.transitionProgress=0.5f;
     const std::uint32_t elapsed = argc > 3 ? std::strtoul(argv[3], nullptr, 10) : 100;
     robot_home::Animation animation;

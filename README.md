@@ -27,11 +27,11 @@ See the
 [control diagnosis and acceptance record](docs/CONTROL_AVAILABILITY.zh-CN.md).
 
 - Five screens: robot Home → Codex / ChatGPT → DSH → SUPER → HERMES → Home.
-- Home: Bumblebee portrait, Bumblebee full body, Optimus Prime, Jazz, Hot Rod, Wheeljack and Hound. Press the portrait
+- Home: Bumblebee portrait, Bumblebee full body, Optimus Prime, Jazz, Hot Rod, Wheeljack, Hound, Ironhide and Ratchet. Press the portrait
   for immediate energy feedback; release a short tap for a 420ms hero skill and
   one 25ms haptic. New taps interrupt the previous skill. Up/down/right randomly
   select a full-body hero. The earlier four-hero firmware at `3a0e2cf` was
-  flashed on 2026-10-13; this seven-choice source build has not been deployed.
+  flashed on 2026-10-13; this nine-image, eight-body source build has not been deployed.
   The user accepted the earlier interaction in use; response latency has not
   been measured.
 - DSH: the same four-triangle layout as SUPER. Up/down navigate existing
@@ -57,20 +57,20 @@ cover earlier images; the current change record documents the DSH acceptance sco
 
 Home requires matching source-built Companion and USB-mic firmware. Boot,
 reconnect and Companion startup select Home without activating a Mac app.
-Home stays selected even when the Mac foreground changes. The seven Home choices are
-Bumblebee portrait (default), Bumblebee full body, Optimus Prime, Jazz, Hot Rod, Wheeljack and Hound. Touch down inside
+Home stays selected even when the Mac foreground changes. The nine Home images are
+Bumblebee portrait (default), Bumblebee full body, Optimus Prime, Jazz, Hot Rod, Wheeljack, Hound, Ironhide and Ratchet. Touch down inside
 x=64..402/y=64..398 for immediate compressed-avatar energy feedback; release within
 500ms without a swipe to emit a silent 420ms skill and one 25ms haptic. New taps
 interrupt the current reaction instead of being ignored. Moving outside the
 portrait area or reaching the 52px swipe threshold cancels the tap.
-Swipe up, down or right to select uniformly among the six full-body heroes from
-the default portrait, then among the other five full-body heroes. The portrait
+Swipe up, down or right to select uniformly among the eight full-body heroes from
+the default portrait, then among the other seven full-body heroes. The portrait
 is excluded from the random pool. The same direction may be repeated and each selection gives one 40ms haptic, even
 offline. Held motion cannot repeat. Left retains the workspace cycle. The first
 sleeping-screen touch only wakes the display. Leaving Home, sleep or power
 confirmation cancels the reaction; existing long-hold power controls remain.
 All portraits remain without a decorative boundary circle. The firmware caches
-seven RGB565 portraits in PSRAM, uses one reusable portrait buffer if necessary,
+nine RGB565 portraits in PSRAM (1,620,000 pixel bytes), uses one reusable portrait buffer if necessary,
 and redraws only for animation or state changes. The same cached renderer drives
 native previews; build/preview results do not establish C152 response latency.
 No speech or Mac action is requested by portrait interaction. USB microphone and
@@ -89,16 +89,18 @@ Status and battery are real device inputs, not the preview's sample values.
     <td width="25%"><img src="artifacts/robot-home-optimus.png" alt="Home Optimus Prime full body"></td>
     <td width="25%"><img src="artifacts/robot-home-jazz.png" alt="Home Jazz full body"></td>
   </tr>
-  <tr><th>Hot Rod</th><th>Wheeljack</th><th>Hound</th><th></th></tr>
+  <tr><th>Hot Rod</th><th>Wheeljack</th><th>Hound</th><th>Ironhide</th></tr>
   <tr>
     <td width="25%"><img src="artifacts/robot-home-hotrod.png" alt="Home Hot Rod full body"></td>
     <td width="25%"><img src="artifacts/robot-home-wheeljack.png" alt="Home Wheeljack full body"></td>
     <td width="25%"><img src="artifacts/robot-home-hound.png" alt="Home Hound full body"></td>
-    <td width="25%"></td>
+    <td width="25%"><img src="artifacts/robot-home-ironhide.png" alt="Home Ironhide full body"></td>
   </tr>
+  <tr><th>Ratchet</th><th></th><th></th><th></th></tr>
+  <tr><td width="25%"><img src="artifacts/robot-home-ratchet.png" alt="Home Ratchet full body"></td><td width="25%"></td><td width="25%"></td><td width="25%"></td></tr>
 </table>
 
-The preserved portrait and six built-in imagegen full-body illustrations are
+The preserved portrait and eight built-in imagegen full-body illustrations are
 unofficial fan artwork embedded in firmware as baseline JPEG assets. They are
 not official licensed artwork or network-fetched media.
 Leaving Home resets the next visit to Bumblebee.
