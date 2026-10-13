@@ -11,6 +11,7 @@
 #include "DashboardUi.h"
 #include "SuperWorkspaceUi.h"
 #include "RobotHomeUi.h"
+#include "RobotHomePortraitCanvas.h"
 
 namespace {
 
@@ -115,10 +116,11 @@ super_workspace::State superPreviewState(const char* scenario) {
 }
 
 bool validScenario(const char* scenario) {
-  for (const char* name : {"home-optimus-blink", "home-megatron-blink", "home-starscream-blink", "home-half", "home-optimus-half", "home-megatron-half", "home-starscream-half"})
-    if (std::strcmp(scenario, name) == 0) return true;
-  for(const char* name:{"home","home-bumblebee","home-optimus","home-megatron","home-starscream","home-optimus-transition","home-megatron-transition","home-starscream-transition","home-happy","home-surprise","home-sleep","home-offline","home-charging","home-unknown","home-low","home-power-hold","home-blink"})
-    if(std::strcmp(scenario,name)==0)return true;
+  for (const char* base : {"home","home-bumblebee","home-optimus","home-ironman","home-spiderman"})
+    for (const char* suffix : {"","-press","-skill","-transition"})
+      if (std::string(scenario)==std::string(base)+suffix) return true;
+  for (const char* name : {"home-offline","home-charging","home-unknown","home-low","home-power-hold"})
+    if (std::strcmp(scenario,name)==0) return true;
   const bool hermes = std::strncmp(scenario, "hermes", 6) == 0;
   const bool super = std::strncmp(scenario, "super", 5) == 0;
   const bool deepseek = std::strncmp(scenario, "deepseek", 8) == 0;
@@ -169,9 +171,29 @@ bool writePpm(lgfx::LGFX_Sprite& sprite, const char* path) {
   return std::fclose(output) == 0;
 }
 
+// Render a sequence in one process, exercising actual cached firmware pixels.
+bool writeHomeSequence(const char* directory) {
+  robot_home::PortraitCanvas<lgfx::LGFX_Sprite> frame;
+  frame.setColorDepth(16);
+  if(!frame.createSprite(466,466))return false;
+  frame.setTextWrap(false);frame.preparePortraits();
+  const char* names[]={"bumblebee","optimus","ironman","spiderman"};
+  for(int hero=0;hero<4;++hero)for(int i=0;i<30;++i) {
+    robot_home::State state;state.character=static_cast<robot_home::Character>(hero);
+    state.connected=true;state.batteryPercent=82;
+    if(i>=3&&i<7) {state.mood=robot_home::Mood::Press;state.reactionElapsedMs=(i-3)*33;}
+    if(i>=7&&i<20) {state.mood=robot_home::Mood::Skill;state.reactionElapsedMs=(i-7)*33;}
+    robot_home::render(frame,state);
+    char path[1024];std::snprintf(path,sizeof(path),"%s/%s-%03d.ppm",directory,names[hero],i);
+    if(!writePpm(frame,path))return false;
+  }
+  return true;
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
+  if(argc==3&&std::strcmp(argv[1],"--home-sequence")==0)return writeHomeSequence(argv[2])?0:1;
   const char* outputPath = argc > 1 ? argv[1] : "dashboard-preview.ppm";
   const char* scenario = argc > 2 ? argv[2] : "live";
   if (!validScenario(scenario)) {
@@ -185,7 +207,7 @@ int main(int argc, char** argv) {
                  scenario);
     return 2;
   }
-  lgfx::LGFX_Sprite framebuffer;
+  robot_home::PortraitCanvas<lgfx::LGFX_Sprite> framebuffer;
   framebuffer.setColorDepth(16);
   if (framebuffer.createSprite(dashboard::kWidth, dashboard::kHeight) == nullptr) {
     std::fprintf(stderr, "Could not allocate preview framebuffer\n");
@@ -195,24 +217,18 @@ int main(int argc, char** argv) {
   if (std::strncmp(scenario,"home",4)==0) {
     robot_home::State state;state.batteryPercent=82;state.connected=true;
     if(std::strncmp(scenario,"home-optimus",12)==0)state.character=robot_home::Character::Optimus;
-    if(std::strncmp(scenario,"home-megatron",13)==0)state.character=robot_home::Character::Megatron;
-    if(std::strncmp(scenario,"home-starscream",15)==0)state.character=robot_home::Character::Starscream;
+    if(std::strncmp(scenario,"home-ironman",12)==0)state.character=robot_home::Character::Ironman;
+    if(std::strncmp(scenario,"home-spiderman",14)==0)state.character=robot_home::Character::Spiderman;
     if(std::strstr(scenario,"-transition")!=nullptr)state.transitionProgress=0.5f;
-    if(std::strcmp(scenario,"home-happy")==0)state.mood=robot_home::Mood::Happy;
-    if(std::strcmp(scenario,"home-surprise")==0)state.mood=robot_home::Mood::Surprise;
-    if(std::strcmp(scenario,"home-sleep")==0)state.mood=robot_home::Mood::Sleep;
-    if(std::strstr(scenario,"-blink")!=nullptr){
-      // Optional elapsed milliseconds allow native pixel tests of every blink
-      // boundary using the same Animation -> render path as firmware.
-      const std::uint32_t elapsed = argc > 3 ? std::strtoul(argv[3], nullptr, 10) : 100;
-      robot_home::Animation animation;
-      constexpr std::uint32_t start = 0xfffffff0u;
-      animation.blink(start);
-      state.nowMs = start + elapsed;
-      state.mood = animation.mood(state.nowMs);
-      state.reactionElapsedMs = animation.elapsed(state.nowMs);
-    }
-    if(std::strstr(scenario,"-half")!=nullptr){state.mood=robot_home::Mood::Blink;state.reactionElapsedMs=20;}
+    const std::uint32_t elapsed = argc > 3 ? std::strtoul(argv[3], nullptr, 10) : 100;
+    robot_home::Animation animation;
+    constexpr std::uint32_t start=0xfffffff0u;
+    if(std::strstr(scenario,"-press")!=nullptr) animation.press(start);
+    if(std::strstr(scenario,"-skill")!=nullptr) {animation.press(start);animation.release(start);}
+    state.nowMs=start+elapsed;
+    state.mood=animation.mood(state.nowMs);
+    state.reactionElapsedMs=animation.elapsed(state.nowMs);
+    framebuffer.preparePortraits();
     if(std::strcmp(scenario,"home-offline")==0)state.connected=false;
     if(std::strcmp(scenario,"home-charging")==0)state.charging=true;
     if(std::strcmp(scenario,"home-unknown")==0)state.batteryPercent=-1;

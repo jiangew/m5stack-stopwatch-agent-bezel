@@ -24,7 +24,7 @@
 
 **Interfaces:** Embedded assets `kBumblebeeJpg`, `kOptimusJpg`, `kIronmanJpg`, `kSpidermanJpg`; each 300×300 black-background baseline JPEG. Keep original Bumblebee/Optimus source artwork and ring-free idle images.
 
-- [ ] Generate Iron Man and Spider-Man using built-in imagegen and existing portrait as style reference; inspect all outputs.
+- [ ] Attempt built-in imagegen for Iron Man and Spider-Man with an existing portrait as style reference; if it returns no output, author original editable SVG portraits and rasterize deterministically. Inspect final assets.
 - [ ] Add a real image/embedding test checking the four assets decode to 300×300 with black edge margins and distinct identity; observe old asset set fail.
 - [ ] Normalize new portraits, update scripts to embed only four idle assets, regenerate header. Preserve generation prompts in a portable project file.
 - [ ] Run image tests and inspect thumbnails; commit explicit asset/tool paths after verification.
@@ -45,7 +45,7 @@
 
 **Files:** include/RobotHomeCharacters.h, include/RobotHomeEffects.h, include/RobotHomeUi.h, include/RobotHomePortraitCache.h, src/main.cpp, simulator/preview_main.cpp, simulator/robot_home_ui_test.cpp, simulator/robot_home_swipe_test.rb, simulator/robot_home_spacing_test.rb, README.md, README.zh-CN.md, docs/HOME_HERO_INTERACTION.md.
 
-**Interfaces:** `State::touchX/touchY` carry clamped skill origin. Firmware `PortraitCache` acts as a surface adapter overriding drawJpg to use predecoded RGB565 sprite pixels; native render remains actual JPEG decode. One render scheduler prioritizes press/release/selection and sleeps when idle.
+**Interfaces:** `State::touchX/touchY` carry clamped skill origin. `PortraitCanvas<Base>::drawPortrait(bytes,size,cx,cy,scale,angle)` uses predecoded RGB565 sprite pixels; native preview uses this same canvas and clipping path. One render scheduler prioritizes press/release/selection and sleeps when idle.
 
 - [ ] Write native effect bounds tests, production gesture press/release tests and scheduler/cache tests with allocation failures. Run old implementation and record failure.
 - [ ] Implement four procedural skills within portrait-safe y=64..398, spring scale/tilt; preserve status/battery layout and overlay order.

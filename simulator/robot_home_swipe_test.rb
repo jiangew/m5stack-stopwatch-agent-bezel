@@ -27,10 +27,10 @@ fixture = <<~CPP
   constexpr int kButtonHapticIntensity=11,kWakeHapticDurationMs=22;
   int sent=0,haptics=0,intensity=0,duration=0;
   int speech=0,cancels=0;
-  void requestRobotReaction(){++speech;robotAnimation.blink(100);}
+  void requestRobotReaction(){++speech;robotAnimation.press(100);robotAnimation.release(100);}
   void stopRobotReaction(){++cancels;}
   unsigned millis(){return 100;}
-  unsigned esp_random(){return 1;}
+  unsigned esp_random(){return 0;}
   bool directionalWorkspaceActive(){return state.workspaceMode!=workspace_mode::Mode::Codex;}
   workspace_input::Control controlForSwipe(Direction d){
     switch(d){
@@ -64,10 +64,10 @@ fixture = <<~CPP
     assert(robotCharacters.character()==robot_home::Character::Bumblebee);
     reset();updateTouchGesture(200,260);assert(sent==0&&haptics==1&&speech==0&&cancels==1);
     assert(activeSwipe==Direction::None&&!touchTracking);
-    assert(robotCharacters.character()==robot_home::Character::Megatron);
+    assert(robotCharacters.character()==robot_home::Character::Optimus);
     reset();updateTouchGesture(260,200);assert(sent==0&&haptics==1&&speech==0&&cancels==1);
     assert(activeSwipe==Direction::None&&!touchTracking);
-    assert(robotCharacters.character()==robot_home::Character::Starscream);
+    assert(robotCharacters.character()==robot_home::Character::Optimus);
     // Each accepted local character gesture gives exactly one existing swipe tick,
     // even offline; held movement cannot repeat, and waking cannot change character.
     for(const auto xy:{std::pair<int,int>{200,140},{200,260},{260,200}}){

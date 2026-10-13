@@ -1,36 +1,106 @@
-"""Verify real derived pixels, preservation and eye-only blink changes."""
-import importlib.util
+"""Decode the shipped four-hero JPEGs and verify reproducible embedding.
+
+Run with a Python environment providing Pillow and numpy. Identity is checked
+by distinct pixels/palette and exact name-to-header payloads; the generation
+record and human thumbnail inspection verify the depicted characters.
+"""
+from hashlib import sha256
+from io import BytesIO
 from pathlib import Path
+import re
+import subprocess
+import sys
+import tempfile
+import unittest
+
 import numpy as np
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
-spec = importlib.util.spec_from_file_location('art', ROOT / 'scripts/prepare_robot_home_art.py')
-art = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(art)
-yy, xx = np.mgrid[:300, :300]
-for name, (cx, cy) in art.CENTERS.items():
-    original, idle, frames = art.derive(name)
-    radius = np.hypot(xx-cx, yy-cy)
-    assert np.array_equal(original[radius <= 126], idle[radius <= 126]), name
-    assert idle[radius >= 130].max() == 0, name
-    closed = np.array(frames['closed'])
-    changed = np.max(np.abs(closed.astype(int)-idle.astype(int)), axis=2) > 0
-    assert not changed[190:].any(), f'{name}: mouth must not animate'
-    assert not changed[:130].any(), f'{name}: forehead must not animate'
-    for eye in art.EYES[name]:
-        xs, ys = zip(*eye)
-        region = np.s_[min(ys):max(ys)+1, min(xs):max(xs)+1]
-        before, after = idle[region].astype(int), closed[region].astype(int)
-        channel, other = (2, 0) if name in ('bumblebee', 'optimus') else (0, 2)
-        # Identify luminous optic cores, excluding tinted surrounding armor.
-        optic = (before[:,:,channel] - before[:,:,other] > 80) & (before[:,:,channel] > 180)
-        assert optic.sum() > 30, f'{name}: missing eye fixture'
-        assert after[:,:,channel][optic].max() < 70, f'{name}: optic not covered'
-        assert after[:,:,channel][optic].sum() < before[:,:,channel][optic].sum()*.25
-    for phase in frames:
-        image = Image.open(art.OUTPUT / f'{name}-{phase}.jpg')
-        assert image.size == (300,300)
-        decoded = np.array(image)
-        assert decoded[radius >= 134].max() < 12, f'{name}: outer rim remains'
-    print(f'PASS {name}: inner portrait preserved, baked rim absent, both eyes covered, mouth unchanged')
+ASSETS = ROOT / 'assets/robot-home/generated'
+HEROES = ('Bumblebee', 'Optimus', 'Ironman', 'Spiderman')
+HEADER = ROOT / 'include/RobotHomeArtData.h'
+
+
+def payloads(text):
+    return {
+        name: bytes(int(byte, 16) for byte in re.findall(r'0x([0-9a-fA-F]{2})', body))
+        for name, body in re.findall(
+            r'k(\w+)Jpg\[\][^=]*=\s*\{(.*?)\};', text, re.S)
+    }
+
+
+class HeroArtTest(unittest.TestCase):
+    def test_only_four_idle_assets_are_embedded(self):
+        embedded = payloads(HEADER.read_text())
+        self.assertEqual(set(embedded), set(HEROES))
+        for name in HEROES:
+            with self.subTest(hero=name):
+                shipped = (ASSETS / f'{name.lower()}-idle.jpg').read_bytes()
+                self.assertEqual(embedded[name], shipped)
+                self.assertIn(f'k{name}JpgSize = sizeof(k{name}Jpg)', HEADER.read_text())
+                # Decode bytes from the actual header, not a surrogate source.
+                image = Image.open(BytesIO(embedded[name]))
+                image.load()
+                self.assertEqual(image.format, 'JPEG')
+                self.assertEqual(image.size, (300, 300))
+                self.assertFalse(image.info.get('progressive', False))
+
+    def test_real_jpegs_have_black_margins_and_distinct_identity(self):
+        fingerprints, decoded = [], []
+        for name in HEROES:
+            with self.subTest(hero=name):
+                data = (ASSETS / f'{name.lower()}-idle.jpg').read_bytes()
+                self.assertLess(len(data), 50 * 1024)
+                image = Image.open(BytesIO(data))
+                image.load()
+                self.assertEqual(image.size, (300, 300))
+                pixels = np.array(image.convert('RGB'))
+                # 18px black edge survives 1.18x portrait animation; JPEG
+                # ringing permits at most 12/255 at the margin's inner edge.
+                edge = np.ones((300, 300), dtype=bool)
+                edge[18:-18, 18:-18] = False
+                self.assertLessEqual(int(pixels[edge].max()), 12, name)
+                self.assertGreater(int((pixels.max(axis=2) > 70).sum()), 6000, name)
+                fingerprints.append(sha256(data).hexdigest())
+                decoded.append(pixels.astype(float))
+        self.assertEqual(len(set(fingerprints)), 4, 'heroes must not alias one portrait')
+        for index, first in enumerate(decoded):
+            for second in decoded[index + 1:]:
+                self.assertGreater(float(np.abs(first - second).mean()), 12,
+                                   'four hero identities must have distinct artwork')
+
+    def test_preserved_robot_portrait_pixels(self):
+        # Preserve the accepted ring-free crop, not the removed rim or blink.
+        for name, center in [('bumblebee', (150, 148.3)), ('optimus', (149.15, 148.3))]:
+            original = np.array(Image.open(ROOT / f'assets/robot-home/{name}.jpg').convert('RGB'))
+            shipped = np.array(Image.open(ASSETS / f'{name}-idle.jpg').convert('RGB'))
+            yy, xx = np.mgrid[:300, :300]
+            inner = np.hypot(xx - center[0], yy - center[1]) <= 124
+            error = np.abs(original.astype(float) - shipped.astype(float))[inner]
+            self.assertLess(float(error.mean()), 3, name)
+            self.assertLess(float(np.quantile(error, .99)), 12, name)
+
+    def test_preparation_and_embedding_are_deterministic(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            out = Path(temporary) / 'assets'
+            command = [sys.executable, str(ROOT / 'scripts/prepare_robot_home_art.py'),
+                       '--output-dir', str(out)]
+            subprocess.run(command, check=True, capture_output=True)
+            first = {p.name: p.read_bytes() for p in out.glob('*.jpg')}
+            self.assertEqual(set(first), {f'{name.lower()}-idle.jpg' for name in HEROES})
+            subprocess.run(command, check=True, capture_output=True)
+            self.assertEqual(first, {p.name: p.read_bytes() for p in out.glob('*.jpg')})
+            for name, data in first.items():
+                self.assertEqual(data, (ASSETS / name).read_bytes(), name)
+            header = Path(temporary) / 'RobotHomeArtData.h'
+            embed = ['ruby', str(ROOT / 'scripts/embed_robot_home_art.rb'), str(out), str(header)]
+            subprocess.run(embed, check=True, capture_output=True)
+            first_header = header.read_bytes()
+            subprocess.run(embed, check=True, capture_output=True)
+            self.assertEqual(first_header, header.read_bytes())
+            self.assertEqual(first_header, HEADER.read_bytes())
+
+
+if __name__ == '__main__':
+    unittest.main(verbosity=2)

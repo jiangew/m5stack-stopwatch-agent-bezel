@@ -5,6 +5,7 @@
 #include <cstdio>
 
 #include "RobotHomeCharacters.h"
+#include "RobotHomeEffects.h"
 #include "SuperWorkspaceUi.h"
 
 namespace robot_home {
@@ -15,6 +16,7 @@ struct State {
   std::uint32_t nowMs = 0;
   std::uint32_t reactionElapsedMs = 0;
   float transitionProgress = 1.0f;
+  int touchX = 233, touchY = 232;
   int batteryPercent = -1;
   bool charging = false;
   bool connected = false;
@@ -31,6 +33,8 @@ void render(Surface& surface, const State& state) {
   surface.fillScreen(0);
   renderCharacter(surface, state.character, state.mood, state.reactionElapsedMs,
                   state.transitionProgress);
+  effects::render(surface, state.character, state.mood, state.reactionElapsedMs,
+                  state.touchX, state.touchY);
 
   surface.loadFont(dashboard::font_data::kSpaceMono18Vlw);
   super_workspace::drawText(surface,

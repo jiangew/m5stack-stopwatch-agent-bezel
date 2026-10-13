@@ -22,6 +22,8 @@
 #include "WorkspaceInputPolicy.h"
 #include "WorkspaceCenterTap.h"
 #include "RobotHomeUi.h"
+#include "RobotHomeFrame.h"
+#include "RobotHomePortraitCanvas.h"
 #endif
 
 namespace {
@@ -84,7 +86,11 @@ const char* kAgentKeys[] = {"AG00", "AG01", "AG02", "AG03", "AG04", "AG05"};
 
 CodexMicroBle codex;
 CodexMicroState state;
+#if defined(CODEX_STOPWATCH_USB_MIC)
+robot_home::PortraitCanvas<M5Canvas> canvas(&M5.Display);
+#else
 M5Canvas canvas(&M5.Display);
+#endif
 M5PM1 powerManager;
 uint32_t lastDrawMs = 0;
 uint32_t lastBatteryMs = 0;
@@ -100,13 +106,19 @@ workspace_input::CenterTap workspaceCenterTap;
 robot_home::Tap robotTap;
 robot_home::Animation robotAnimation;
 robot_home::CharacterSelector robotCharacters;
+robot_home::FrameClock robotFrames;
+bool robotInputDirty = false;
+int robotTouchX = 233, robotTouchY = 232;
 void stopRobotReaction() {
-  robotAnimation.react(robot_home::Mood::Idle, millis());
+  robotAnimation.cancel();
+  robotTap.cancel();
+  robotInputDirty = true;
 }
 
 void requestRobotReaction() {
-  // Local eye-only feedback: never request speech, haptics or host input.
-  robotAnimation.blink(millis());
+  // Local-only skill; haptic is emitted once by the accepted release.
+  robotAnimation.release(millis());
+  robotInputDirty = true;
 }
 
 void updateRobotReaction(bool visible) {
@@ -532,18 +544,22 @@ dashboard::State dashboardState() {
 void drawScreen() {
   if (deskSleeping) return;
 #if defined(CODEX_STOPWATCH_USB_MIC)
-  if(state.workspaceMode==workspace_mode::Mode::Home && renderedWorkspaceModeValid &&
-     renderedWorkspaceMode==workspace_mode::Mode::Home &&
-     powerOverlay==dashboard::PowerOverlay::None && millis()-lastDrawMs<50)return;
+  updateHaptic(); // stop an expired pulse before synchronous rendering
+  bool homeFrameAnimated = false;
+  uint32_t homeFrameStartedMs = 0;
   // Drawing stays on the installed dashboard for every Codex launch state;
   // directionalWorkspaceActive() still isolates pending-state input below.
   if (directionalWorkspaceActive() && !workspace_mode::isCodex(state.workspaceMode)) {
     if (state.workspaceMode == workspace_mode::Mode::Home) {
+      canvas.preparePortraits();
       robot_home::State ui;
       ui.nowMs=millis();ui.mood=robotAnimation.mood(ui.nowMs);
+      homeFrameStartedMs=ui.nowMs;
       ui.reactionElapsedMs=robotAnimation.elapsed(ui.nowMs);
       ui.character=robotCharacters.character();
+      ui.touchX=robotTouchX;ui.touchY=robotTouchY;
       ui.transitionProgress=robotCharacters.transitionProgress(ui.nowMs);
+      homeFrameAnimated=robotAnimation.active(ui.nowMs) || ui.transitionProgress<1.0f;
       ui.batteryPercent=batteryPercent;ui.charging=charging;
       ui.connected=state.workspaceHostReady;
       ui.powerOverlay=superPowerOverlay();ui.powerHoldProgress=currentPowerHoldProgress();
@@ -571,6 +587,17 @@ void drawScreen() {
   renderedCharging = charging;
   canvas.pushSprite(0, 0);
   lastDrawMs = millis();
+#if defined(CODEX_STOPWATCH_USB_MIC)
+  if (state.workspaceMode == workspace_mode::Mode::Home) {
+    // Record the state of the pixels rendered, not a later time after transfer.
+    // Crossing expiry during rendering must still request the final idle frame.
+    robotFrames.presented(homeFrameStartedMs, homeFrameAnimated);
+    robotInputDirty = false;
+  } else {
+    canvas.clearPortraits();
+    robotFrames.due(lastDrawMs, false, false, false);
+  }
+#endif
 }
 
 int8_t agentAtPoint(int x, int y) {
@@ -651,6 +678,12 @@ void beginTouchGesture(int x, int y) {
     workspaceTouchEndX=x;workspaceTouchEndY=y;
     workspaceCenterTap.begin(x, y, millis(), !deskSleeping);
     robotTap.begin(x,y,millis(),!deskSleeping);
+    if (state.workspaceMode == workspace_mode::Mode::Home && robotTap.eligible()) {
+      robotTouchX=x;robotTouchY=y;
+      robotAnimation.press(millis());
+      robotInputDirty=true;
+      drawScreen(); // first press frame bypasses animation cadence
+    }
     if (dashboard::sendAtPoint(x, y) && workspace_input::allowed(
             state.workspaceMode,
             workspace_input::Control::CenterPowerHold)) {
@@ -690,6 +723,11 @@ void updateTouchGesture(int x, int y) {
 #if defined(CODEX_STOPWATCH_USB_MIC)
   workspaceCenterTap.move(x, y, kSwipeThresholdPx);
   robotTap.move(x,y,kSwipeThresholdPx);
+  if (state.workspaceMode == workspace_mode::Mode::Home &&
+      !robotTap.eligible() && robotAnimation.mood(millis()) == robot_home::Mood::Press) {
+    stopRobotReaction();
+    drawScreen();
+  }
 #endif
   if (!touchTracking || touchPowerHoldConsumed ||
       activeSwipe != touch_gesture::Direction::None) {
@@ -721,7 +759,7 @@ void updateTouchGesture(int x, int y) {
       case touch_gesture::Direction::Down:
       case touch_gesture::Direction::Right:
         stopRobotReaction();
-        robotCharacters.select(direction,millis());
+        robotCharacters.select(direction,millis(), [] {return esp_random();});
         startHaptic(kSwipeHapticIntensity, kSwipeHapticDurationMs);
         activeSwipe=touch_gesture::Direction::None;
         touchTracking=false;
@@ -779,8 +817,15 @@ void finishTouchGesture(int x, int y) {
 #if defined(CODEX_STOPWATCH_USB_MIC)
   if (directionalWorkspaceActive()) {
     if (state.workspaceMode == workspace_mode::Mode::Home) {
-      if(robotTap.finish(x,y,millis(),kSwipeThresholdPx)&&noteActivity())
+      if(robotTap.finish(x,y,millis(),kSwipeThresholdPx)&&noteActivity()) {
+        robotTouchX=x;robotTouchY=y;
         requestRobotReaction();
+        drawScreen(); // release answers immediately, even after a recent frame
+        startHaptic(kTouchHapticIntensity, 25); // exclude first-frame render time
+      } else if (robotAnimation.mood(millis()) == robot_home::Mood::Press) {
+        stopRobotReaction();
+        drawScreen();
+      }
       clearTouchCandidate();return;
     }
     const bool tap = workspaceCenterTap.finish(x, y, millis(), kSwipeThresholdPx);
@@ -1285,7 +1330,11 @@ void loop() {
     workspaceCenterTap.move(point.x, point.y, kSwipeThresholdPx);
     robotTap.move(point.x,point.y,kSwipeThresholdPx);
 #endif
+#if defined(CODEX_STOPWATCH_USB_MIC)
+    updateTouchGesture(point.x, point.y);
+#else
     updateTouchGesture(touchX, touchY);
+#endif
     updateTouchPowerHold();
   }
   if (touch.wasReleased()) {
@@ -1399,9 +1448,14 @@ void loop() {
 #if defined(CODEX_STOPWATCH_USB_MIC)
   updateRobotReaction(!deskSleeping && state.workspaceMode==workspace_mode::Mode::Home &&
       powerOverlay==dashboard::PowerOverlay::None);
-  const bool robotFrame=robotAnimation.frameDue(millis(),!deskSleeping &&
-      state.workspaceMode==workspace_mode::Mode::Home &&
-      powerOverlay==dashboard::PowerOverlay::None);
+  const uint32_t robotNow=millis();
+  const bool homeVisible=!deskSleeping && state.workspaceMode==workspace_mode::Mode::Home &&
+      powerOverlay==dashboard::PowerOverlay::None;
+  const bool robotFrame=robotFrames.due(robotNow,homeVisible,
+      robotAnimation.active(robotNow) || robotCharacters.transitionProgress(robotNow)<1.0f,
+      robotInputDirty || derivedStateChanged || shouldRedraw);
+  if (!homeVisible && (deskSleeping || state.workspaceMode!=workspace_mode::Mode::Home))
+    canvas.clearPortraits();
   if(state.workspaceMode==workspace_mode::Mode::Home &&
      powerOverlay==dashboard::PowerOverlay::None) {
     shouldRedraw=robotFrame;derivedStateChanged=false;

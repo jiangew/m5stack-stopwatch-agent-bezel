@@ -27,10 +27,10 @@ See the
 [control diagnosis and acceptance record](docs/CONTROL_AVAILABILITY.zh-CN.md).
 
 - Five screens: robot Home → Codex / ChatGPT → DSH → SUPER → HERMES → Home.
-- Home: four robot portraits without decorative boundary rings; up/down/right
-  still select characters. Center tap blinks the selected character's eyes three
-  times, without speech, talking animation, haptics or Mac input. Repeated taps
-  during the sequence do not restart it or queue another sequence.
+- Home: Bumblebee, Optimus Prime, Iron Man and Spider-Man. Press the portrait
+  for immediate energy feedback; release a short tap for a 420ms hero skill and
+  one 25ms haptic. New taps interrupt the previous skill. Up/down/right randomly
+  select a different hero. This source update has not yet been flashed/accepted.
 - DSH: the same four-triangle layout as SUPER. Up/down navigate existing
   threads in sidebar order across project boundaries; right switches Chat /
   Trajectory. Requires the optional navigation plugin; center and physical
@@ -54,31 +54,36 @@ cover earlier images; the current change record documents the DSH acceptance sco
 
 Home requires matching source-built Companion and USB-mic firmware. Boot,
 reconnect and Companion startup select Home without activating a Mac app.
-Home stays selected even when the Mac foreground changes. Tap the portrait for
-silent blinking. Swipe up for Optimus Prime, down for Megatron, or right for
-Starscream; repeat the selected direction to return to Bumblebee. Selection
-is local-only and silent, with one restored 40ms swipe haptic per accepted change,
-including returning to Bumblebee and offline selection. Held movement does not
-repeat it; wake-only gestures retain the short wake tick without changing character.
-Central triple blinking remains non-haptic. All four portraits have no decorative
-boundary circle. The first sleeping-screen touch only wakes the display.
-Leaving Home, sleep or power confirmation cancels the reaction. Home no longer
-requests speech even if private audio was embedded; retained audio tooling is
-legacy, not the current center-tap behavior. USB microphone and Codex completion
-chime behavior are unchanged. No USB speaker endpoint, network TTS or application
-content access is added.
+Home stays selected even when the Mac foreground changes. The four heroes are
+Bumblebee (default), Optimus Prime, Iron Man and Spider-Man. Touch down inside
+x=64..402/y=64..398 for immediate compressed-avatar energy feedback; release within
+500ms without a swipe to emit a silent 420ms skill and one 25ms haptic. New taps
+interrupt the current reaction instead of being ignored. Moving outside the
+portrait area or reaching the 52px swipe threshold cancels the tap.
+Swipe up, down or right to uniformly select one of the other three heroes; the
+same direction may be repeated and each selection gives one 40ms haptic, even
+offline. Held motion cannot repeat. Left retains the workspace cycle. The first
+sleeping-screen touch only wakes the display. Leaving Home, sleep or power
+confirmation cancels the reaction; existing long-hold power controls remain.
+All portraits remain without a decorative boundary circle. The firmware caches
+four RGB565 portraits in PSRAM, uses one reusable portrait buffer if necessary,
+and redraws only for animation or state changes. The same cached renderer drives
+native previews; build/preview results do not establish C152 response latency.
+No speech or Mac action is requested by portrait interaction. USB microphone and
+Codex completion chime behavior are unchanged. See
+[Home hero interaction and validation](docs/HOME_HERO_INTERACTION.md).
 An awake Home left swipe with a ready Companion link gives the same single
 vibration as other workspace swipes; offline left remains silent. This is gesture
 feedback, not confirmation of Mac activation.
 Status and battery are real device inputs, not the preview's sample values.
 
 <table>
-  <tr><th>Bumblebee (default)</th><th>Optimus Prime (up)</th><th>Megatron (down)</th><th>Starscream (right)</th></tr>
+  <tr><th>Bumblebee (default)</th><th>Optimus Prime</th><th>Iron Man</th><th>Spider-Man</th></tr>
   <tr>
     <td width="25%"><img src="artifacts/robot-home-bumblebee.png" alt="Robot Home Bumblebee portrait"></td>
     <td width="25%"><img src="artifacts/robot-home-optimus.png" alt="Robot Home Optimus Prime portrait"></td>
-    <td width="25%"><img src="artifacts/robot-home-megatron.png" alt="Robot Home Megatron portrait"></td>
-    <td width="25%"><img src="artifacts/robot-home-starscream.png" alt="Robot Home Starscream portrait"></td>
+    <td width="25%"><img src="artifacts/robot-home-ironman.png" alt="Home Iron Man portrait"></td>
+    <td width="25%"><img src="artifacts/robot-home-spiderman.png" alt="Home Spider-Man portrait"></td>
   </tr>
 </table>
 
@@ -108,11 +113,11 @@ app” behavior is replaced by this fixed cycle.
 | Input | Robot Home | Codex Micro | DSH | SUPER | HERMES |
 | --- | --- | --- | --- | --- | --- |
 | Left physical / right physical | No action¹ | Push to talk / Voice Chat | No action¹ | No action¹ | No action¹ |
-| Center tap | Three silent blinks | Launch/retry when waiting; Send when active | Launch/retry when waiting; no action when active | Launch/retry when waiting; no action when active | Launch/retry when waiting; no action when active |
+| Center tap | Press energy / release skill + short haptic | Launch/retry when waiting; Send when active | Launch/retry when waiting; no action when active | Launch/retry when waiting; no action when active | Launch/retry when waiting; no action when active |
 | Swipe left | Select Codex | Select DSH | Select SUPER | Select HERMES | Enter Home |
-| Swipe up | Optimus / back to Bumblebee | Existing app mapping | Previous thread | Previous project | Browse previous session |
-| Swipe down | Megatron / back to Bumblebee | Existing app mapping | Next thread | Next project | Browse next session |
-| Swipe right | Starscream / back to Bumblebee | Existing app mapping | Chat / Trajectory | Next session Tab | Open owned selection; otherwise no action |
+| Swipe up | Random different hero | Existing app mapping | Previous thread | Previous project | Browse previous session |
+| Swipe down | Random different hero | Existing app mapping | Next thread | Next project | Browse next session |
+| Swipe right | Random different hero | Existing app mapping | Chat / Trajectory | Next session Tab | Open owned selection; otherwise no action |
 | Power controls | Desk sleep / Travel Mode | Same | Same | Same | Same |
 
 ¹ Directional screens and device-side isolation require the explicitly chosen
@@ -168,8 +173,7 @@ content. The browser plugin uses structural row IDs locally, never titles,
 message text, drafts or credentials. It opens only existing threads, never
 creates one. Trajectory must already be available; ambiguous or unsupported
 UI state fails closed. Plugin 0.1.1 with build8 passed the preceding user-observed
-physical navigation acceptance; never install deprecated 0.1.0. The new triple
-blink/general center-launch changes have not yet been installed or accepted.
+physical navigation acceptance; never install deprecated 0.1.0. Current hero skills/random-selection firmware still awaits its own physical acceptance.
 
  App activation failure does not skip to another target.
 It shares the 5-second heartbeat and 15-second lease/fallback with other work
@@ -323,7 +327,7 @@ Choose the intended experience before building:
 
 | Experience | Firmware | What you get |
 | --- | --- | --- |
-| Five-screen AgentBezel described above | Explicitly choose `pio run -d usb-mic` + matching source-built Companion | Robot Home blinking, Codex, DSH, SUPER, HERMES, input-only USB microphone |
+| Five-screen AgentBezel described above | Explicitly choose `pio run -d usb-mic` + matching source-built Companion | Interactive hero Home, Codex, DSH, SUPER, HERMES, input-only USB microphone |
 | Basic Codex-only compatibility | `pio run -e m5stack-stopwatch` | Codex dashboard and BLE controls, Mac-selected microphone; no multi-screen Home/selector |
 
 The following prompt **explicitly selects the five-screen USB-mic variant**.
@@ -334,7 +338,7 @@ serial port, and paste this into Codex:
 ```text
 Install the five-screen AgentBezel experience on my M5Stack StopWatch Dev Kit C152.
 I choose the isolated USB-mic firmware and matching Companion, including Home,
-Codex, DSH, SUPER and HERMES. Home taps blink silently.
+Codex, DSH, SUPER and HERMES. Home taps release silent hero skills with short haptics.
 
 Read AGENTS.md and README.md completely before acting. Work through the setup
 autonomously, but follow these safety rules:

@@ -30,27 +30,26 @@ fixture = <<~CPP
   #include "#{repo}/simulator/preview_main.cpp"
   #undef main
   #include "WorkspaceMode.h"
+  #include "RobotHomeFrame.h"
   using workspace_mode::Mode;
-  unsigned millis() { return 1000; }
+  unsigned now=1000,advanceAfterPush=0;
+  unsigned millis() { return now; }
+  void updateHaptic() {}
   bool deskSleeping=false, renderedWorkspaceModeValid=false, renderedHealthValid=false;
   bool charging=false, renderedCharging=false, renderedConnected=false;
   bool renderedQuotaStale=false, renderedDocked=false;
   int batteryPercent=82, renderedBatteryPercent=-1;
   unsigned lastDrawMs=0;
+  robot_home::FrameClock robotFrames;
+  bool robotInputDirty=false;int robotTouchX=233,robotTouchY=232;
   Mode renderedWorkspaceMode=Mode::Home;
   struct { Mode workspaceMode=Mode::Codex; bool connected=true, workspaceHostReady=true; } state;
   dashboard::LinkHealth renderedLinkHealth=dashboard::LinkHealth::Offline;
   dashboard::PowerOverlay powerOverlay=dashboard::PowerOverlay::None;
   touch_gesture::Direction activeSwipe=touch_gesture::Direction::None;
   workspace_palette::Palette workspacePalette;
-  struct {
-    robot_home::Mood mood(unsigned) { return robot_home::Mood::Idle; }
-    unsigned elapsed(unsigned) { return 0; }
-  } robotAnimation;
-  struct {
-    robot_home::Character character() { return robot_home::Character::Bumblebee; }
-    float transitionProgress(unsigned) { return 1; }
-  } robotCharacters;
+  robot_home::Animation robotAnimation;
+  robot_home::CharacterSelector robotCharacters;
   float currentPowerHoldProgress() { return 0.56f; }
   #{extract_draw_function(source, 'super_workspace::PowerOverlay superPowerOverlay() {')}
   #{extract_draw_function(source, 'bool directionalWorkspaceActive() {')}
@@ -58,7 +57,7 @@ fixture = <<~CPP
   dashboard::State fixtureState;
   dashboard::State dashboardState() { return fixtureState; }
   // Only the physical panel transfer is a no-op; all rasterization is real.
-  struct Canvas : lgfx::LGFX_Sprite { void pushSprite(int, int) {} } canvas;
+  struct Canvas : robot_home::PortraitCanvas<lgfx::LGFX_Sprite> { void pushSprite(int, int) {now+=advanceAfterPush;} } canvas;
   #{extract_draw_function(source, 'void drawScreen() {')}
   std::vector<unsigned char> pixels(lgfx::LGFX_Sprite& surface) {
     std::vector<unsigned char> bytes(466*466*3);
@@ -66,6 +65,24 @@ fixture = <<~CPP
     return bytes;
   }
   int main() {
+    #if defined(CODEX_STOPWATCH_USB_MIC)
+    // Crossing expiry during physical transfer must still schedule resting pixels.
+    canvas.setColorDepth(16);assert(canvas.createSprite(466,466));
+    state.workspaceMode=Mode::Home;now=100;robotAnimation.press(now);robotAnimation.release(now);
+    advanceAfterPush=20;drawScreen();
+    assert(!robotFrames.due(133,true,true,false));
+    assert(robotFrames.due(134,true,true,false)); // include rendering time in 30fps cadence
+
+    now=519;advanceAfterPush=2;drawScreen();
+    assert(robotFrames.due(now,true,false,false));
+    advanceAfterPush=0;drawScreen();assert(!robotFrames.due(now,true,false,false));
+    robotAnimation.cancel();
+    robotCharacters.select(touch_gesture::Direction::Up,100,[]{return 0u;});
+    now=419;advanceAfterPush=2;drawScreen();
+    assert(robotFrames.due(now,true,false,false));
+    advanceAfterPush=0;drawScreen();assert(!robotFrames.due(now,true,false,false));
+    state.workspaceMode=Mode::Codex;robotCharacters.reset();now=1000;
+    #endif
     lgfx::LGFX_Sprite reference;
     for(auto* surface:{static_cast<lgfx::LGFX_Sprite*>(&canvas),&reference}) {
       surface->setColorDepth(16);

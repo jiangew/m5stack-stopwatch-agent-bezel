@@ -21,6 +21,8 @@ artifacts/*
 !artifacts/robot-home-optimus.png
 !artifacts/robot-home-megatron.png
 !artifacts/robot-home-starscream.png
+!artifacts/robot-home-ironman.png
+!artifacts/robot-home-spiderman.png
 
 # The companion is built and wrapped locally so Bluetooth permission, device
 # binding, executable paths, and logs never become repository data.

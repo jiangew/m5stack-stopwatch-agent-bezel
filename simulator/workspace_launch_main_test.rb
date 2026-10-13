@@ -15,7 +15,7 @@ def extract(source, signature)
   end
   source[first...last]
 end
-functions = ['bool directionalWorkspaceActive() {', 'void clearTouchCandidate() {',
+functions = ['void stopRobotReaction() {', 'void requestRobotReaction() {', 'bool directionalWorkspaceActive() {', 'void clearTouchCandidate() {',
   'void beginTouchGesture(int x, int y) {', 'void sendSwipePress(touch_gesture::Direction direction) {', 'void sendSwipeRelease() {',
   'void finishTouchGesture(int x, int y) {', 'super_workspace::State superWorkspaceState() {'].map { |s| extract(source, s) }.join("\n")
 touch_start = source.index('  if (touch.wasPressed()) {') or abort 'missing touch loop'
@@ -29,6 +29,7 @@ fixture = <<~CPP
   #include "WorkspaceInputPolicy.h"
   #include "WorkspaceNavigation.h"
   #include "WorkspaceCenterTap.h"
+  #include "RobotHomeInteraction.h"
   using workspace_mode::Mode;
   using touch_gesture::Direction;
   unsigned now=100; unsigned millis(){return now;}
@@ -46,7 +47,11 @@ fixture = <<~CPP
   struct {int colors(){return 0;}} workspacePalette;
   int batteryPercent=70;bool charging=false;
   dashboard::PowerOverlay powerOverlay=dashboard::PowerOverlay::None;
-  workspace_input::CenterTap workspaceCenterTap,robotTap;
+  workspace_input::CenterTap workspaceCenterTap;
+  robot_home::Tap robotTap;
+  robot_home::Animation robotAnimation;
+  bool robotInputDirty=false;
+  int robotTouchX=233,robotTouchY=232;
   workspace_navigation::Gesture navigationGesture;
   bool touchTracking=false,touchPowerHoldConsumed=false,touchPowerHoldCandidate=false;
   bool touchAgentPressed=false,touchSendPressed=false;
@@ -68,14 +73,14 @@ fixture = <<~CPP
   #{extract(ble, 'void CodexMicroBle::sendOpenHermes()')}
   struct {template<class... A>void printf(const char*,A...){}} Serial;
   bool noteActivity(){bool awake=!deskSleeping;deskSleeping=false;return awake;}
-  void drawScreen(){} void startHaptic(int,int){++haptics;}
+  int draws=0,lastHapticMs=0;unsigned drawCost=0,hapticStartedAt=0;
+  void drawScreen(){++draws;now+=drawCost;} void startHaptic(int,int duration){++haptics;lastHapticMs=duration;hapticStartedAt=now;}
   int8_t agentAtPoint(int x,int){return x<100?0:-1;}
   void beginTouchAgent(int8_t a){touchAgentPressed=true;activeTouchAgent=a;}
   void beginTouchSend(){touchSendPressed=true;}
   void beginTouchPowerHoldCandidate(){touchPowerHoldCandidate=true;}
   void commitTouchAgent(){++agentCommits;touchAgentPressed=false;}
   void commitTouchSend(){++sendCommits;touchSendPressed=false;}
-  void requestRobotReaction(){}
   bool leftPressed=false,rightPressed=false,voiceTapBannerVisible=false;
   unsigned rightPressedAtMs=0,voiceTapBannerUntilMs=0;
   const char* kLeftMicSwitch="left";const char* kVoiceChatCommandKey="voice";
@@ -93,9 +98,28 @@ fixture = <<~CPP
   void reset(Mode mode){state.workspaceMode=mode;state.workspaceHostReady=true;deskSleeping=false;
     clearTouchCandidate();touchTracking=false;touchPowerHoldConsumed=false;activeSwipe=Direction::None;
     navigationGesture.reset();messages.clear();agentCommits=sendCommits=haptics=physicalEvents=0;
-    leftPressed=rightPressed=false;M5.BtnA={};M5.BtnB={};now+=1000;}
+    leftPressed=rightPressed=false;M5.BtnA={};M5.BtnB={};now+=1000;robotAnimation.cancel();draws=0;}
   void tap(int x=233,int y=233){touchDown(x,y);now+=100;finishTouchGesture(x,y);}
   int main(){
+    reset(Mode::Home);touchDown(233,233);
+    assert(robotAnimation.mood(now)==robot_home::Mood::Press&&draws==1&&haptics==0);
+    assert(messages.empty());now+=100;finishTouchGesture(233,233);
+    assert(robotAnimation.mood(now)==robot_home::Mood::Skill&&draws==2);
+    assert(haptics==1&&lastHapticMs==25&&messages.empty());
+    now+=30;touchDown(233,233);assert(robotAnimation.mood(now)==robot_home::Mood::Press);
+    now+=30;finishTouchGesture(233,233);assert(robotAnimation.elapsed(now)==0&&haptics==2);
+    reset(Mode::Home);touchDown(233,233);now+=100;drawCost=60;finishTouchGesture(233,233);
+    assert(hapticStartedAt==now); // render time must not lengthen motor pulse
+    drawCost=0;
+    reset(Mode::Home);deskSleeping=true;touchDown(233,233);
+    assert(!touchTracking&&robotAnimation.mood(now)==robot_home::Mood::Idle&&draws==0);
+    finishTouchGesture(233,233);assert(haptics==0&&messages.empty());
+    reset(Mode::Home);touchDown(233,233);now+=500;finishTouchGesture(233,233);
+    assert(robotAnimation.mood(now)==robot_home::Mood::Idle&&haptics==0&&messages.empty());
+    reset(Mode::Home);touchDown(233,233);robotTap.move(20,233,52);now+=100;finishTouchGesture(233,233);
+    assert(robotAnimation.mood(now)==robot_home::Mood::Idle&&haptics==0);
+    reset(Mode::Home);tap(10,10);assert(draws==0&&haptics==0&&messages.empty());
+
     for(auto mode:{Mode::CodexIdle,Mode::CodexOpening,Mode::CodexError,
         Mode::DeepseekIdle,Mode::DeepseekOpening,Mode::DeepseekError,
         Mode::SuperIdle,Mode::SuperOpening,Mode::SuperError,

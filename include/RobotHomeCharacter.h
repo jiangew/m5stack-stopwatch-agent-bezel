@@ -2,6 +2,7 @@
 #pragma once
 
 #include <cstdint>
+#include <limits>
 
 #include "TouchGesture.h"
 
@@ -10,19 +11,30 @@ namespace robot_home {
 enum class Character : std::uint8_t {
   Bumblebee,
   Optimus,
-  Megatron,
-  Starscream,
+  Ironman,
+  Spiderman,
 };
 
 class CharacterSelector {
  public:
-  Character select(touch_gesture::Direction direction, std::uint32_t nowMs) {
-    const Character target = targetFor(direction);
+  template <typename RandomFn>
+  Character select(touch_gesture::Direction direction, std::uint32_t nowMs,
+                   RandomFn&& randomFn) {
     if (direction == touch_gesture::Direction::Left ||
         direction == touch_gesture::Direction::None) {
       return character_;
     }
-    character_ = character_ == target ? Character::Bumblebee : target;
+
+    // 2^32 - 1 is divisible by three: rejecting the one excess value makes
+    // each candidate equally likely without consuming entropy for Left/None.
+    std::uint32_t sample;
+    do {
+      sample = randomFn();
+    } while (sample == std::numeric_limits<std::uint32_t>::max());
+    const auto excluded = static_cast<std::uint32_t>(character_);
+    auto candidate = sample % 3;
+    if (candidate >= excluded) ++candidate;
+    character_ = static_cast<Character>(candidate);
     transitionSince_ = nowMs;
     transitioning_ = true;
     return character_;
@@ -44,21 +56,6 @@ class CharacterSelector {
 
  private:
   static constexpr std::uint32_t kTransitionMs = 320;
-
-  static constexpr Character targetFor(touch_gesture::Direction direction) {
-    switch (direction) {
-      case touch_gesture::Direction::Up:
-        return Character::Optimus;
-      case touch_gesture::Direction::Down:
-        return Character::Megatron;
-      case touch_gesture::Direction::Right:
-        return Character::Starscream;
-      case touch_gesture::Direction::Left:
-      case touch_gesture::Direction::None:
-        return Character::Bumblebee;
-    }
-    return Character::Bumblebee;
-  }
 
   Character character_ = Character::Bumblebee;
   std::uint32_t transitionSince_ = 0;
