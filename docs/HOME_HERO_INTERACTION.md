@@ -116,17 +116,29 @@ used; builds do not upload or change Companion installation. For a batch of
 native animation frames, create an output directory then run
 `.pio/build/native-preview/program --home-sequence OUTPUT_DIRECTORY`.
 
-## Physical acceptance pending
+## Deployment and remaining physical acceptance
 
-No new firmware has been flashed. USB inspection observed the existing
-`Codex StopWatch Mic` device, with no USB serial upload port in normal microphone
-mode. This does not establish readiness to flash or validate the new code.
+On 2026-10-13, the user confirmed download mode and explicitly approved the
+identified upload port. The five-screen application built from `3a0e2cf` was
+written to app0 at `0x10000` after a complete 16MB private backup and confirmation
+that the device/candidate partition tables match and OTA selects app0.
 
-Before upload, follow the
+The write tool verified its data hash, then an independent ROM verification
+matched the firmware digest. A separate readback confirmed the first 64KB,
+including bootloader, partition table, NVS and OTA metadata, remained byte-identical
+to the pre-update backup. No Companion deployment, restart, push or merge was
+performed. The device restarted with the tool's watchdog reset; USB and CoreAudio
+again enumerated `Codex StopWatch Mic` as one 48kHz USB input, and a new Companion
+HID-connected log was observed. A compiled version of the existing capture helper
+then recorded 3.008 seconds of 48kHz, mono, 16-bit PCM (144,384 frames). Validation
+found no discontinuities, long zero runs, repeated adjacent blocks or clipping.
+The temporary recording was deleted. Connection and this short capture do not
+establish every control/RPC action or long-duration audio reliability.
+
+Before any future upload or rollback, follow the
 [official M5Stack factory-recovery procedure](https://docs.m5stack.com/en/guide/stopwatch/restore_factory),
-confirm the exact C152 download-mode port and obtain explicit upload approval.
-Retain current firmware and private partition backup for recovery. Verify the
-application write independently and preserve pairing/NVS state.
+resolve and report the current exact download-mode port and obtain upload approval.
+Private backups, firmware and detailed device logs stay local.
 
 Physical acceptance must cover each hero's perceived response, repeated taps,
 random swipes, wake/long hold, left cycling, Agent navigation and microphone

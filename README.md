@@ -30,7 +30,7 @@ See the
 - Home: Bumblebee, Optimus Prime, Iron Man and Spider-Man. Press the portrait
   for immediate energy feedback; release a short tap for a 420ms hero skill and
   one 25ms haptic. New taps interrupt the previous skill. Up/down/right randomly
-  select a different hero. This source update has not yet been flashed/accepted.
+  select a different hero. Flashed on 2026-10-13; hero interaction/latency acceptance is still pending.
 - DSH: the same four-triangle layout as SUPER. Up/down navigate existing
   threads in sidebar order across project boundaries; right switches Chat /
   Trajectory. Requires the optional navigation plugin; center and physical
