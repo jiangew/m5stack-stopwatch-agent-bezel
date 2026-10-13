@@ -30,6 +30,20 @@ def payloads(text):
     }
 
 
+def visually_distinct(first, second):
+    # Downsample to suppress JPEG blocks and compare only the union of the
+    # visible figures, so shared black margins cannot dominate the result.
+    thumbs = [np.array(Image.fromarray(pixels).resize((48, 48), Image.Resampling.BILINEAR),
+                      dtype=np.int16) for pixels in (first, second)]
+    foreground = np.maximum(thumbs[0].max(axis=2), thumbs[1].max(axis=2)) > 24
+    if not foreground.any():
+        return False
+    close = np.max(np.abs(thumbs[0] - thumbs[1]), axis=2) <= 12
+    # Calibration on all seven shipped figures: their largest close fraction
+    # is 0.045 (Jazz/Wheeljack); quality-20 re-encodes are at least 0.743.
+    return float(close[foreground].mean()) < 0.5
+
+
 class HeroArtTest(unittest.TestCase):
     def test_exactly_seven_idle_assets_are_embedded(self):
         embedded = payloads(HEADER.read_text())
@@ -63,14 +77,27 @@ class HeroArtTest(unittest.TestCase):
                 self.assertLessEqual(int(pixels[edge].max()), 12, name)
                 self.assertGreater(int((pixels.max(axis=2) > 70).sum()), 6000, name)
                 fingerprints.append(sha256(data).hexdigest())
-                decoded.append(pixels.astype(float))
+                decoded.append(pixels)
         self.assertEqual(len(set(fingerprints)), 7, 'heroes must not alias one JPEG')
         for index, first in enumerate(decoded):
             for second in decoded[index + 1:]:
-                # Compare decoded artwork, so a re-encoded duplicate cannot
-                # pass merely because its JPEG bytes differ.
-                self.assertFalse(np.array_equal(first, second),
-                                 f'{HEROES[index]} and another hero share artwork')
+                self.assertTrue(visually_distinct(first, second),
+                                f'{HEROES[index]} and another hero share artwork')
+
+    def test_reencoded_artwork_is_not_a_distinct_identity(self):
+        # A duplicate drawing can have a different JPEG digest and decoded
+        # pixels; run it through the same check used for the shipped roster.
+        for name in HEROES:
+            with self.subTest(hero=name):
+                original_data = (ASSETS / f'{name.lower()}-idle.jpg').read_bytes()
+                original = Image.open(BytesIO(original_data)).convert('RGB')
+                output = BytesIO()
+                original.save(output, format='JPEG', quality=20, subsampling=2)
+                self.assertNotEqual(sha256(original_data).digest(), sha256(output.getvalue()).digest())
+                reencoded = np.array(Image.open(BytesIO(output.getvalue())).convert('RGB'))
+                pixels = np.array(original)
+                self.assertFalse(np.array_equal(pixels, reencoded))
+                self.assertFalse(visually_distinct(pixels, reencoded), name)
 
     def test_preserved_robot_portrait_pixels(self):
         # Preserve the accepted ring-free crop, not the removed rim or blink.
