@@ -31,7 +31,8 @@ struct Surface {
 int main(){
   using namespace robot_home;
   std::vector<const std::uint8_t*> identities;
-  for(auto c:{Character::Bumblebee,Character::Optimus,Character::Ironman,Character::Spiderman}) {
+  for(auto c:{Character::Bumblebee,Character::BumblebeeFullbody,Character::Optimus,
+              Character::Jazz,Character::Hotrod,Character::Wheeljack,Character::Hound}) {
     State state;state.character=c;state.connected=true;state.batteryPercent=82;
     Surface idle;render(idle,state);
     assert(idle.portraits.size()==1&&idle.effects==0);

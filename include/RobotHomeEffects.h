@@ -11,9 +11,12 @@ constexpr float kTau=6.2831853f;
 inline std::uint16_t tint(Character c) {
   switch(c) {
     case Character::Bumblebee:return 0xFFE0;
+    case Character::BumblebeeFullbody:return 0xFFE0;
     case Character::Optimus:return 0x05FF;
-    case Character::Ironman:return 0xBFFF;
-    case Character::Spiderman:return 0xFFFF;
+    case Character::Jazz:return 0x4D9F;
+    case Character::Hotrod:return 0xFC00;
+    case Character::Wheeljack:return 0x07E0;
+    case Character::Hound:return 0x47E8;
   }
   return 0xFFFF;
 }
@@ -49,7 +52,8 @@ void render(Surface& surface,Character character,Mood mood,std::uint32_t elapsed
     return;
   }
   switch(character) {
-    case Character::Bumblebee: {
+    case Character::Bumblebee:
+    case Character::BumblebeeFullbody: {
       // Jagged shoulder sparks, moving outward on both sides.
       const int spread=point(24*t);
       for(int side:{-1,1})for(int ray=0;ray<3;++ray) {
@@ -71,32 +75,39 @@ void render(Surface& surface,Character character,Mood mood,std::uint32_t elapsed
       }
       break;
     }
-    case Character::Ironman: {
+    case Character::Jazz: {
       const int r=14+point(58*std::sqrt(t));
       surface.drawCircle(cx,cy,r,color);
       surface.drawCircle(cx,cy,r-1,color);
-      surface.drawCircle(cx,cy,r-2,color);
-      surface.drawCircle(cx,cy,std::max(3,r-5),fade(color,.65f));
-      surface.drawCircle(cx,cy,std::max(3,r/2),color);
-      if(t<.35f)surface.fillCircle(cx,cy,std::max(2,point(9*(1-t/.35f))),color);
-      for(int i=0;i<8;++i) {
-        const float a=kTau*i/8;
-        stroke(surface,point(cx+(r-8)*std::cos(a)),point(cy+(r-8)*std::sin(a)),
-                         point(cx+r*std::cos(a)),point(cy+r*std::sin(a)),color);
+      surface.drawCircle(cx,cy,std::max(3,r-16),fade(color,.7f));
+      surface.drawCircle(cx,cy,std::max(3,r-32),fade(color,.5f));
+      break;
+    }
+    case Character::Hotrod: {
+      const int shift=point(34*t);
+      for(int lane=0;lane<5;++lane) {
+        const int y=166+lane*34;
+        stroke(surface,112+shift,y,166+shift,y-12,color);
+        stroke(surface,300+shift,y+14,345+shift,y+2,color);
       }
       break;
     }
-    case Character::Spiderman: {
-      const int r=18+point(54*std::sqrt(t));
-      for(int i=0;i<8;++i) {
-        const float a=kTau*i/8, next=kTau*(i+1)/8;
-        stroke(surface,cx,cy,point(cx+r*std::cos(a)),point(cy+r*std::sin(a)),color);
-        for(int ring=1;ring<=3;++ring) {
-          const float radius=r*ring/3.0f;
-          stroke(surface,point(cx+radius*std::cos(a)),point(cy+radius*std::sin(a)),
-                           point(cx+radius*std::cos(next)),point(cy+radius*std::sin(next)),color);
-        }
+    case Character::Wheeljack: {
+      const int spread=point(24*t);
+      for(int side:{-1,1})for(int ray=0;ray<4;++ray) {
+        const int x=233+side*(58+spread), y=176+ray*36;
+        stroke(surface,x,y,x+side*14,y-12,color);
+        stroke(surface,x+side*14,y-12,x+side*20,y+4,color);
+        stroke(surface,x+side*20,y+4,x+side*36,y-6,color);
       }
+      break;
+    }
+    case Character::Hound: {
+      const int r=16+point(54*t);
+      for(int ring=1;ring<=3;++ring)
+        surface.drawCircle(cx,cy,std::max(3,r*ring/3),fade(color,1.0f-.18f*(3-ring)));
+      const float a=-kTau/4+kTau*t;
+      stroke(surface,cx,cy,point(cx+r*std::cos(a)),point(cy+r*std::sin(a)),color);
       break;
     }
   }

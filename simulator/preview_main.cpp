@@ -116,7 +116,8 @@ super_workspace::State superPreviewState(const char* scenario) {
 }
 
 bool validScenario(const char* scenario) {
-  for (const char* base : {"home","home-bumblebee","home-optimus","home-ironman","home-spiderman"})
+  for (const char* base : {"home","home-bumblebee","home-bumblebeefullbody",
+                           "home-optimus","home-jazz","home-hotrod","home-wheeljack","home-hound"})
     for (const char* suffix : {"","-press","-skill","-transition"})
       if (std::string(scenario)==std::string(base)+suffix) return true;
   for (const char* name : {"home-offline","home-charging","home-unknown","home-low","home-power-hold"})
@@ -177,8 +178,8 @@ bool writeHomeSequence(const char* directory) {
   frame.setColorDepth(16);
   if(!frame.createSprite(466,466))return false;
   frame.setTextWrap(false);frame.preparePortraits();
-  const char* names[]={"bumblebee","optimus","ironman","spiderman"};
-  for(int hero=0;hero<4;++hero)for(int i=0;i<30;++i) {
+  const char* names[]={"bumblebee","bumblebeefullbody","optimus","jazz","hotrod","wheeljack","hound"};
+  for(int hero=0;hero<robot_home::kCharacterCount;++hero)for(int i=0;i<30;++i) {
     robot_home::State state;state.character=static_cast<robot_home::Character>(hero);
     state.connected=true;state.batteryPercent=82;
     if(i>=3&&i<7) {state.mood=robot_home::Mood::Press;state.reactionElapsedMs=(i-3)*33;}
@@ -216,9 +217,12 @@ int main(int argc, char** argv) {
   framebuffer.setTextWrap(false);
   if (std::strncmp(scenario,"home",4)==0) {
     robot_home::State state;state.batteryPercent=82;state.connected=true;
+    if(std::strncmp(scenario,"home-bumblebeefullbody",22)==0)state.character=robot_home::Character::BumblebeeFullbody;
     if(std::strncmp(scenario,"home-optimus",12)==0)state.character=robot_home::Character::Optimus;
-    if(std::strncmp(scenario,"home-ironman",12)==0)state.character=robot_home::Character::Ironman;
-    if(std::strncmp(scenario,"home-spiderman",14)==0)state.character=robot_home::Character::Spiderman;
+    if(std::strncmp(scenario,"home-jazz",9)==0)state.character=robot_home::Character::Jazz;
+    if(std::strncmp(scenario,"home-hotrod",11)==0)state.character=robot_home::Character::Hotrod;
+    if(std::strncmp(scenario,"home-wheeljack",14)==0)state.character=robot_home::Character::Wheeljack;
+    if(std::strncmp(scenario,"home-hound",10)==0)state.character=robot_home::Character::Hound;
     if(std::strstr(scenario,"-transition")!=nullptr)state.transitionProgress=0.5f;
     const std::uint32_t elapsed = argc > 3 ? std::strtoul(argv[3], nullptr, 10) : 100;
     robot_home::Animation animation;

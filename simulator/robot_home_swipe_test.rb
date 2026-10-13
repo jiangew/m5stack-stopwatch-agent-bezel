@@ -30,7 +30,8 @@ fixture = <<~CPP
   void requestRobotReaction(){++speech;robotAnimation.press(100);robotAnimation.release(100);}
   void stopRobotReaction(){++cancels;}
   unsigned millis(){return 100;}
-  unsigned esp_random(){return 0;}
+  unsigned entropy=0,entropyCalls=0;
+  unsigned esp_random(){++entropyCalls;return entropy;}
   bool directionalWorkspaceActive(){return state.workspaceMode!=workspace_mode::Mode::Codex;}
   workspace_input::Control controlForSwipe(Direction d){
     switch(d){
@@ -49,7 +50,7 @@ fixture = <<~CPP
   struct {template<class F>void acceptSwipe(unsigned,F){++recolors;}} workspacePalette;
   struct {template<class... A>void printf(const char*,A...){}} Serial;
   #{function}
-  void reset(bool resetCharacter=true){sent=haptics=speech=cancels=0;touchTracking=true;awake=true;activeSwipe=Direction::None;state.workspaceHostReady=true;if(resetCharacter)robotCharacters.reset();}
+  void reset(bool resetCharacter=true){sent=haptics=speech=cancels=entropyCalls=0;touchTracking=true;awake=true;activeSwipe=Direction::None;state.workspaceHostReady=true;if(resetCharacter)robotCharacters.reset();}
   int main(){
     reset();updateTouchGesture(140,200);
     assert(sent==1&&haptics==1&&speech==0&&cancels==1);
@@ -59,15 +60,16 @@ fixture = <<~CPP
     assert(sent==0&&haptics==0&&robotAnimation.mood(100)==robot_home::Mood::Connect);
     reset();updateTouchGesture(200,140);assert(sent==0&&haptics==1&&speech==0&&cancels==1);
     assert(activeSwipe==Direction::None&&!touchTracking);
-    assert(robotCharacters.character()==robot_home::Character::Optimus);
+    assert(robotCharacters.character()==robot_home::Character::BumblebeeFullbody);
     reset(false);updateTouchGesture(200,140);
-    assert(robotCharacters.character()==robot_home::Character::Bumblebee);
+    assert(robotCharacters.character()==robot_home::Character::Optimus);
+    assert(sent==0&&haptics==1&&entropyCalls==1);
     reset();updateTouchGesture(200,260);assert(sent==0&&haptics==1&&speech==0&&cancels==1);
     assert(activeSwipe==Direction::None&&!touchTracking);
-    assert(robotCharacters.character()==robot_home::Character::Optimus);
+    assert(robotCharacters.character()==robot_home::Character::BumblebeeFullbody);
     reset();updateTouchGesture(260,200);assert(sent==0&&haptics==1&&speech==0&&cancels==1);
     assert(activeSwipe==Direction::None&&!touchTracking);
-    assert(robotCharacters.character()==robot_home::Character::Optimus);
+    assert(robotCharacters.character()==robot_home::Character::BumblebeeFullbody);
     // Each accepted local character gesture gives exactly one existing swipe tick,
     // even offline; held movement cannot repeat, and waking cannot change character.
     for(const auto xy:{std::pair<int,int>{200,140},{200,260},{260,200}}){
@@ -77,7 +79,7 @@ fixture = <<~CPP
         assert(intensity==kSwipeHapticIntensity&&duration==kSwipeHapticDurationMs);
         updateTouchGesture(xy.first,xy.second);assert(haptics==1);
         reset(false);state.workspaceHostReady=ready;updateTouchGesture(xy.first,xy.second);
-        assert(robotCharacters.character()==robot_home::Character::Bumblebee&&haptics==1);
+        assert(robotCharacters.character()==robot_home::Character::Optimus&&haptics==1);
         reset();awake=false;updateTouchGesture(xy.first,xy.second);
         assert(robotCharacters.character()==robot_home::Character::Bumblebee);
         assert(sent==0&&haptics==1&&duration==kWakeHapticDurationMs&&!touchTracking);

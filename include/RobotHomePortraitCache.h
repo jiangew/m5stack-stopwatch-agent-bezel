@@ -8,7 +8,7 @@ namespace robot_home {
 struct PortraitImage { const std::uint8_t* bytes; std::uint32_t size; };
 
 // Sprite is injected so allocation/decode failures can be tested on the host.
-// Full cache: 4 * 300 * 300 * 2 bytes in PSRAM. Fallback: one reused sprite.
+// Full cache: 7 * 300 * 300 * 2 bytes in PSRAM. Fallback: one reused sprite.
 template <class Sprite>
 class PortraitCache {
  public:
@@ -20,7 +20,7 @@ class PortraitCache {
   void prepare(const PortraitImage* images, std::size_t count) {
     if (prepared_) return;
     prepared_ = true;
-    count_ = count < 4 ? count : 4;
+    count_ = count < kCapacity ? count : kCapacity;
     for (std::size_t i = 0; i < count_; ++i) images_[i] = images[i];
     for (std::size_t i = 0; i < count_; ++i) {
       if (!allocate(i, true)) {
@@ -72,14 +72,15 @@ class PortraitCache {
     return sprites_[slot].drawJpg(image.bytes, image.size, 0, 0);
   }
   void releaseSprites() {
-    for (std::size_t i = 0; i < 4; ++i) {
+    for (std::size_t i = 0; i < kCapacity; ++i) {
       if (allocated_[i]) sprites_[i].deleteSprite();
       allocated_[i] = decoded_[i] = false;
     }
   }
-  std::array<Sprite, 4> sprites_;
-  std::array<PortraitImage, 4> images_{};
-  std::array<bool, 4> allocated_{}, decoded_{}, failed_{};
+  static constexpr std::size_t kCapacity = 7;
+  std::array<Sprite, kCapacity> sprites_;
+  std::array<PortraitImage, kCapacity> images_{};
+  std::array<bool, kCapacity> allocated_{}, decoded_{}, failed_{};
   const std::uint8_t* current_ = nullptr;
   std::size_t count_ = 0;
   bool prepared_ = false, fallback_ = false;

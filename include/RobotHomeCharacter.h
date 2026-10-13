@@ -2,7 +2,6 @@
 #pragma once
 
 #include <cstdint>
-#include <limits>
 
 #include "TouchGesture.h"
 
@@ -10,10 +9,16 @@ namespace robot_home {
 
 enum class Character : std::uint8_t {
   Bumblebee,
+  BumblebeeFullbody,
   Optimus,
-  Ironman,
-  Spiderman,
+  Jazz,
+  Hotrod,
+  Wheeljack,
+  Hound,
 };
+
+inline constexpr std::uint8_t kCharacterCount = 7;
+inline constexpr std::uint8_t kFullbodyCount = 6;
 
 class CharacterSelector {
  public:
@@ -25,16 +30,16 @@ class CharacterSelector {
       return character_;
     }
 
-    // 2^32 - 1 is divisible by three: rejecting the one excess value makes
-    // each candidate equally likely without consuming entropy for Left/None.
+    const bool fromPortrait = character_ == Character::Bumblebee;
+    const std::uint32_t range = fromPortrait ? kFullbodyCount : kFullbodyCount - 1;
+    const std::uint64_t accepted = (std::uint64_t{1} << 32) / range * range;
     std::uint32_t sample;
     do {
       sample = randomFn();
-    } while (sample == std::numeric_limits<std::uint32_t>::max());
-    const auto excluded = static_cast<std::uint32_t>(character_);
-    auto candidate = sample % 3;
-    if (candidate >= excluded) ++candidate;
-    character_ = static_cast<Character>(candidate);
+    } while (sample >= accepted);
+    std::uint32_t candidate = sample % range;
+    if (!fromPortrait && candidate >= static_cast<std::uint32_t>(character_) - 1) ++candidate;
+    character_ = static_cast<Character>(candidate + 1);
     transitionSince_ = nowMs;
     transitioning_ = true;
     return character_;

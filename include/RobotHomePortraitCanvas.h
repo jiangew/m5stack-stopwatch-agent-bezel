@@ -11,9 +11,9 @@ class PortraitCanvas : public Base {
  public:
   template<class...Args> explicit PortraitCanvas(Args&&...args):Base(std::forward<Args>(args)...) {}
   void preparePortraits() {
-    PortraitImage images[4];
-    for(int i=0;i<4;++i)images[i]=character_art::assetFor(static_cast<Character>(i));
-    cache_.prepare(images,4);
+    PortraitImage images[kCharacterCount];
+    for(int i=0;i<kCharacterCount;++i)images[i]=character_art::assetFor(static_cast<Character>(i));
+    cache_.prepare(images,kCharacterCount);
   }
   void clearPortraits() {cache_.clear();}
   void drawPortrait(const std::uint8_t* bytes,std::uint32_t size,float cx,float cy,float scale,float angle) {
