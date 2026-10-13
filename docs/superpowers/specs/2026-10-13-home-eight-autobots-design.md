@@ -1,0 +1,10 @@
+# Default portrait and eight full-body Autobots
+
+The user explicitly requests adding Ironhide and Ratchet to the previously approved six-body pool, preserving its visual style and interaction. This extends the earlier seven-image design; its historical validation remains tied to the earlier source state.
+
+- Preserve the existing default Bumblebee portrait and all six existing full-body images byte-for-byte.
+- Append Ironhide and Ratchet, yielding nine renderable identities and eight full-body candidates. From the default portrait, Up/Down/Right uniformly choose among eight bodies; from a body, choose among the other seven. Never return to the portrait through the random pool or repeat the current body. Default/reset, left cycle, wake-only first touch, haptics, input cancellation and timings remain.
+- Both new assets use the established outlined, cel-shaded anime mecha style and complete head-to-boots framing. Ironhide uses red van armor and a sturdy silhouette; Ratchet uses white/red ambulance armor and rescue details. Fit silhouettes into the same black-backed 300px tile with safety margins; baseline JPEG below50KiB.
+- Prepare/cache nine300x300 RGB565 images (1,620,000 pixel bytes in PSRAM), retaining the single-buffer allocation/decode-failure fallback. Reuse existing bounded effects: Ironhide red/orange impact rings, Ratchet cyan/red rescue scan. Protect status/battery pixels and existing Agent workspaces.
+- Verify range8 accepts every uint32 sample without rejection, including UINT32_MAX; range7 rejects its four excess high samples. Cover every current body/alternative/direction, ignored gestures, reset/uptime wrap, all nine cached/fallback images, and nine real native animation sequences.
+- Verify exact payloads, original seven digests, compression-tolerant duplicate rejection, ImageIO decode, reproducible serialization and native/default/selected USB-mic builds. Inspect new native previews in context. Update current README/provenance/Home docs; no Companion/protocol changes, credential requests, identifiers or private audio in Git, push/merge/device write. Flash requires the existing fresh exact-port approval process.
