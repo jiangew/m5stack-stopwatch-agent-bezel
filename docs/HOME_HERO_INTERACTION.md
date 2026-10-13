@@ -87,8 +87,10 @@ The implementation includes:
   and skill, identical status/battery pixels and final idle-frame equality.
 - Real JPEG/header-byte/determinism checks through Python and independent
   ImageIO decoding through Swift.
+- Compression-tolerant artwork identity checks reject re-encoded duplicates
+  of all seven images while accepting the distinct shipped figures.
 
-Validation record for the seven-choice source build: **4 Python artwork tests**,
+Validation record for the seven-choice source build: **5 Python artwork tests**,
 **7 ImageIO decodes**, seven native spacing sequences, real gesture and production
 draw regressions passed. Native preview, default firmware and five-screen USB-mic
 firmware built successfully. Exact commands and outputs are recorded in the local
