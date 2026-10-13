@@ -1,7 +1,7 @@
 # Home hero interaction — 2026-10-13
 
 This source update replaces the former triple blink with press/release skills
-for **Bumblebee, Optimus Prime, Iron Man and Spider-Man**. It requires the
+for **Bumblebee portrait, Bumblebee full body, Optimus Prime, Jazz, Hot Rod, Wheeljack and Hound**. It requires the
 five-screen `m5stack-stopwatch-usb-mic` firmware; the default wireless image
 remains the Codex dashboard. The existing Companion and protocol are unchanged.
 
@@ -13,30 +13,34 @@ remains the Codex dashboard. The existing Companion and protocol are unchanged.
 | Release before 500ms, remaining inside the portrait area | Release one 420ms skill and request one short 25ms haptic |
 | New press during a skill | Interrupt and immediately begin new energy feedback |
 | Move outside portrait area or at least 52px from start | Cancel the tap; a classified swipe may select a hero or cycle workspaces |
-| Up / down / right | Uniformly choose one of the other three heroes, with one existing 40ms swipe haptic |
+| Up / down / right | From the default portrait, uniformly choose one of six full-body heroes; thereafter choose among the other five full bodies, with one existing 40ms swipe haptic |
 | Left | Existing workspace cycle; no new Mac action is attached to skills |
 | First touch while asleep | Wake only; no skill or hero change |
 | Leave Home / sleep / power overlay | Cancel the reaction; existing long-hold power flow remains |
 
 The portrait hit area is x=64..402, y=64..398. Effect origins are clamped inward
-so every spark, pulse and web stays inside that area. Selection defaults to
+so every spark, pulse and scan stays inside that area. Selection defaults to
 Bumblebee when Home is re-entered. Directions no longer map to fixed heroes.
-Random choices may return to a previously seen hero after an intervening change;
-only immediate repetition is forbidden. One held swipe never repeats selection.
+The portrait is excluded from the random pool. Choices may return to a
+previously seen full-body hero after an intervening change; only immediate
+repetition is forbidden. One held swipe never repeats selection.
 
 | Hero | Skill |
 | --- | --- |
-| Bumblebee | Yellow shoulder sparks and a small spring rebound |
+| Bumblebee portrait | Yellow shoulder sparks and a small spring rebound |
+| Bumblebee full body | Yellow shoulder sparks and a small spring rebound |
 | Optimus Prime | Cyan faceplate scan and armor highlights |
-| Iron Man | White-blue concentric energy pulse |
-| Spider-Man | White expanding web from the touch point and a small head tilt |
+| Jazz | Blue concentric energy pulse |
+| Hot Rod | Orange speed streaks |
+| Wheeljack | Green electrical arcs |
+| Hound | Green scanning rings |
 
 All skills are silent. State and battery retain their existing positions and
 real data sources. Preview values are fixtures, not device telemetry.
 
 ## Rendering and failure behavior
 
-- Four 300×300 RGB565 sprites require approximately 720,000 bytes and are
+- Seven 300×300 RGB565 sprites require approximately 1,260,000 bytes and are
   predecoded in PSRAM on entering Home. Animation reuses these pixels instead
   of repeatedly decoding JPEGs.
 - Allocation failure frees the partial set and attempts one reusable buffer.
@@ -56,12 +60,14 @@ real data sources. Preview values are fixtures, not device telemetry.
   requested software durations; actual motor timing, frame rate and latency
   still require physical C152 measurements.
 
-The original Bumblebee and Optimus source/idle JPEG bytes are preserved. Iron
-Man and Spider-Man are original editable SVG portraits rasterized to PNG/JPEG.
-Built-in image generation returned an output-stage error for both requests;
-no generated image, paid API or new credential was used. Reproduction and
-the unsuccessful prompts are recorded in
-[artwork provenance](../assets/robot-home/GENERATION.md).
+The original Bumblebee portrait source and accepted idle JPEG are preserved;
+the idle JPEG SHA-256 is
+`f1bb7e24fe30631b15e1999c35a0b8d4024d3fc52b222aa0ad6c5d6676a9d191`.
+The six full-body PNGs come from built-in imagegen output and are fitted to the
+300px black-backed source tiles. The earlier Optimus portrait has been retired
+from the active Home roster. Generation briefs and reproduction details are in
+[artwork provenance](../assets/robot-home/GENERATION.md). This is unofficial
+fan artwork, not licensed character art.
 
 ## Verification
 
@@ -77,15 +83,16 @@ The implementation includes:
   ordering, wake/hold isolation, random swipes and existing Agent controls.
 - Actual `drawScreen` tests for crossing reaction/transition expiry during a
   simulated panel transfer and Codex dashboard pixel equality.
-- Decoded native sequence checks for all four heroes: immediate visible press
+- Decoded native sequence checks for all seven choices: immediate visible press
   and skill, identical status/battery pixels and final idle-frame equality.
 - Real JPEG/header-byte/determinism checks through Python and independent
   ImageIO decoding through Swift.
 
-Validation record: **19 C++ test executables**, **7 Ruby regressions** (including
-native spacing and production draw), **4 Python artwork tests** and **4 ImageIO
-portrait checks** passed. Native preview, default firmware and five-screen
-USB-mic firmware built successfully. One upstream M5GFX Clang VLA-extension
+Validation record for the seven-choice source build: **4 Python artwork tests**,
+**7 ImageIO decodes**, seven native spacing sequences, real gesture and production
+draw regressions passed. Native preview, default firmware and five-screen USB-mic
+firmware built successfully. Exact commands and outputs are recorded in the local
+Task 2 validation report. One upstream M5GFX Clang VLA-extension
 warning remains in native compilation; no new source compile errors occurred.
 
 Run the core checks from the repository root:
@@ -119,7 +126,7 @@ native animation frames, create an output directory then run
 ## Deployment and remaining physical acceptance
 
 On 2026-10-13, the user confirmed download mode and explicitly approved the
-identified upload port. The five-screen application built from `3a0e2cf` was
+identified upload port. The earlier four-hero five-screen application built from `3a0e2cf` was
 written to app0 at `0x10000` after a complete 16MB private backup and confirmation
 that the device/candidate partition tables match and OTA selects app0.
 
@@ -140,7 +147,10 @@ Before any future upload or rollback, follow the
 resolve and report the current exact download-mode port and obtain upload approval.
 Private backups, firmware and detailed device logs stay local.
 
-Physical acceptance must cover each hero's perceived response, repeated taps,
+The user later confirmed the earlier interaction felt normal in use; that was
+subjective acceptance, not a measured response-latency result. The current
+seven-choice source build has not been written to hardware. Physical acceptance
+for this build must cover each choice's perceived response, repeated taps,
 random swipes, wake/long hold, left cycling, Agent navigation and microphone
 streaming. Measure at least 30 responses per hero, with a target P95 of 80ms or
 less from recognized touch to first feedback; also check touch-to-visible latency

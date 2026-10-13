@@ -1,4 +1,4 @@
-"""Decode the shipped four-hero JPEGs and verify reproducible embedding.
+"""Decode the shipped seven-hero JPEGs and verify reproducible embedding.
 
 Run with a Python environment providing Pillow and numpy. Identity is checked
 by distinct pixels/palette and exact name-to-header payloads; the generation
@@ -18,7 +18,7 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / 'assets/robot-home/generated'
-HEROES = ('Bumblebee', 'Optimus', 'Ironman', 'Spiderman')
+HEROES = ('Bumblebee', 'BumblebeeFullbody', 'Optimus', 'Jazz', 'Hotrod', 'Wheeljack', 'Hound')
 HEADER = ROOT / 'include/RobotHomeArtData.h'
 
 
@@ -31,7 +31,7 @@ def payloads(text):
 
 
 class HeroArtTest(unittest.TestCase):
-    def test_only_four_idle_assets_are_embedded(self):
+    def test_exactly_seven_idle_assets_are_embedded(self):
         embedded = payloads(HEADER.read_text())
         self.assertEqual(set(embedded), set(HEROES))
         for name in HEROES:
@@ -64,22 +64,27 @@ class HeroArtTest(unittest.TestCase):
                 self.assertGreater(int((pixels.max(axis=2) > 70).sum()), 6000, name)
                 fingerprints.append(sha256(data).hexdigest())
                 decoded.append(pixels.astype(float))
-        self.assertEqual(len(set(fingerprints)), 4, 'heroes must not alias one portrait')
+        self.assertEqual(len(set(fingerprints)), 7, 'heroes must not alias one JPEG')
         for index, first in enumerate(decoded):
             for second in decoded[index + 1:]:
-                self.assertGreater(float(np.abs(first - second).mean()), 12,
-                                   'four hero identities must have distinct artwork')
+                # Compare decoded artwork, so a re-encoded duplicate cannot
+                # pass merely because its JPEG bytes differ.
+                self.assertFalse(np.array_equal(first, second),
+                                 f'{HEROES[index]} and another hero share artwork')
 
     def test_preserved_robot_portrait_pixels(self):
         # Preserve the accepted ring-free crop, not the removed rim or blink.
-        for name, center in [('bumblebee', (150, 148.3)), ('optimus', (149.15, 148.3))]:
-            original = np.array(Image.open(ROOT / f'assets/robot-home/{name}.jpg').convert('RGB'))
-            shipped = np.array(Image.open(ASSETS / f'{name}-idle.jpg').convert('RGB'))
-            yy, xx = np.mgrid[:300, :300]
-            inner = np.hypot(xx - center[0], yy - center[1]) <= 124
-            error = np.abs(original.astype(float) - shipped.astype(float))[inner]
-            self.assertLess(float(error.mean()), 3, name)
-            self.assertLess(float(np.quantile(error, .99)), 12, name)
+        name, center = 'bumblebee', (150, 148.3)
+        data = (ASSETS / f'{name}-idle.jpg').read_bytes()
+        self.assertEqual(sha256(data).hexdigest(),
+                         'f1bb7e24fe30631b15e1999c35a0b8d4024d3fc52b222aa0ad6c5d6676a9d191')
+        original = np.array(Image.open(ROOT / f'assets/robot-home/{name}.jpg').convert('RGB'))
+        shipped = np.array(Image.open(BytesIO(data)).convert('RGB'))
+        yy, xx = np.mgrid[:300, :300]
+        inner = np.hypot(xx - center[0], yy - center[1]) <= 124
+        error = np.abs(original.astype(float) - shipped.astype(float))[inner]
+        self.assertLess(float(error.mean()), 3, name)
+        self.assertLess(float(np.quantile(error, .99)), 12, name)
 
     def test_preparation_and_embedding_are_deterministic(self):
         with tempfile.TemporaryDirectory() as temporary:

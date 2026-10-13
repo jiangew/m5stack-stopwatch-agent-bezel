@@ -1,4 +1,4 @@
-# Embed only the four ring-free idle hero portraits.
+# Embed only the seven ring-free idle hero portraits.
 # Run prepare_robot_home_art.py first.
 # Usage: ruby scripts/embed_robot_home_art.rb assets/robot-home/generated include/RobotHomeArtData.h
 
@@ -6,7 +6,7 @@ abort 'expected ASSET_DIRECTORY OUTPUT.h' unless ARGV.size == 2
 
 asset_directory, output_path = ARGV
 assets = {}
-%w[Bumblebee Optimus Ironman Spiderman].each do |name|
+%w[Bumblebee BumblebeeFullbody Optimus Jazz Hotrod Wheeljack Hound].each do |name|
   assets[name] = "#{name.downcase}-idle.jpg"
 end
 

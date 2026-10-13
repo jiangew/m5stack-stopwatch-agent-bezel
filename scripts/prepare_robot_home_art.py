@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Serialize the four idle portraits as deterministic baseline JPEGs.
+"""Serialize the seven idle portraits as deterministic baseline JPEGs.
 
-Requires Pillow and numpy. Preserve the existing accepted ring-free robot crop;
-new hero PNGs are rasterizations of the editable SVG artwork beside them.
+Requires Pillow and numpy. Preserve the existing accepted ring-free Bumblebee crop;
+the six full-body sources are fitted, black-backed 300px PNGs.
 No blink frames are produced or embedded.
 """
 import argparse
@@ -14,9 +14,9 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / 'assets/robot-home'
 OUTPUT = SOURCE / 'generated'
-HEROES = ('bumblebee', 'optimus', 'ironman', 'spiderman')
+HEROES = ('bumblebee', 'bumblebeefullbody', 'optimus', 'jazz', 'hotrod', 'wheeljack', 'hound')
 # Keep the accepted radial crop exactly: the original files remain untouched.
-CENTERS = {'bumblebee': (150, 148.3), 'optimus': (149.15, 148.3)}
+CENTERS = {'bumblebee': (150, 148.3)}
 
 
 def derive(name):
@@ -31,9 +31,11 @@ def derive(name):
     if name not in HEROES:
         raise ValueError(f'unknown hero: {name}')
     with Image.open(SOURCE / f'{name}.png') as image:
-        # New sources are already black-backed; this is build serialization,
-        # not an alteration of the authored SVG/PNG portrait.
-        return image.convert('RGB').resize((300, 300), Image.Resampling.LANCZOS)
+        # Fitted sources are already 300px and black-backed. Do not transform
+        # the accepted source pixels during build serialization.
+        if image.size != (300, 300):
+            raise ValueError(f'{name}: fitted artwork must be 300x300')
+        return image.convert('RGB')
 
 
 def prepare(output):

@@ -1,6 +1,6 @@
 # Five workspaces and Home interaction history
 
-The 2026-10-13 source update replaces blinking with four hero press/release skills and random selection. See [current Home behavior](HOME_HERO_INTERACTION.md); the blinking records below are historical acceptance only.
+The current seven-choice Home source replaces blinking with press/release skills and random selection. See [current Home behavior](HOME_HERO_INTERACTION.md); the blinking records below are historical acceptance only.
 
 ## DSH display label (2026-10-12)
 

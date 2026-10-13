@@ -21,9 +21,9 @@ DeepSeek、SUPER、Hermes 还检查实际窗口：关闭最后一个窗口后，
 详见[功能诊断与验收记录](docs/CONTROL_AVAILABILITY.zh-CN.md)。
 
 - 五屏循环：机器人首页 → Codex / ChatGPT → DSH → SUPER → HERMES → 首页。
-- 首页：大黄蜂、擎天柱、钢铁侠、蜘蛛侠。按下立即压缩蓄能，500ms 内松手释放
+- 首页：大黄蜂头像、大黄蜂全身、擎天柱、爵士、热破、千斤顶、探长。按下立即压缩蓄能，500ms 内松手释放
   420ms 角色技能并轻震一次 25ms；连点立即重新回应。上／下／右滑随机换成另一个角色。
-  本次固件已于 2026-10-13 刷入；角色互动与延迟仍待用户真机验收。
+  此前 `3a0e2cf` 的四角色固件已于 2026-10-13 刷入；当前七角色源码构建尚未部署。用户已确认此前互动体验正常；响应延迟尚未实测。
 - DSH：桌面标题显示为 `DSH`，沿用 SUPER 的四色三角布局和标题字体；上下按侧栏顺序切换已有 thread、跨项目边界，
   右滑切“对话／轨迹”。需要配套导航插件；已激活时中央与实体操作键保持无动作。
 - 所有 harness 未运行时，左滑仅选择对应桌面，中央点按才启动；启动中阻止连点，失败可重试。
@@ -40,15 +40,15 @@ DeepSeek、SUPER、Hermes 还检查实际窗口：关闭最后一个窗口后，
 ## 机器人首页与四个工作区
 
 首页需要匹配的源码构建 Companion 和 USB-mic 固件。开机、重连和 Companion 启动
-都选中首页，不激活 Mac 应用，Mac 前台变化也不会离开首页。四角色为大黄蜂（默认）、
-擎天柱、钢铁侠和蜘蛛侠。角色区域 x=64..402/y=64..398 内按下立即压缩蓄能，未滑动且
+都选中首页，不激活 Mac 应用，Mac 前台变化也不会离开首页。七个选择为大黄蜂头像（默认）、大黄蜂全身、擎天柱、爵士、热破、千斤顶和探长。角色区域 x=64..402/y=64..398 内按下立即压缩蓄能，未滑动且
 500ms 内松手时播放 420ms 技能并轻震一次 25ms。连点可立即打断旧动画、重新回应。
-大黄蜂迸发电弧，擎天柱扫描面罩，钢铁侠释放能量脉冲，蜘蛛侠展开蛛网并轻摆。
-触点移出角色区或位移达到 52px 即取消点击。上／下／右滑均从另外三个角色中均匀随机
-选择，每次都会切换；同方向可以连续使用。每次有效换角色保留一次 40ms 振动，离线有效，
+两款大黄蜂释放黄色电弧，擎天柱扫描面罩，爵士释放蓝色脉冲，热破划出橙色速度线，千斤顶闪出绿色电弧，探长发出绿色扫描波。
+触点移出角色区或位移达到 52px 即取消点击。上／下／右滑从默认头像出发时，在六个全身
+角色中均匀随机选择；当前已是全身角色时，只在其他五个全身角色中选择，头像不进入随机池。
+每次都会切换；同方向可以连续使用。每次有效换角色保留一次 40ms 振动，离线有效，
 持续滑动不重复触发。左滑保留工作页循环。熄屏首触只唤醒，离页、熄屏和电源确认取消动画，
-既有电源长按保持。四张头像无装饰外圈。
-固件将四张 RGB565 头像缓存在 PSRAM，内存不足时降级为单张复用；静止时只因状态变化重绘。
+既有电源长按保持。七张图像无装饰外圈。
+固件将七张 RGB565 图像缓存在 PSRAM，内存不足时降级为单张复用；静止时只因状态变化重绘。
 原生预览使用同一缓存渲染路径；构建和预览不等于 C152 延迟实测。角色互动静音且不发送
 Mac 操作，USB 麦克风和 Codex 完成提示音保持原样。详见[主页技能与验证记录](docs/HOME_HERO_INTERACTION.md)。
 首页亮屏且 Companion 就绪时，左滑触发与其他桌面相同的一次振动；离线左滑仍无振动。
@@ -56,17 +56,24 @@ Mac 操作，USB 麦克风和 Codex 完成提示音保持原样。详见[主页�
 连接和电量来自真实状态，不使用预览中的固定示例值。
 
 <table>
-  <tr><th>大黄蜂（默认）</th><th>擎天柱</th><th>钢铁侠</th><th>蜘蛛侠</th></tr>
+  <tr><th>大黄蜂头像（默认）</th><th>大黄蜂全身</th><th>擎天柱</th><th>爵士</th></tr>
   <tr>
-    <td width="25%"><img src="artifacts/robot-home-bumblebee.png" alt="机器人首页大黄蜂画像"></td>
-    <td width="25%"><img src="artifacts/robot-home-optimus.png" alt="机器人首页擎天柱画像"></td>
-    <td width="25%"><img src="artifacts/robot-home-ironman.png" alt="主页钢铁侠画像"></td>
-    <td width="25%"><img src="artifacts/robot-home-spiderman.png" alt="主页蜘蛛侠画像"></td>
+    <td width="25%"><img src="artifacts/robot-home-bumblebee.png" alt="首页大黄蜂头像"></td>
+    <td width="25%"><img src="artifacts/robot-home-bumblebeefullbody.png" alt="首页大黄蜂全身"></td>
+    <td width="25%"><img src="artifacts/robot-home-optimus.png" alt="首页擎天柱全身"></td>
+    <td width="25%"><img src="artifacts/robot-home-jazz.png" alt="首页爵士全身"></td>
+  </tr>
+  <tr><th>热破</th><th>千斤顶</th><th>探长</th><th></th></tr>
+  <tr>
+    <td width="25%"><img src="artifacts/robot-home-hotrod.png" alt="首页热破全身"></td>
+    <td width="25%"><img src="artifacts/robot-home-wheeljack.png" alt="首页千斤顶全身"></td>
+    <td width="25%"><img src="artifacts/robot-home-hound.png" alt="首页探长全身"></td>
+    <td width="25%"></td>
   </tr>
 </table>
 
-四张画像均为项目原创素材，以 baseline JPEG 内置在固件中，不使用电影截图、官方标志或
-运行时网络素材。离开首页后，下次进入会重置为大黄蜂。
+保留的大黄蜂头像与六张内建 imagegen 全身插画均为非官方同人素材，以 baseline JPEG
+内置在固件中；并非官方授权素材，运行时不联网获取图像。离开首页后，下次进入会重置为大黄蜂。
 
 <table>
   <tr><th>Codex Micro</th><th>DSH</th><th>super.engineering</th><th>Hermes Desktop</th></tr>
@@ -459,7 +466,7 @@ swift build -c release
    UI、电源逻辑、额度 Companion 和可选 USB 麦克风；本仓库直接建立在这套代码基础上。
 3. **Stopwatch AgentBezel C152** 延续 StopWatch 代码线，增加 Codex Micro、
    super.engineering 与 Hermes Desktop 工作区、Companion 前台联动和独立方向屏幕，
-   并增加四角色机器人首页、本地语音支持及 USB 麦克风优先处理。
+   并增加机器人首页、本地语音支持及 USB 麦克风优先处理。
 
 这里描述的是实现谱系，并不表示这些仓库是运行时包依赖，也不表示它们彼此存在官方
 隶属关系。后续每一层实现都依赖、引用并扩展了前人的开源成果。再次分发时，请保留原始

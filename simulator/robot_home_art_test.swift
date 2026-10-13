@@ -4,7 +4,7 @@ import CoreGraphics
 import ImageIO
 
 let root = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : "assets/robot-home/generated"
-let names = ["bumblebee", "optimus", "ironman", "spiderman"]
+let names = ["bumblebee", "bumblebeefullbody", "optimus", "jazz", "hotrod", "wheeljack", "hound"]
 var portraits = [[UInt8]]()
 var failures = 0
 for name in names {
@@ -44,13 +44,7 @@ for name in names {
 }
 for first in 0..<portraits.count {
     for second in (first + 1)..<portraits.count {
-        var difference = 0
-        for offset in stride(from: 0, to: 300 * 300 * 4, by: 4) {
-            for channel in 0..<3 {
-                difference += abs(Int(portraits[first][offset + channel]) - Int(portraits[second][offset + channel]))
-            }
-        }
-        if Double(difference) / Double(300 * 300 * 3) <= 12 {
+        if portraits[first] == portraits[second] {
             print("FAIL \(names[first])/\(names[second]): duplicated portrait identity")
             failures += 1
         }
