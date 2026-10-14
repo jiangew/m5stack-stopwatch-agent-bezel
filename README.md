@@ -33,9 +33,9 @@ See the
   interrupt, and up/down/right still randomly select a full-body hero.
   The USB-mic application built from `4b1b6e9` was flashed on 2026-10-14,
   app0 only. Application digest/protected metadata, reboot, USB input-only audio,
-  BLE HID status RPC and a short microphone capture passed. The user accepted
-  the earlier random swipe experience; new gestures, latency, frame rate and
-  motor timing remain to be accepted/measured on C152.
+  BLE HID status RPC and a short microphone capture passed. On 2026-10-14,
+  the user confirmed the deployed Home interactions normal. Quantified latency,
+  frame rate, motor timing and PSRAM headroom remain unmeasured.
 - DSH: the same four-triangle layout as SUPER. Up/down navigate existing
   threads in sidebar order across project boundaries; right switches Chat /
   Trajectory. Requires the optional navigation plugin; center and physical
@@ -193,7 +193,7 @@ message text, drafts or credentials. It opens only existing threads, never
 creates one. Trajectory must already be available; ambiguous or unsupported
 UI state fails closed. Plugin 0.1.1 with build8 passed the preceding user-observed
 physical navigation acceptance; never install deprecated 0.1.0. The deployed
-random swipes were accepted; the new character responses await physical acceptance.
+random swipes and the new Home character responses were accepted by the user.
 
  App activation failure does not skip to another target.
 It shares the 5-second heartbeat and 15-second lease/fallback with other work

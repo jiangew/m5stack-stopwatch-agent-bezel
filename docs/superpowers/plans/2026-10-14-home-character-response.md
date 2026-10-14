@@ -71,6 +71,6 @@ only to app0 after a new 16MB backup and identity/partition/OTA checks. Tool and
 independent ROM digest verification passed; protected first 64KB stayed byte-identical.
 USB/CoreAudio input-only 48kHz, BLE HID transport, fresh Companion connection,
 read-only device.status RPC and 3.008s microphone validation passed. Temporary
-audio was removed. No Companion restart, push or merge occurred. New gesture
-acceptance, physical PSRAM, measured latency, frame rate and motor timing remain
-pending. See `docs/HOME_HERO_INTERACTION.md` for the deployment scope.
+audio was removed. No Companion restart, push or merge occurred. The user subsequently confirmed deployed Home interactions normal on
+2026-10-14, completing qualitative Home interaction acceptance. Physical PSRAM,
+measured latency, frame rate and motor timing remain unmeasured. See `docs/HOME_HERO_INTERACTION.md` for the deployment scope.

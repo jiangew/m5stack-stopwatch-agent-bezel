@@ -185,10 +185,11 @@ matching successful response. A 3.008-second capture contained 144,384 frames
 of 48kHz mono16 PCM, with zero discontinuities, long zero runs, repeated adjacent
 blocks or clipped samples. Temporary audio and staging files were deleted.
 No Companion restart/deployment, push or merge occurred. These establish the
-write, protected metadata, reboot, connections and short capture; the new
-character gestures, repeated input feel, actual PSRAM headroom, motor timing,
-frame rate, measured touch latency and audio continuity during animation remain
-separate physical acceptance checks.
+write, protected metadata, reboot, connections and short capture. On 2026-10-14,
+the user subsequently confirmed the deployed Home interactions normal, completing
+qualitative Home interaction acceptance. Actual PSRAM headroom, motor timing,
+frame rate, measured touch latency and audio continuity during sustained animation
+remain unmeasured; this confirmation is not a new acceptance run of every Agent control.
 
 On 2026-10-14, the nine-image/eight-body USB-mic application built from
 `2705564` was written to app0 at `0x10000` after fresh download-mode target
@@ -236,10 +237,10 @@ Private backups, firmware and detailed device logs stay local.
 The user later confirmed the earlier interaction felt normal in use; that was
 subjective acceptance, not a measured response-latency result. The nine-image, eight-body energy-effect firmware has been written and verified,
 and its random swipe interaction was accepted by the user on 2026-10-14. The
-new 600ms character-response application has now been flashed and verified. Physical acceptance
-for the new application must cover each choice's perceived response, repeated taps,
-random swipes, wake/long hold, left cycling, Agent navigation and microphone
-streaming. Measure at least 30 responses per hero, with a target P95 of 80ms or
+new 600ms character-response application has now been flashed and verified, and
+the user confirmed its Home interactions normal on 2026-10-14. This is qualitative
+acceptance, not a per-character timing or long-duration soak measurement. For a
+quantified latency check, measure at least 30 responses per hero, with a target P95 of 80ms or
 less from recognized touch to first feedback; also check touch-to-visible latency
 using high-frame-rate video. The target has **not** been measured or established
 on this hardware.
