@@ -1,6 +1,6 @@
 # Eight Autobot Bodies Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development to implement this single integrated task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development to implement this single integrated task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Add Ironhide and Ratchet to the existing six-body Home pool while preserving the default portrait.
 
@@ -22,27 +22,27 @@
 
 **Interfaces:** Retain `CharacterSelector::select(Direction,uint32_t,RandomFn)` and existing render/cache interfaces. Set kCharacterCount9/kFullbodyCount8; append Ironhide/Ratchet. Full-body fitting is supplied by controller as two300px PNGs; the production serialization must preserve all seven old JPEGs.
 
-- [ ] Update behavioral tests first. All3 directions: eight initial candidates, every other seven from every body; ignored Left/None no entropy/timing change; UINT32_MAX accepted in initial range8 with exactly one entropy call; body range7 rejects 0xfffffffc..0xffffffff before accepting0xfffffffb. Retain wrap/reset and actual gesture checks. Expand cache budget to9 and test drawing the eighth/ninth images without new decodes; partial budget7 and1 fallback, no buffer, ninth decode failure and recovery. Run selector/cache tests against old production and record expected assertion failures.
+- [x] Update behavioral tests first. All3 directions: eight initial candidates, every other seven from every body; ignored Left/None no entropy/timing change; UINT32_MAX accepted in initial range8 with exactly one entropy call; body range7 rejects 0xfffffffc..0xffffffff before accepting0xfffffffb. Retain wrap/reset and actual gesture checks. Expand cache budget to9 and test drawing the eighth/ninth images without new decodes; partial budget7 and1 fallback, no buffer, ninth decode failure and recovery. Run selector/cache tests against old production and record expected assertion failures.
   ```sh
   clang++ -std=c++17 -Iinclude simulator/robot_home_character_test.cpp -o /private/tmp/eight-body-selector
   /private/tmp/eight-body-selector
   clang++ -std=c++17 -Iinclude simulator/robot_home_cache_test.cpp -o /private/tmp/eight-body-cache
   /private/tmp/eight-body-cache
   ```
-- [ ] Extend artwork tests first to exact9payloads, all old7digests, dimensions/margins/size, deterministic pipeline and existing compression-tolerant duplicate predicate/negative controls. Run Python/Swift before adding new assets and record expected missing identities/files.
-- [ ] Implement the enum/count/cache/canvas/asset mappings; preserve existing unbiased uint64 calculation. At range8 the exclusive bound is2^32 and no sample should be rejected. Add bounded Ironhide red/orange impact circles and Ratchet cyan/red scan using existing420ms effects primitives. Extend native scenario/sequence and spacing/UI coverage to9.
-- [ ] Copy supplied fitted PNGs to production, serialize and embed exactly9images. Verify old7digests unchanged before/after. Document truthful builtin imagegen prompts/style/provenance without raw home paths. Keep full-resolution originals in ignored workspace outputs.
+- [x] Extend artwork tests first to exact9payloads, all old7digests, dimensions/margins/size, deterministic pipeline and existing compression-tolerant duplicate predicate/negative controls. Run Python/Swift before adding new assets and record expected missing identities/files.
+- [x] Implement the enum/count/cache/canvas/asset mappings; preserve existing unbiased uint64 calculation. At range8 the exclusive bound is2^32 and no sample should be rejected. Add bounded Ironhide red/orange impact circles and Ratchet cyan/red scan using existing420ms effects primitives. Extend native scenario/sequence and spacing/UI coverage to9.
+- [x] Copy supplied fitted PNGs to production, serialize and embed exactly9images. Verify old7digests unchanged before/after. Document truthful builtin imagegen prompts/style/provenance without raw home paths. Keep full-resolution originals in ignored workspace outputs.
   ```sh
   python3 scripts/prepare_robot_home_art.py
   ruby scripts/embed_robot_home_art.rb assets/robot-home/generated include/RobotHomeArtData.h
   python3 simulator/robot_home_art_test.py
   swift -module-cache-path /private/tmp/eight-body-swift-cache simulator/robot_home_art_test.swift
   ```
-- [ ] Run selector/cache/frame/interaction/UI C++ tests and actual swipe/reaction/main/draw Ruby regressions. Build native then run nine spacing sequences, retain270frames and export the two README PNGs from actual framebuffer. Inspect new figures at idle/press/skill/end with unchanged protected rows. Build default and selected five-screen USB-mic firmware without upload:
+- [x] Run selector/cache/frame/interaction/UI C++ tests and actual swipe/reaction/main/draw Ruby regressions. Build native then run nine spacing sequences, retain270frames and export the two README PNGs from actual framebuffer. Inspect new figures at idle/press/skill/end with unchanged protected rows. Build default and selected five-screen USB-mic firmware without upload:
   ```sh
   HOMEBREW_PREFIX=/opt/homebrew pio run -e native-preview
   ruby simulator/robot_home_spacing_test.rb .pio/build/native-preview/program
   pio run -e m5stack-stopwatch
   pio run -d usb-mic -e m5stack-stopwatch-usb-mic
   ```
-- [ ] Update current docs to9images/8bodypool/7alternatives and1,620,000 pixel bytes. Earlier3a0e2cf physicalflash and07297e0 seven-image source verification stay historical; new9image firmware is not deployed. Current README roster/previews include Ironhide/Ratchet and retain prior7artifacts. Force-add only the two named preview PNGs if ignored. Check changed-file paths/privacy and `git diff --check`, commit explicit task files, record commands/results/SHAs/concerns in task report. No extra build repetitions for test/doc-only changes.
+- [x] Update current docs to9images/8bodypool/7alternatives and1,620,000 pixel bytes. Earlier3a0e2cf physicalflash and07297e0 seven-image source verification stay historical; new9image firmware is not deployed. Current README roster/previews include Ironhide/Ratchet and retain prior7artifacts. Force-add only the two named preview PNGs if ignored. Check changed-file paths/privacy and `git diff --check`, commit explicit task files, record commands/results/SHAs/concerns in task report. No extra build repetitions for test/doc-only changes.
