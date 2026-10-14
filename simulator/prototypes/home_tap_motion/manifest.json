@@ -1,0 +1,62 @@
+{
+  "prototype": true,
+  "action_ms": 600,
+  "heroes": {
+    "bumblebeefullbody": {
+      "idle_bbox": [
+        224,
+        14,
+        1038,
+        1229
+      ],
+      "idle_fitted_size": [
+        177,
+        264
+      ],
+      "fixed_origin": [
+        61,
+        18
+      ],
+      "poses": [
+        {
+          "pose": 1,
+          "source": "exec-321aad7c-96e5-4d65-8f73-f4554bd93a59.png",
+          "sha256": "81d81a2f880083ce13fc09dab0040e027029a4d18ebfa25804cb76a8e3fe63a3"
+        },
+        {
+          "pose": 2,
+          "source": "exec-1e885fb7-5b9d-4629-8e37-5790dae3acf6.png",
+          "sha256": "d6fd2d43001a5cfb382edceb1326c37bd6ca4d13452243c1129329589ff2b67c"
+        }
+      ]
+    },
+    "optimus": {
+      "idle_bbox": [
+        196,
+        36,
+        997,
+        1208
+      ],
+      "idle_fitted_size": [
+        180,
+        264
+      ],
+      "fixed_origin": [
+        60,
+        18
+      ],
+      "poses": [
+        {
+          "pose": 1,
+          "source": "exec-c60f6ced-3e42-4bce-883f-eb5759faf607.png",
+          "sha256": "e003f44c3103678e65197c1bde09884681922d543c9ea8a67cf41d3e37a9a63d"
+        },
+        {
+          "pose": 2,
+          "source": "exec-65730a70-f4c5-4cee-86b6-8ea292256d29.png",
+          "sha256": "4ee861fd7a14f67575a64c938533561e1c99a23e72380014c838eb6557a722e1"
+        }
+      ]
+    }
+  }
+}
