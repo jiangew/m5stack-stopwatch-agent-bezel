@@ -3,12 +3,17 @@ import Foundation
 import CoreGraphics
 import ImageIO
 
-let root = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : "assets/robot-home/generated"
-let names = ["bumblebee", "bumblebeefullbody", "optimus", "jazz", "hotrod", "wheeljack", "hound", "ironhide", "ratchet"]
+let actions = CommandLine.arguments.contains("--actions")
+let root = CommandLine.arguments.count > 1 && CommandLine.arguments[1] != "--actions"
+    ? CommandLine.arguments[1] : (actions ? "assets/robot-home/actions" : "assets/robot-home/generated")
+let names = actions
+    ? ["bumblebeefullbody-1", "bumblebeefullbody-2", "optimus-1", "optimus-2", "jazz-1", "hotrod-1", "wheeljack-1", "hound-1", "ironhide-1", "ratchet-1"]
+    : ["bumblebee", "bumblebeefullbody", "optimus", "jazz", "hotrod", "wheeljack", "hound", "ironhide", "ratchet"]
+let margin = actions ? 8 : 18
 var portraits = [[UInt8]]()
 var failures = 0
 for name in names {
-    let url = URL(fileURLWithPath: root).appendingPathComponent(name + "-idle.jpg")
+    let url = URL(fileURLWithPath: root).appendingPathComponent(name + (actions ? ".jpg" : "-idle.jpg"))
     guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
           let image = CGImageSourceCreateImageAtIndex(source, 0, nil),
           image.width == 300, image.height == 300 else {
@@ -28,17 +33,17 @@ for name in names {
         for x in 0..<300 {
             let offset = (y * 300 + x) * 4
             let maximum = Int(max(pixels[offset], pixels[offset + 1], pixels[offset + 2]))
-            if x < 18 || x >= 282 || y < 18 || y >= 282 {
+            if x < margin || x >= 300 - margin || y < margin || y >= 300 - margin {
                 maximumEdge = max(maximumEdge, maximum)
             }
             if maximum > 70 { visiblePixels += 1 }
         }
     }
-    if maximumEdge > 12 || visiblePixels <= 6000 {
+    if maximumEdge > (actions ? 16 : 12) || visiblePixels <= 6000 {
         print("FAIL \(name): margin RGB max=\(maximumEdge), visible pixels=\(visiblePixels)")
         failures += 1
     } else {
-        print("PASS \(name): ImageIO 300x300 decode, black 18px edges, visible portrait")
+        print("PASS \(name): ImageIO 300x300 decode, black \(margin)px edges, visible portrait")
     }
     portraits.append(pixels)
 }

@@ -116,7 +116,7 @@ void stopRobotReaction() {
 }
 
 void requestRobotReaction() {
-  // Local-only skill; haptic is emitted once by the accepted release.
+  // Local character response; haptic is emitted once by the accepted release.
   robotAnimation.release(millis());
   robotInputDirty = true;
 }

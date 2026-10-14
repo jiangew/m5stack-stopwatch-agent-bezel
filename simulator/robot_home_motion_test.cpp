@@ -26,13 +26,14 @@ int main() {
     }
   }
   // Preserve the accepted pilot's discrete body poses and exact return.
+  assert(motionFor(Character::Bumblebee,Mood::Skill,0).offsetY>0); // first release frame answers
   assert(motionFor(Character::BumblebeeFullbody,Mood::Skill,0).pose==1);
-  assert(motionFor(Character::BumblebeeFullbody,Mood::Skill,134).pose==2);
-  assert(motionFor(Character::BumblebeeFullbody,Mood::Skill,267).pose==1);
+  assert(motionFor(Character::BumblebeeFullbody,Mood::Skill,133).pose==2);
+  assert(motionFor(Character::BumblebeeFullbody,Mood::Skill,266).pose==1);
   assert(motionFor(Character::BumblebeeFullbody,Mood::Skill,400).pose==2);
-  assert(motionFor(Character::BumblebeeFullbody,Mood::Skill,534).pose==0);
+  assert(motionFor(Character::BumblebeeFullbody,Mood::Skill,533).pose==0);
   assert(motionFor(Character::Optimus,Mood::Skill,0).pose==1);
-  assert(motionFor(Character::Optimus,Mood::Skill,134).pose==2);
+  assert(motionFor(Character::Optimus,Mood::Skill,133).pose==2);
   assert(motionFor(Character::Optimus,Mood::Skill,400).pose==1);
-  assert(motionFor(Character::Optimus,Mood::Skill,534).pose==0);
+  assert(motionFor(Character::Optimus,Mood::Skill,533).pose==0);
 }

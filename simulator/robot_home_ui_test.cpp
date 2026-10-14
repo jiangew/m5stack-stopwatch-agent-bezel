@@ -45,16 +45,32 @@ int main(){
     assert(idle.texts.size()==2&&idle.texts[0].value=="CONNECTED"&&idle.texts[0].y==44);
     assert(idle.texts[1].value=="82%"&&idle.texts[1].y==420);
     for(auto mood:{Mood::Press,Mood::Skill})
-      for(unsigned ms:{0u,20u,100u,200u,300u,419u})
+      for(unsigned ms:{0u,20u,100u,200u,300u,419u,599u,600u})
         for(auto xy:{std::pair<int,int>{0,0},{466,466},{233,233}}) {
           Surface surface;state.mood=mood;state.reactionElapsedMs=ms;state.touchX=xy.first;state.touchY=xy.second;
-          render(surface,state);assert(surface.effects>0);
-          assert(surface.portraits[0].bytes==portrait.bytes); // shared cached baseline
+          render(surface,state);assert(surface.effects==0); // character responds without energy overlays
+          assert(surface.portraits.size()==1);
+          if(mood==Mood::Press||ms>=600||c==Character::Bumblebee)
+            assert(surface.portraits[0].bytes==portrait.bytes);
+          if(mood==Mood::Skill&&ms==200&&c!=Character::Bumblebee)
+            assert(surface.portraits[0].bytes!=portrait.bytes); // body gesture, not a scaled idle
           assert(surface.texts[0].value=="CONNECTED"&&surface.texts[1].value=="82%");
           if(mood==Mood::Press)assert(surface.portraits[0].scale<portrait.scale);
+          if(mood==Mood::Skill&&ms>=600) {
+            auto end=surface.portraits[0];
+            assert(end.x==portrait.x&&end.y==portrait.y&&end.scale==portrait.scale&&end.angle==0);
+          }
         }
     state.mood=Mood::Idle;state.transitionProgress=0;
     Surface arrival;render(arrival,state);assert(arrival.portraits[0].scale<portrait.scale);
   }
   assert(identities.size()==9);
+  for(int i=1;i<kCharacterCount;++i) {
+    auto hero=static_cast<Character>(i);
+    for(unsigned pose=1;pose<=(i<=2?2u:1u);++pose) {
+      auto action=character_art::actionFor(hero,pose);
+      auto fallback=character_art::idleForAsset(action);
+      assert(fallback.bytes==character_art::assetFor(hero).bytes);
+    }
+  }
 }

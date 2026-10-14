@@ -1,6 +1,6 @@
-# Home hero interaction — 2026-10-13
+# Home character responses — 2026-10-14
 
-This source update replaces the former triple blink with press/release skills
+This source candidate replaces tap energy effects with distinct character gestures
 for **Bumblebee portrait, Bumblebee full body, Optimus Prime, Jazz, Hot Rod, Wheeljack, Hound, Ironhide and Ratchet**. It requires the
 five-screen `m5stack-stopwatch-usb-mic` firmware; the default wireless image
 remains the Codex dashboard. The existing Companion and protocol are unchanged.
@@ -9,46 +9,55 @@ remains the Codex dashboard. The existing Companion and protocol are unchanged.
 
 | Gesture | Home result |
 | --- | --- |
-| Awake portrait press | Immediately compress the portrait 3% and show energy at the touch point |
-| Release before 500ms, remaining inside the portrait area | Release one 420ms skill and request one short 25ms haptic |
-| New press during a skill | Interrupt and immediately begin new energy feedback |
+| Awake portrait press | Immediately compress the original portrait 3% |
+| Release before 500ms, remaining inside the portrait area | Start one 600ms character response and request one short 25ms haptic |
+| New press during a response | Interrupt and immediately begin the new press feedback |
 | Move outside portrait area or at least 52px from start | Cancel the tap; a classified swipe may select a hero or cycle workspaces |
 | Up / down / right | From the default portrait, uniformly choose one of eight full-body heroes; thereafter choose among the other seven full bodies, with one existing 40ms swipe haptic |
-| Left | Existing workspace cycle; no new Mac action is attached to skills |
-| First touch while asleep | Wake only; no skill or hero change |
+| Left | Existing workspace cycle; no new Mac action is attached to responses |
+| First touch while asleep | Wake only; no response or hero change |
 | Leave Home / sleep / power overlay | Cancel the reaction; existing long-hold power flow remains |
 
-The portrait hit area is x=64..402, y=64..398. Effect origins are clamped inward
-so every spark, pulse and scan stays inside that area. Selection defaults to
+The portrait hit area is x=64..402, y=64..398. All portrait rendering stays
+clipped inside that area; tap energy-effect overlays have been removed. Selection defaults to
 Bumblebee when Home is re-entered. Directions no longer map to fixed heroes.
 The portrait is excluded from the random pool. Choices may return to a
 previously seen full-body hero after an intervening change; only immediate
 repetition is forbidden. One held swipe never repeats selection.
 
-| Hero | Skill |
+| Hero | Response |
 | --- | --- |
-| Bumblebee portrait | Yellow shoulder sparks and a small spring rebound |
-| Bumblebee full body | Yellow shoulder sparks and a small spring rebound |
-| Optimus Prime | Cyan faceplate scan and armor highlights |
-| Jazz | Blue concentric energy pulse |
-| Hot Rod | Orange speed streaks |
-| Wheeljack | Green electrical arcs |
-| Hound | Green scanning rings |
-| Ironhide | Red and orange impact circles |
-| Ratchet | Cyan scan with a red diagnostic marker |
+| Bumblebee portrait | Small nod and tilt using the unchanged portrait |
+| Bumblebee full body | Wave between two accepted poses with a small bounce |
+| Optimus Prime | Raise fist, nod, then return through the accepted poses |
+| Jazz | Double thumbs-up with a slight shoulder tilt |
+| Hot Rod | Open-palm greeting and lively forward lean |
+| Wheeljack | Raise wrench beside shoulder |
+| Hound | Fist over chest, returning to the original salute |
+| Ironhide | Strong friendly fist raised at chest |
+| Ratchet | Clear OK hand beside shoulder |
 
-All skills are silent. State and battery retain their existing positions and
-real data sources. Preview values are fixtures, not device telemetry.
+Responses are silent. State and battery retain their existing positions and
+real data sources. Preview values are fixtures, not device telemetry. The user
+accepted the Bumblebee full-body and Optimus browser pilots on 2026-10-14;
+other motions use the same style and 600ms envelope. These use discrete edited
+key poses plus native transforms, rather than skeletal interpolation.
 
 ## Rendering and failure behavior
 
-- Nine 300×300 RGB565 sprites require approximately 1,620,000 bytes and are
-  predecoded in PSRAM on entering Home. Animation reuses these pixels instead
-  of repeatedly decoding JPEGs.
-- Allocation failure frees the partial set and attempts one reusable buffer.
-  Selecting a different hero may decode once in this fallback. If even that
-  buffer or an asset decode fails, a neutral face still answers input;
-  failures are not retried every frame. Leaving Home or sleeping frees caches.
+- Nine idle 300×300 RGB565 sprites use 1,620,000 pixel bytes. Ten optional
+  response sprites add 1,800,000 bytes, for 3,420,000 total cached pixel bytes,
+  excluding the framebuffer, decoder scratch space and other runtime memory.
+  Both banks prepare on entering Home; ordinary animation draws reuse pixels.
+- Idle allocation failure frees its partial bank and attempts one reusable
+  buffer. Hero changes may decode one idle image in this fallback. A failed
+  decode is remembered; if no idle image can be drawn, a neutral face answers.
+- Action allocation failure frees only the optional action bank, preserving
+  idle images. A missing/bad pose draws that character's own idle image with
+  the current motion. The optional bank never uses a single-buffer fallback,
+  so changing key poses cannot cause JPEG decoding or allocation every frame.
+  Cache failures stay remembered until explicit clearing. Leaving Home or
+  sleeping frees both banks. Physical PSRAM headroom still needs validation.
 - One `FrameClock` drives animation at a nominal 34ms cadence; input requests
   bypass the cadence. The final resting state is explicitly repainted. Idle
   Home redraws only for state changes.
@@ -86,7 +95,7 @@ The implementation includes:
 - Actual `drawScreen` tests for crossing reaction/transition expiry during a
   simulated panel transfer and Codex dashboard pixel equality.
 - Decoded native sequence checks for all nine choices: immediate visible press
-  and skill, identical status/battery pixels and final idle-frame equality.
+  and response, identical status/battery pixels and final idle-frame equality.
 - Real JPEG/header-byte/determinism checks through Python and independent
   ImageIO decoding through Swift.
 - Compression-tolerant artwork identity checks reject re-encoded duplicates
@@ -107,6 +116,18 @@ five-screen USB-mic firmware built. The two new README previews were exported
 from the native framebuffer. The later physical deployment checks are recorded
 below; host tests do not establish visual or gesture acceptance on C152.
 
+The 2026-10-14 response candidate passed eleven focused C++ test executables,
+seven Python artwork tests, nineteen independent ImageIO decodes, the actual
+Home swipe/reaction/launch/draw regressions, and nine full native sequences
+(486 frames). Status/battery pixels stayed unchanged in every frame and each
+sequence returned to its original idle pixels. Native, default and selected
+USB-mic builds succeeded. USB-mic static RAM was 106,764 bytes and program size
+2,077,555 bytes; these build figures exclude dynamic sprite PSRAM. All nine
+idle JPEG hashes and the four accepted pilot action JPEGs remain unchanged.
+No response-candidate firmware has been flashed. Native response artwork is
+shown in [the response preview](../artifacts/robot-home-responses.png); prompts
+and action provenance are in [actions](../assets/robot-home/actions/README.md).
+
 Run the core checks from the repository root:
 
 ```sh
@@ -118,15 +139,20 @@ clang++ -std=c++17 -Iinclude simulator/robot_home_frame_test.cpp -o /private/tmp
 /private/tmp/home-frame-test
 clang++ -std=c++17 -Iinclude simulator/robot_home_cache_test.cpp -o /private/tmp/home-cache-test
 /private/tmp/home-cache-test
+clang++ -std=c++17 -Iinclude simulator/robot_home_motion_test.cpp -o /private/tmp/home-motion-test
+/private/tmp/home-motion-test
 python3 simulator/robot_home_art_test.py
+python3 simulator/robot_home_action_art_test.py
 swift -module-cache-path /private/tmp/home-swift-cache simulator/robot_home_art_test.swift
+swift -module-cache-path /private/tmp/home-swift-cache simulator/robot_home_art_test.swift --actions
 ruby simulator/robot_home_swipe_test.rb
 ruby simulator/robot_speech_reaction_test.rb
 ruby simulator/workspace_launch_main_test.rb
 ruby simulator/codex_dashboard_draw_test.rb
+pio run -e m5stack-stopwatch
+# Archive the default binary before switching root PlatformIO environments.
 HOMEBREW_PREFIX=/opt/homebrew pio run -e native-preview
 ruby simulator/robot_home_spacing_test.rb .pio/build/native-preview/program
-pio run -e m5stack-stopwatch
 pio run -d usb-mic -e m5stack-stopwatch-usb-mic
 ```
 
@@ -134,6 +160,10 @@ Python artwork checks require Pillow and numpy. Existing dependency caches are
 used; builds do not upload or change Companion installation. For a batch of
 native animation frames, create an output directory then run
 `.pio/build/native-preview/program --home-sequence OUTPUT_DIRECTORY`.
+
+PlatformIO environment switching may clean another root environment's build
+artifacts; complete default/archive first, then native rendering tests. The
+isolated USB-mic project has its own build directory.
 
 ## Deployment and remaining physical acceptance
 
@@ -153,8 +183,9 @@ received a matching successful response. A 3.008-second capture contained
 144,384 frames of 48kHz mono16 PCM, with zero discontinuities, long zero runs,
 repeated adjacent blocks or clipped samples. Temporary audio was deleted.
 No Companion restart/deployment, push or merge occurred. These checks establish
-the write, reboot, connections and short audio capture; current visual/gesture
-acceptance, every Agent control and long-duration audio reliability remain
+the write, reboot, connections and short audio capture. The user later accepted
+the deployed random swipe experience. Every Agent control, measured latency
+and long-duration audio reliability remain
 separate hardware checks.
 
 On 2026-10-13, the user confirmed download mode and explicitly approved the
@@ -180,9 +211,10 @@ resolve and report the current exact download-mode port and obtain upload approv
 Private backups, firmware and detailed device logs stay local.
 
 The user later confirmed the earlier interaction felt normal in use; that was
-subjective acceptance, not a measured response-latency result. The current
-nine-image, eight-body firmware has now been written and verified. Physical acceptance
-for this build must cover each choice's perceived response, repeated taps,
+subjective acceptance, not a measured response-latency result. The nine-image, eight-body energy-effect firmware has been written and verified,
+and its random swipe interaction was accepted by the user on 2026-10-14. The
+new 600ms character-response candidate is built but not flashed. Physical acceptance
+for the new candidate must cover each choice's perceived response, repeated taps,
 random swipes, wake/long hold, left cycling, Agent navigation and microphone
 streaming. Measure at least 30 responses per hero, with a target P95 of 80ms or
 less from recognized touch to first feedback; also check touch-to-visible latency

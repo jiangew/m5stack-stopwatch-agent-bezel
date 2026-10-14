@@ -180,11 +180,11 @@ bool writeHomeSequence(const char* directory) {
   if(!frame.createSprite(466,466))return false;
   frame.setTextWrap(false);frame.preparePortraits();
   const char* names[]={"bumblebee","bumblebeefullbody","optimus","jazz","hotrod","wheeljack","hound","ironhide","ratchet"};
-  for(int hero=0;hero<robot_home::kCharacterCount;++hero)for(int i=0;i<30;++i) {
+  for(int hero=0;hero<robot_home::kCharacterCount;++hero)for(int i=0;i<54;++i) {
     robot_home::State state;state.character=static_cast<robot_home::Character>(hero);
     state.connected=true;state.batteryPercent=82;
-    if(i>=3&&i<7) {state.mood=robot_home::Mood::Press;state.reactionElapsedMs=(i-3)*33;}
-    if(i>=7&&i<20) {state.mood=robot_home::Mood::Skill;state.reactionElapsedMs=(i-7)*33;}
+    if(i>=12&&i<15) {state.mood=robot_home::Mood::Press;state.reactionElapsedMs=(i-12)*1000/30;}
+    if(i>=15&&i<33) {state.mood=robot_home::Mood::Skill;state.reactionElapsedMs=(i-15)*1000/30;}
     robot_home::render(frame,state);
     char path[1024];std::snprintf(path,sizeof(path),"%s/%s-%03d.ppm",directory,names[hero],i);
     if(!writePpm(frame,path))return false;

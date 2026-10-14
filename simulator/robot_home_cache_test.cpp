@@ -112,4 +112,18 @@ int main() {
     assert(Sprite::decodes==19);
   }
   assert(Sprite::allocations==Sprite::frees);
+  reset(19);Sprite::badImage=actionBytes+9;
+  {
+    robot_home::PortraitCache<Sprite> idle;
+    robot_home::PortraitCache<Sprite,10> actions;
+    idle.prepare(images,9);actions.prepare(poses,10,false);
+    assert(Sprite::decodes==19);
+    for(int i=0;i<100;++i) {
+      assert(!actions.draw(canvas,poses[9],233,232,1,0));
+      assert(idle.draw(canvas,images[8],233,232,1,0));
+      assert(actions.draw(canvas,poses[8],233,232,1,0));
+    }
+    assert(Sprite::decodes==19); // bad pose remembered; other poses/idle survive
+  }
+  assert(Sprite::allocations==Sprite::frees);
 }

@@ -1,0 +1,162 @@
+{
+  "builtin_imagegen": true,
+  "user_accepted_pilots_date": "2026-10-14",
+  "poses": [
+    {
+      "hero": "bumblebeefullbody",
+      "pose": 1,
+      "accepted_pilot": true,
+      "jpeg_sha256": "abfbb6c0a22f06ac311f8a8b11222a554e9b621f9aadd4347a21f30d1e951340"
+    },
+    {
+      "hero": "bumblebeefullbody",
+      "pose": 2,
+      "accepted_pilot": true,
+      "jpeg_sha256": "0779f3840382e5adad89b50a312d12c43be86b90da2ac9355729e81634dd2782"
+    },
+    {
+      "hero": "optimus",
+      "pose": 1,
+      "accepted_pilot": true,
+      "jpeg_sha256": "c65a81955cc586a93b5b33e1fedb24d8ec4663b601432801a40a190b922fbf4f"
+    },
+    {
+      "hero": "optimus",
+      "pose": 2,
+      "accepted_pilot": true,
+      "jpeg_sha256": "a967fe5492fa7c659525bb20a3820d03f45a7ea221bb5e25b9f26bc8de0bc2e5"
+    },
+    {
+      "hero": "jazz",
+      "pose": 1,
+      "jpeg_sha256": "55ad75de174d99d20a240d497d93cefdc9f032d1efed34baa7058266e31e7a7c",
+      "source_sha256": "6d43f08e0d9267c743a88c4c8111b33fca86afc85756500e0fce5faf5de236d1",
+      "idle_source_sha256": "87e7857d5d4ea2123c02946f458d000ce9cf5e8052d70f6b7b38739dd0102fa5",
+      "idle_bbox": [
+        203,
+        33,
+        1038,
+        1224
+      ],
+      "idle_fitted_size": [
+        185,
+        264
+      ],
+      "idle_paste_xy": [
+        57,
+        18
+      ],
+      "fit": "Fixed idle transform; wholecanvas sampling, no independent pose fit"
+    },
+    {
+      "hero": "hotrod",
+      "pose": 1,
+      "jpeg_sha256": "001b3abfbc03ed2881e8d4f324dacc09adfc8dab2e68c39032a2c6d7d6b0c11b",
+      "source_sha256": "14d29e2baf82f0327326befdb3a82ac7a3673d4e65032554dd1d787ee09d33ab",
+      "idle_source_sha256": "2d852be760e0f8513049dedc026b1b81519ab6d2cb0ca31297247b3a7e3a5bea",
+      "idle_bbox": [
+        274,
+        34,
+        999,
+        1219
+      ],
+      "idle_fitted_size": [
+        162,
+        264
+      ],
+      "idle_paste_xy": [
+        69,
+        18
+      ],
+      "fit": "Fixed idle transform; wholecanvas sampling, no independent pose fit"
+    },
+    {
+      "hero": "wheeljack",
+      "pose": 1,
+      "jpeg_sha256": "ddfbda73dfeeed21a5ad5ba6c6b1fbbef87fdf63e1aee9efd87eb89aa25ac8d3",
+      "source_sha256": "98793568aa39c42b16748d7fa9515f32e5e778b311afc6997280e816d52dafdb",
+      "idle_source_sha256": "b5398ee88b9680962506918af232cde0fbb2e42139ec79652ce2e7b2810d1247",
+      "idle_bbox": [
+        189,
+        12,
+        1059,
+        1237
+      ],
+      "idle_fitted_size": [
+        187,
+        264
+      ],
+      "idle_paste_xy": [
+        56,
+        18
+      ],
+      "fit": "Fixed idle transform; wholecanvas sampling, no independent pose fit"
+    },
+    {
+      "hero": "hound",
+      "pose": 1,
+      "jpeg_sha256": "ee024c044727cee63b7a947b73a143a1c827923c7f85f73a423d7da403a2ae38",
+      "source_sha256": "886b18387d7ab12a2d1fad7a3ce0a5abc0981f97be41f2c4ca3f4b1d994f416a",
+      "idle_source_sha256": "26f5b70fac1868b18cb6ff435771ebcc1915b31a1ef01b8042e56f1ad9e7e912",
+      "idle_bbox": [
+        207,
+        33,
+        1045,
+        1213
+      ],
+      "idle_fitted_size": [
+        187,
+        264
+      ],
+      "idle_paste_xy": [
+        56,
+        18
+      ],
+      "fit": "Fixed idle transform; wholecanvas sampling, no independent pose fit"
+    },
+    {
+      "hero": "ironhide",
+      "pose": 1,
+      "jpeg_sha256": "0fc35b270e3dd174eef83d0e86a83554bed1fe159642d65841dd28539fe30fa7",
+      "source_sha256": "a52b1ed06304665f0238b9e85d0d9c150e95db1c08081544ad9f43d490177d59",
+      "idle_source_sha256": "075be1e4348588cb971a7425f1c63adbb22e1595df24caf19aaf1c3f9ceee0d0",
+      "idle_bbox": [
+        211,
+        27,
+        1016,
+        1220
+      ],
+      "idle_fitted_size": [
+        178,
+        264
+      ],
+      "idle_paste_xy": [
+        61,
+        18
+      ],
+      "fit": "Fixed idle transform; wholecanvas sampling, no independent pose fit"
+    },
+    {
+      "hero": "ratchet",
+      "pose": 1,
+      "jpeg_sha256": "c3640de8c0411c9dbf8fcac6388413e22296c50ba090c81bb17ebd973ec24c95",
+      "source_sha256": "8fd68a34b06db39be8f27d1e4acc82efaf6b9048dacd65022f607a6de8b7cb0f",
+      "idle_source_sha256": "6cef3c72d17f3bc52a1424c7a2ee4c7e8d702aff8a2ad868e1df7ed7f85f4afd",
+      "idle_bbox": [
+        220,
+        9,
+        1029,
+        1222
+      ],
+      "idle_fitted_size": [
+        176,
+        264
+      ],
+      "idle_paste_xy": [
+        62,
+        18
+      ],
+      "fit": "Fixed idle transform; wholecanvas sampling, no independent pose fit"
+    }
+  ]
+}

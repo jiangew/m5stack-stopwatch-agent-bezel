@@ -19,8 +19,9 @@ fixture=<<~CPP
     assert(robotAnimation.mood(now)==robot_home::Mood::Skill&&robotInputDirty);
     now+=100;robotAnimation.press(now);requestRobotReaction();
     assert(robotAnimation.elapsed(now)==0); // new interaction immediately wins
-    now+=420;assert(robotAnimation.mood(now)==robot_home::Mood::Idle);
-    for(unsigned elapsed:{0u,200u,419u}) {
+    now+=599;assert(robotAnimation.mood(now)==robot_home::Mood::Skill);
+    now+=1;assert(robotAnimation.mood(now)==robot_home::Mood::Idle);
+    for(unsigned elapsed:{0u,200u,599u}) {
       now=0xfffffff0u;robotAnimation.press(now);requestRobotReaction();now+=elapsed;
       updateRobotReaction(false);
       assert(robotAnimation.mood(now)==robot_home::Mood::Idle);

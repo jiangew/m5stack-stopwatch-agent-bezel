@@ -1,6 +1,6 @@
 # Home character response implementation plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Replace central-tap energy skills with distinct character responses for the portrait and eight full-body Autobots, matching the two accepted motion pilots.
 
@@ -24,8 +24,8 @@
 
 **Interface:** Ten baseline 300px JPEGs, each under 50 KiB; naming `<hero>-<pose>.jpg`. Pilot heroes have poses 1 and 2; other full bodies have pose 1. Portrait uses native tilt/nod without extra artwork.
 
-- [ ] Generate one clear signature pose for each remaining hero: Jazz thumbs-up; Hot Rod lively forward lean; Wheeljack raises wrench; Hound salute; Ironhide strong fist/palm; Ratchet OK gesture. Inspect every edit target before imagegen, preserve identity, body scale, feet and black canvas. Save exact prompts and source hashes.
-- [ ] Fit using the original idle bounding box/transform, never a new per-pose silhouette fit. Copy the accepted pilot JPEGs unchanged. Decode all ten JPEGs and compare contact sheets against idle; confirm the nine idle SHA256 hashes unchanged.
+- [x] Generate one clear signature pose for each remaining hero: Jazz thumbs-up; Hot Rod lively forward lean; Wheeljack raises wrench; Hound chest acknowledgement returning to salute; Ironhide strong fist/palm; Ratchet OK gesture. Inspect every edit target before imagegen, preserve identity, body scale, feet and black canvas. Save exact prompts and source hashes.
+- [x] Fit using the original idle bounding box/transform, never a new per-pose silhouette fit. Copy the accepted pilot JPEGs unchanged. Decode all ten JPEGs and compare contact sheets against idle; confirm the nine idle SHA256 hashes unchanged.
 
 ### Task 2: Shared motion and bounded caches
 
@@ -33,16 +33,32 @@
 
 **Interface:** `motionFor(Character,Mood,uint32_t)` returns pose index, compression, vertical offset and angle. `actionFor(Character,unsigned)` returns a pose JPEG or idle. Idle and action caches prepare once; action cache has no single-buffer fallback.
 
-- [ ] First update interaction tests to assert release remains active through 599ms and becomes idle at 600ms, including uint32 rollover and repeat interruption; watch the old 420ms implementation fail. Change `Animation` skill duration to a shared 600ms constant.
-- [ ] First test optional-cache allocation failure at every slot, no decode/allocation retry during repeated animation draws, idle cache survival and decode failure. Extend `PortraitCache` with a capacity template parameter and opt-out single-buffer fallback; keep its existing default behavior for idle callers.
-- [ ] Write motion tests covering every hero, idle/press identity, the accepted pilot key-pose boundaries, action end returning exactly to idle, and finite bounded transforms. Implement timelines matching the pilots, with one signature pose plus small motion for the other six; portrait nods/tilts.
-- [ ] Embed ten action assets deterministically; render the selected action and transform in the real Home renderer. If action drawing fails, draw its own idle asset using the idle cache. Remove tap energy effects; preserve real status/battery and cancellation plumbing.
+- [x] First update interaction tests to assert release remains active through 599ms and becomes idle at 600ms, including uint32 rollover and repeat interruption; watch the old 420ms implementation fail. Change `Animation` skill duration to a shared 600ms constant.
+- [x] First test optional-cache allocation failure at every slot, no decode/allocation retry during repeated animation draws, idle cache survival and decode failure. Extend `PortraitCache` with a capacity template parameter and opt-out single-buffer fallback; keep its existing default behavior for idle callers.
+- [x] Write motion tests covering every hero, idle/press identity, the accepted pilot key-pose boundaries, action end returning exactly to idle, and finite bounded transforms. Implement timelines matching the pilots, with one signature pose plus small motion for the other six; portrait nods/tilts.
+- [x] Embed ten action assets deterministically; render the selected action and transform in the real Home renderer. If action drawing fails, draw its own idle asset using the idle cache. Remove tap energy effects; preserve real status/battery and cancellation plumbing.
 
 ### Task 3: Integrate, verify and archive candidate
 
 **Files:** `simulator/preview_main.cpp`, artwork/UI/cache tests, `README.md`, `README.zh-CN.md`, `docs/HOME_HERO_INTERACTION.md`; local ignored candidate output.
 
-- [ ] Run focused C++ interaction/motion/cache/UI tests, existing gesture/source-path tests and Python/Swift image decoding checks. Change sequence capture to cover the complete 600ms response and exact return for all nine heroes.
-- [ ] Render actual native frames/contact sheets/GIF; compare idle to the accepted baseline, check status/battery pixels throughout and inspect all gestures at actual size. The native check cannot establish hardware touch latency or motor response.
-- [ ] Build default and explicitly selected USB-mic targets. Archive binaries, SHA256 manifests, logs and previews to a new output directory, leaving the previous flashed candidate immutable.
-- [ ] Review the whole change, address material findings, update docs with measured static memory costs/build evidence and clearly pending physical acceptance. Commit explicit paths; leave the candidate ready for a separately confirmed flash.
+- [x] Run focused C++ interaction/motion/cache/UI tests, existing gesture/source-path tests and Python/Swift image decoding checks. Change sequence capture to cover the complete 600ms response and exact return for all nine heroes.
+- [x] Render actual native frames/contact sheets/GIF; compare idle to the accepted baseline, check status/battery pixels throughout and inspect all gestures at actual size. The native check cannot establish hardware touch latency or motor response.
+- [x] Build default and explicitly selected USB-mic targets. Archive binaries, SHA256 manifests, logs and previews to a new output directory, leaving the previous flashed candidate immutable.
+- [x] Review the whole change, address material findings, update docs with measured static memory costs/build evidence and clearly pending physical acceptance. Commit explicit paths; leave the candidate ready for a separately confirmed flash.
+
+
+## Completion evidence — 2026-10-14
+
+The source candidate passed eleven C++ executable checks, seven Python artwork
+checks, nineteen ImageIO decodes, actual gesture/reaction/launch/draw tests,
+and all nine 54-frame native sequences. Default, native and selected USB-mic
+builds passed. Every idle JPEG and accepted pilot JPEG stayed unchanged.
+The independent whole-change review approved with no actionable findings.
+
+Local output `home-character-response` contains 486 native frames, an interactive
+nine-role viewer, GIF/PNG previews, exact prompts/source provenance, build and
+host logs, binaries and a SHA256 candidate manifest. The response source is
+kept on `codex/home-tap-motion-pilot`. No flash, push, merge or Companion restart
+was performed. Device acceptance of the new responses and physical PSRAM,
+latency, frame rate and motor timing remain pending.

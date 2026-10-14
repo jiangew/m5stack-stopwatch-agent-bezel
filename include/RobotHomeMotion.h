@@ -22,15 +22,15 @@ inline Motion motionFor(Character character, Mood mood, std::uint32_t elapsed) {
   switch(character) {
     case Character::Bumblebee:
       motion.scale+=.025f*envelope;
-      motion.offsetY=3*envelope;
+      motion.offsetY=3*std::sin((.15f+.85f*t)*3.14159265f);
       motion.angle=-3*std::sin(t*6.2831853f)*envelope;
       break;
     case Character::BumblebeeFullbody:
-      motion.pose=elapsed<134?1:elapsed<267?2:elapsed<400?1:elapsed<534?2:0;
+      motion.pose=elapsed<133?1:elapsed<266?2:elapsed<400?1:elapsed<533?2:0;
       motion.offsetY=-3.5f*envelope;
       break;
     case Character::Optimus:
-      motion.pose=elapsed<134?1:elapsed<400?2:elapsed<534?1:0;
+      motion.pose=elapsed<133?1:elapsed<400?2:elapsed<533?1:0;
       motion.offsetY=-1.5f*envelope;
       break;
     case Character::Jazz:

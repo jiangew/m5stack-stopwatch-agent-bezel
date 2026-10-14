@@ -73,7 +73,7 @@ fixture = <<~CPP
     assert(!robotFrames.due(133,true,true,false));
     assert(robotFrames.due(134,true,true,false)); // include rendering time in 30fps cadence
 
-    now=519;advanceAfterPush=2;drawScreen();
+    now=699;advanceAfterPush=2;drawScreen();
     assert(robotFrames.due(now,true,false,false));
     advanceAfterPush=0;drawScreen();assert(!robotFrames.due(now,true,false,false));
     robotAnimation.cancel();

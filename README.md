@@ -27,14 +27,15 @@ See the
 [control diagnosis and acceptance record](docs/CONTROL_AVAILABILITY.zh-CN.md).
 
 - Five screens: robot Home → Codex / ChatGPT → DSH → SUPER → HERMES → Home.
-- Home: Bumblebee portrait, Bumblebee full body, Optimus Prime, Jazz, Hot Rod, Wheeljack, Hound, Ironhide and Ratchet. Press the portrait
-  for immediate energy feedback; release a short tap for a 420ms hero skill and
-  one 25ms haptic. New taps interrupt the previous skill. Up/down/right randomly
-  select a full-body hero. The nine-image, eight-body USB-mic firmware built from
-  `2705564` was flashed on 2026-10-14. Application digest and protected metadata
-  verification, BLE HID status RPC, USB enumeration and a short microphone capture
-  passed. Current visual/gesture acceptance and measured response latency remain
-  pending; the user accepted the earlier four-hero interaction in use.
+- Home source candidate: nine images, with a 600ms character response after
+  a short tap: wave, fist/nod, thumbs-up, wrench, salute acknowledgement or OK.
+  Press gives immediate 3% compression; release requests one 25ms haptic.
+  Repeat taps interrupt. Up/down/right still randomly select a full-body hero.
+  Default and USB-mic builds and native checks passed; this candidate is not
+  flashed. The last deployed nine-image firmware is `2705564` (2026-10-14);
+  application/protected-metadata, BLE HID RPC, USB enumeration and short microphone
+  checks passed, and the user accepted its random swipe experience. Hardware
+  response latency and the new gestures remain to be measured/accepted.
 - DSH: the same four-triangle layout as SUPER. Up/down navigate existing
   threads in sidebar order across project boundaries; right switches Chat /
   Trajectory. Requires the optional navigation plugin; center and physical
@@ -60,8 +61,8 @@ Home requires matching source-built Companion and USB-mic firmware. Boot,
 reconnect and Companion startup select Home without activating a Mac app.
 Home stays selected even when the Mac foreground changes. The nine Home images are
 Bumblebee portrait (default), Bumblebee full body, Optimus Prime, Jazz, Hot Rod, Wheeljack, Hound, Ironhide and Ratchet. Touch down inside
-x=64..402/y=64..398 for immediate compressed-avatar energy feedback; release within
-500ms without a swipe to emit a silent 420ms skill and one 25ms haptic. New taps
+x=64..402/y=64..398 for immediate 3% compression; release within
+500ms without a swipe to play a silent 600ms character response and one 25ms haptic. New taps
 interrupt the current reaction instead of being ignored. Moving outside the
 portrait area or reaching the 52px swipe threshold cancels the tap.
 Swipe up, down or right to select uniformly among the eight full-body heroes from
@@ -71,12 +72,15 @@ offline. Held motion cannot repeat. Left retains the workspace cycle. The first
 sleeping-screen touch only wakes the display. Leaving Home, sleep or power
 confirmation cancels the reaction; existing long-hold power controls remain.
 All portraits remain without a decorative boundary circle. The firmware caches
-nine RGB565 portraits in PSRAM (1,620,000 pixel bytes), uses one reusable portrait buffer if necessary,
-and redraws only for animation or state changes. The same cached renderer drives
+nine idle and ten optional response RGB565 sprites in PSRAM (3,420,000 pixel bytes).
+The idle bank can use one reusable buffer; action allocation failure preserves
+the idle figure and motion without per-frame decoding. Home
+redraws only for animation or state changes. The same cached renderer drives
 native previews; build/preview results do not establish C152 response latency.
 No speech or Mac action is requested by portrait interaction. USB microphone and
 Codex completion chime behavior are unchanged. See
 [Home hero interaction and validation](docs/HOME_HERO_INTERACTION.md).
+[Native preview of all nine responses](artifacts/robot-home-responses.png).
 An awake Home left swipe with a ready Companion link gives the same single
 vibration as other workspace swipes; offline left remains silent. This is gesture
 feedback, not confirmation of Mac activation.
@@ -128,7 +132,7 @@ app” behavior is replaced by this fixed cycle.
 | Input | Robot Home | Codex Micro | DSH | SUPER | HERMES |
 | --- | --- | --- | --- | --- | --- |
 | Left physical / right physical | No action¹ | Push to talk / Voice Chat | No action¹ | No action¹ | No action¹ |
-| Center tap | Press energy / release skill + short haptic | Launch/retry when waiting; Send when active | Launch/retry when waiting; no action when active | Launch/retry when waiting; no action when active | Launch/retry when waiting; no action when active |
+| Center tap | Press compression / character response + short haptic | Launch/retry when waiting; Send when active | Launch/retry when waiting; no action when active | Launch/retry when waiting; no action when active | Launch/retry when waiting; no action when active |
 | Swipe left | Select Codex | Select DSH | Select SUPER | Select HERMES | Enter Home |
 | Swipe up | Random different hero | Existing app mapping | Previous thread | Previous project | Browse previous session |
 | Swipe down | Random different hero | Existing app mapping | Next thread | Next project | Browse next session |
@@ -188,7 +192,8 @@ content. The browser plugin uses structural row IDs locally, never titles,
 message text, drafts or credentials. It opens only existing threads, never
 creates one. Trajectory must already be available; ambiguous or unsupported
 UI state fails closed. Plugin 0.1.1 with build8 passed the preceding user-observed
-physical navigation acceptance; never install deprecated 0.1.0. Current hero skills/random-selection firmware still awaits its own physical acceptance.
+physical navigation acceptance; never install deprecated 0.1.0. The deployed
+random swipes were accepted; the new character responses await physical acceptance.
 
  App activation failure does not skip to another target.
 It shares the 5-second heartbeat and 15-second lease/fallback with other work
@@ -353,7 +358,7 @@ serial port, and paste this into Codex:
 ```text
 Install the five-screen AgentBezel experience on my M5Stack StopWatch Dev Kit C152.
 I choose the isolated USB-mic firmware and matching Companion, including Home,
-Codex, DSH, SUPER and HERMES. Home taps release silent hero skills with short haptics.
+Codex, DSH, SUPER and HERMES. Home taps play silent character responses with short haptics.
 
 Read AGENTS.md and README.md completely before acting. Work through the setup
 autonomously, but follow these safety rules:

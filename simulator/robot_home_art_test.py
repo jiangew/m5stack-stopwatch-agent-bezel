@@ -27,6 +27,8 @@ PRESERVED = {
     'hotrod': '46a4a235e29b49420ff0dc1c22474a3efaf92176608f3822bcd8160e2b4934bf',
     'wheeljack': '5633b4a2f7353838b4b363e7fc835a11bc6b09fbae7e16d53b9c9672e44e35e9',
     'hound': '6dafdb61e4e349cb99cbb61919106f2d4e092d3bfd398412ae03cc71a559862c',
+    'ironhide': 'a3e98bbdc5c7e7a6fe1e24f58134bdb580a89c2e0363b58b31528b3b3cf799b5',
+    'ratchet': '644ce5a5544e14894327637d41522f25cdbc937ae1b51f730edfb3dea65e8780',
 }
 HEADER = ROOT / 'include/RobotHomeArtData.h'
 
