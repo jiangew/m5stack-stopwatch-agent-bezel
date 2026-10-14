@@ -104,8 +104,8 @@ nine independent ImageIO decodes, selector/cache/frame/interaction/UI tests,
 actual gesture/reaction/launch/draw regressions, and nine native spacing
 sequences (270 retained frames). Native preview, default firmware, and selected
 five-screen USB-mic firmware built. The two new README previews were exported
-from the native framebuffer. This source build has not been flashed or accepted
-on physical C152 hardware; see the current Task 1 report for command results.
+from the native framebuffer. The later physical deployment checks are recorded
+below; host tests do not establish visual or gesture acceptance on C152.
 
 Run the core checks from the repository root:
 
@@ -137,6 +137,26 @@ native animation frames, create an output directory then run
 
 ## Deployment and remaining physical acceptance
 
+On 2026-10-14, the nine-image/eight-body USB-mic application built from
+`2705564` was written to app0 at `0x10000` after fresh download-mode target
+confirmation, a complete 16MB private backup, matching partition tables and
+verification that OTA selects app0. The firmware SHA-256 is
+`976db32b5bc9087d72dd4c355833963f2f5f69491a6cde3cad574be29399ee59`.
+The write verified its hash and a separate ROM verification matched the digest.
+A readback confirmed the protected first 64KB remained byte-identical to the
+fresh backup, including bootloader, partition table, NVS and OTA metadata.
+
+After watchdog reset, USB and CoreAudio enumerated `Codex StopWatch Mic` as one
+48kHz input without a USB output. A fresh Companion HID connection was observed;
+the HID transport was Bluetooth Low Energy and a read-only `device.status` RPC
+received a matching successful response. A 3.008-second capture contained
+144,384 frames of 48kHz mono16 PCM, with zero discontinuities, long zero runs,
+repeated adjacent blocks or clipped samples. Temporary audio was deleted.
+No Companion restart/deployment, push or merge occurred. These checks establish
+the write, reboot, connections and short audio capture; current visual/gesture
+acceptance, every Agent control and long-duration audio reliability remain
+separate hardware checks.
+
 On 2026-10-13, the user confirmed download mode and explicitly approved the
 identified upload port. The earlier four-hero five-screen application built from `3a0e2cf` was
 written to app0 at `0x10000` after a complete 16MB private backup and confirmation
@@ -161,10 +181,10 @@ Private backups, firmware and detailed device logs stay local.
 
 The user later confirmed the earlier interaction felt normal in use; that was
 subjective acceptance, not a measured response-latency result. The current
-nine-image, eight-body source build has not been written to hardware. Physical acceptance
+nine-image, eight-body firmware has now been written and verified. Physical acceptance
 for this build must cover each choice's perceived response, repeated taps,
 random swipes, wake/long hold, left cycling, Agent navigation and microphone
 streaming. Measure at least 30 responses per hero, with a target P95 of 80ms or
 less from recognized touch to first feedback; also check touch-to-visible latency
-using high-frame-rate video. The target has **not** been measured or achieved
-on hardware in this source-only verification.
+using high-frame-rate video. The target has **not** been measured or established
+on this hardware.

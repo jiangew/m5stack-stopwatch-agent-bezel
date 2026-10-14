@@ -18,8 +18,8 @@ firmware and Companion. Validation covers one local setup, not every app version
 Companion build14 unifies foreground handling for all four Agent pages. Left
 selects a page without activating a background app. A foreground target is ready
 immediately; a missing or background target waits for a center tap to launch or
-activate and reopen a closed last window. Mac foreground changes preserve the selected page. This Companion-only
-update uses the existing build9 five-screen firmware. DSH, SUPER and Hermes
+activate and reopen a closed last window. Mac foreground changes preserve the selected page. This Companion release
+originally used build9; the current nine-image Home firmware deployment is recorded below. DSH, SUPER and Hermes
 check for an actual application window; closing the last window returns to
 **TAP TO OPEN** on the next one-second check. A slow reopen automatically becomes
 operational when its real foreground window is ready, including after a timeout.
@@ -30,10 +30,11 @@ See the
 - Home: Bumblebee portrait, Bumblebee full body, Optimus Prime, Jazz, Hot Rod, Wheeljack, Hound, Ironhide and Ratchet. Press the portrait
   for immediate energy feedback; release a short tap for a 420ms hero skill and
   one 25ms haptic. New taps interrupt the previous skill. Up/down/right randomly
-  select a full-body hero. The earlier four-hero firmware at `3a0e2cf` was
-  flashed on 2026-10-13; this nine-image, eight-body source build has not been deployed.
-  The user accepted the earlier interaction in use; response latency has not
-  been measured.
+  select a full-body hero. The nine-image, eight-body USB-mic firmware built from
+  `2705564` was flashed on 2026-10-14. Application digest and protected metadata
+  verification, BLE HID status RPC, USB enumeration and a short microphone capture
+  passed. Current visual/gesture acceptance and measured response latency remain
+  pending; the user accepted the earlier four-hero interaction in use.
 - DSH: the same four-triangle layout as SUPER. Up/down navigate existing
   threads in sidebar order across project boundaries; right switches Chat /
   Trajectory. Requires the optional navigation plugin; center and physical
