@@ -59,6 +59,18 @@ The independent whole-change review approved with no actionable findings.
 Local output `home-character-response` contains 486 native frames, an interactive
 nine-role viewer, GIF/PNG previews, exact prompts/source provenance, build and
 host logs, binaries and a SHA256 candidate manifest. The response source is
-kept on `codex/home-tap-motion-pilot`. No flash, push, merge or Companion restart
+kept on `codex/home-tap-motion-pilot`. At source-candidate completion no flash, push, merge or Companion restart
 was performed. Device acceptance of the new responses and physical PSRAM,
 latency, frame rate and motor timing remain pending.
+
+
+## Subsequent physical deployment — 2026-10-14
+
+After the user confirmed the exact current target, source `4b1b6e9` was flashed
+only to app0 after a new 16MB backup and identity/partition/OTA checks. Tool and
+independent ROM digest verification passed; protected first 64KB stayed byte-identical.
+USB/CoreAudio input-only 48kHz, BLE HID transport, fresh Companion connection,
+read-only device.status RPC and 3.008s microphone validation passed. Temporary
+audio was removed. No Companion restart, push or merge occurred. New gesture
+acceptance, physical PSRAM, measured latency, frame rate and motor timing remain
+pending. See `docs/HOME_HERO_INTERACTION.md` for the deployment scope.

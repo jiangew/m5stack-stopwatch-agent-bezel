@@ -27,15 +27,15 @@ See the
 [control diagnosis and acceptance record](docs/CONTROL_AVAILABILITY.zh-CN.md).
 
 - Five screens: robot Home → Codex / ChatGPT → DSH → SUPER → HERMES → Home.
-- Home source candidate: nine images, with a 600ms character response after
-  a short tap: wave, fist/nod, thumbs-up, wrench, salute acknowledgement or OK.
-  Press gives immediate 3% compression; release requests one 25ms haptic.
-  Repeat taps interrupt. Up/down/right still randomly select a full-body hero.
-  Default and USB-mic builds and native checks passed; this candidate is not
-  flashed. The last deployed nine-image firmware is `2705564` (2026-10-14);
-  application/protected-metadata, BLE HID RPC, USB enumeration and short microphone
-  checks passed, and the user accepted its random swipe experience. Hardware
-  response latency and the new gestures remain to be measured/accepted.
+- Home: nine images, with a 600ms character response after a short tap:
+  wave, fist/nod, thumbs-up, wrench, salute acknowledgement or OK. Press gives
+  immediate 3% compression; release requests one 25ms haptic. Repeat taps
+  interrupt, and up/down/right still randomly select a full-body hero.
+  The USB-mic application built from `4b1b6e9` was flashed on 2026-10-14,
+  app0 only. Application digest/protected metadata, reboot, USB input-only audio,
+  BLE HID status RPC and a short microphone capture passed. The user accepted
+  the earlier random swipe experience; new gestures, latency, frame rate and
+  motor timing remain to be accepted/measured on C152.
 - DSH: the same four-triangle layout as SUPER. Up/down navigate existing
   threads in sidebar order across project boundaries; right switches Chat /
   Trajectory. Requires the optional navigation plugin; center and physical

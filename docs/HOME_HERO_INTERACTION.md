@@ -108,7 +108,7 @@ firmware built successfully. Exact commands and outputs are recorded in the loca
 Task 2 validation report. One upstream M5GFX Clang VLA-extension
 warning remains in native compilation; no new source compile errors occurred.
 
-The current nine-image source build passed the same five Python artwork tests,
+The previous nine-image energy-effect source build passed the same five Python artwork tests,
 nine independent ImageIO decodes, selector/cache/frame/interaction/UI tests,
 actual gesture/reaction/launch/draw regressions, and nine native spacing
 sequences (270 retained frames). Native preview, default firmware, and selected
@@ -124,7 +124,7 @@ sequence returned to its original idle pixels. Native, default and selected
 USB-mic builds succeeded. USB-mic static RAM was 106,764 bytes and program size
 2,077,555 bytes; these build figures exclude dynamic sprite PSRAM. All nine
 idle JPEG hashes and the four accepted pilot action JPEGs remain unchanged.
-No response-candidate firmware has been flashed. Native response artwork is
+The response application was subsequently flashed as recorded below. Native response artwork is
 shown in [the response preview](../artifacts/robot-home-responses.png); prompts
 and action provenance are in [actions](../assets/robot-home/actions/README.md).
 
@@ -166,6 +166,29 @@ artifacts; complete default/archive first, then native rendering tests. The
 isolated USB-mic project has its own build directory.
 
 ## Deployment and remaining physical acceptance
+
+On 2026-10-14, after explicit current-target confirmation and a new complete
+16MB backup, the nine-role 600ms response USB-mic application from `4b1b6e9`
+was written only to app0 at `0x10000`. The partition table matched, OTA selected
+app0, and the previous application matched the earlier confirmed deployment.
+The application is 2,110,000 bytes, SHA-256
+`12fb681b47bf5dd748f37ab043bc71b809e63d34ca82365a9e5c9d925acaa531`.
+The tool wrote it in 22.1 seconds and verified its hash; independent ROM
+verification matched the digest. A readback of the protected first 64KB was
+byte-identical to the fresh backup, preserving bootloader, partition table,
+NVS/pairing configuration and OTA metadata.
+
+After watchdog reset, USB/IOKit and CoreAudio exposed `Codex StopWatch Mic`
+with one 48kHz input and no output. BLE HID transport and a fresh Companion
+HID connection were observed; read-only `device.status` RPC received its
+matching successful response. A 3.008-second capture contained 144,384 frames
+of 48kHz mono16 PCM, with zero discontinuities, long zero runs, repeated adjacent
+blocks or clipped samples. Temporary audio and staging files were deleted.
+No Companion restart/deployment, push or merge occurred. These establish the
+write, protected metadata, reboot, connections and short capture; the new
+character gestures, repeated input feel, actual PSRAM headroom, motor timing,
+frame rate, measured touch latency and audio continuity during animation remain
+separate physical acceptance checks.
 
 On 2026-10-14, the nine-image/eight-body USB-mic application built from
 `2705564` was written to app0 at `0x10000` after fresh download-mode target
@@ -213,8 +236,8 @@ Private backups, firmware and detailed device logs stay local.
 The user later confirmed the earlier interaction felt normal in use; that was
 subjective acceptance, not a measured response-latency result. The nine-image, eight-body energy-effect firmware has been written and verified,
 and its random swipe interaction was accepted by the user on 2026-10-14. The
-new 600ms character-response candidate is built but not flashed. Physical acceptance
-for the new candidate must cover each choice's perceived response, repeated taps,
+new 600ms character-response application has now been flashed and verified. Physical acceptance
+for the new application must cover each choice's perceived response, repeated taps,
 random swipes, wake/long hold, left cycling, Agent navigation and microphone
 streaming. Measure at least 30 responses per hero, with a target P95 of 80ms or
 less from recognized touch to first feedback; also check touch-to-visible latency
