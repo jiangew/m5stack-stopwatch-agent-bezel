@@ -96,12 +96,12 @@ int main() {
     assert(animation.release(start + 499));
     assert(animation.mood(start + 499) == Mood::Skill);
     assert(animation.elapsed(start + 499) == 0);
-    assert(animation.active(start + 918));
-    assert(animation.mood(start + 918) == Mood::Skill);
+    assert(animation.active(start + 1098));
+    assert(animation.mood(start + 1098) == Mood::Skill);
     assert(!animation.release(start + 600));
     assert(animation.elapsed(start + 600) == 101); // Release cannot restart skill.
-    assert(animation.mood(start + 919) == Mood::Idle);
-    assert(!animation.active(start + 919));
+    assert(animation.mood(start + 1099) == Mood::Idle);
+    assert(!animation.active(start + 1099));
 
     animation.press(start);
     assert(animation.release(start + 10));

@@ -76,4 +76,40 @@ int main() {
     assert(Sprite::decodes==9);
   }
   assert(Sprite::allocations==Sprite::frees&&Sprite::frees==9);
+  const std::uint8_t actionBytes[]={10,11,12,13,14,15,16,17,18,19};
+  robot_home::PortraitImage poses[10];
+  for(int i=0;i<10;++i)poses[i]={actionBytes+i,1};
+
+  // Optional action bank must not evict the already prepared idle bank or
+  // fall back to decoding each changing pose into one buffer on every frame.
+  for(int budget=9;budget<19;++budget) {
+    reset(budget);
+    {
+      robot_home::PortraitCache<Sprite> idle;
+      robot_home::PortraitCache<Sprite,10> actions;
+      idle.prepare(images,9);
+      actions.prepare(poses,10,false);
+      assert(Sprite::allocations-Sprite::frees==9);
+      const int decoded=Sprite::decodes,allocated=Sprite::allocations;
+      for(int i=0;i<100;++i) {
+        assert(!actions.draw(canvas,poses[i%10],233,232,1,0));
+        assert(idle.draw(canvas,images[i%9],233,232,1,0));
+        actions.prepare(poses,10,false);
+      }
+      assert(Sprite::decodes==decoded&&Sprite::allocations==allocated);
+    }
+    assert(Sprite::allocations==Sprite::frees);
+  }
+  reset(19);
+  {
+    robot_home::PortraitCache<Sprite> idle;
+    robot_home::PortraitCache<Sprite,10> actions;
+    idle.prepare(images,9);
+    actions.prepare(poses,10,false);
+    assert(Sprite::allocations-Sprite::frees==19);
+    assert(Sprite::decodes==19);
+    for(int i=0;i<100;++i)assert(actions.draw(canvas,poses[i%10],233,232,1,0));
+    assert(Sprite::decodes==19);
+  }
+  assert(Sprite::allocations==Sprite::frees);
 }

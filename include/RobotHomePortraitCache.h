@@ -8,8 +8,9 @@ namespace robot_home {
 struct PortraitImage { const std::uint8_t* bytes; std::uint32_t size; };
 
 // Sprite is injected so allocation/decode failures can be tested on the host.
-// Full cache: 9 * 300 * 300 * 2 bytes in PSRAM. Fallback: one reused sprite.
-template <class Sprite>
+// Idle bank permits a one-buffer fallback. Optional action banks opt out so
+// a low-memory animation never decodes changing poses on every frame.
+template <class Sprite, std::size_t Capacity = 9>
 class PortraitCache {
  public:
   ~PortraitCache() { clear(); }
@@ -17,7 +18,7 @@ class PortraitCache {
   PortraitCache(const PortraitCache&) = delete;
   PortraitCache& operator=(const PortraitCache&) = delete;
 
-  void prepare(const PortraitImage* images, std::size_t count) {
+  void prepare(const PortraitImage* images, std::size_t count, bool allowFallback = true) {
     if (prepared_) return;
     prepared_ = true;
     count_ = count < kCapacity ? count : kCapacity;
@@ -25,8 +26,8 @@ class PortraitCache {
     for (std::size_t i = 0; i < count_; ++i) {
       if (!allocate(i, true)) {
         releaseSprites();
-        fallback_ = true;
-        allocate(0, false); // bounded, single-buffer internal-memory fallback
+        fallback_ = allowFallback;
+        if(allowFallback)allocate(0, false); // bounded idle-only fallback
         return;
       }
       decoded_[i] = decode(i, images_[i]);
@@ -77,7 +78,8 @@ class PortraitCache {
       allocated_[i] = decoded_[i] = false;
     }
   }
-  static constexpr std::size_t kCapacity = 9;
+  static constexpr std::size_t kCapacity = Capacity;
+  static_assert(kCapacity > 0, "portrait bank needs at least one slot");
   std::array<Sprite, kCapacity> sprites_;
   std::array<PortraitImage, kCapacity> images_{};
   std::array<bool, kCapacity> allocated_{}, decoded_{}, failed_{};

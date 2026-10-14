@@ -7,6 +7,8 @@
 
 namespace robot_home {
 
+inline constexpr std::uint32_t kResponseDurationMs = 600;
+
 enum class Mood : std::uint8_t {
   Idle,
   Happy,
@@ -22,7 +24,7 @@ class Animation {
   void react(Mood mood, std::uint32_t now) {
     mood_ = mood;
     since_ = now;
-    duration_ = mood == Mood::Press ? 500 : mood == Mood::Skill ? 420 : 2400;
+    duration_ = mood == Mood::Press ? 500 : mood == Mood::Skill ? kResponseDurationMs : 2400;
   }
 
   void press(std::uint32_t now) { react(Mood::Press, now); }
