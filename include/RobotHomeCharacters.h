@@ -8,6 +8,7 @@
 #include "RobotHomeCharacter.h"
 #include "RobotHomeInteraction.h"
 #include "RobotHomeMotion.h"
+#include "RobotHomeImu.h"
 #include "RobotHomePortraitCache.h"
 
 namespace robot_home {
@@ -56,14 +57,18 @@ inline Asset idleForAsset(Asset image) {
 
 template<class Surface>
 void renderCharacter(Surface& surface, Character character, Mood mood,
-                     std::uint32_t elapsed, float transitionProgress) {
+                     std::uint32_t elapsed, float transitionProgress,
+                     imu::Pose posture = {}) {
   const auto motion=motionFor(character,mood,elapsed);
   const auto asset=character_art::actionFor(character,motion.pose);
   const float p=std::max(0.0f,std::min(1.0f,transitionProgress));
   float scale=1.04f+.14f*(1-(1-p)*(1-p));
   scale*=motion.scale;
+  if(mood==Mood::Press||mood==Mood::Skill)posture={};
+  scale*=posture.scale;
   // All source portraits share the same center. Their black margin leaves
   // status and battery safe even at the largest rebound/rotation.
-  surface.drawPortrait(asset.bytes,asset.size,233,232+motion.offsetY,scale,motion.angle);
+  surface.drawPortrait(asset.bytes,asset.size,233+posture.x,232+motion.offsetY+posture.y,
+                       scale,motion.angle+posture.angle);
 }
 }

@@ -25,6 +25,9 @@
 #include "RobotHomeFrame.h"
 #include "RobotHomePortraitCanvas.h"
 #endif
+#if defined(CODEX_STOPWATCH_HOME_IMU)
+#include "RobotHomeImuTelemetry.h"
+#endif
 
 namespace {
 
@@ -109,6 +112,17 @@ robot_home::CharacterSelector robotCharacters;
 robot_home::FrameClock robotFrames;
 bool robotInputDirty = false;
 int robotTouchX = 233, robotTouchY = 232;
+#if defined(CODEX_STOPWATCH_HOME_IMU)
+robot_home::imu::Detector robotImu;
+robot_home::imu::Pose robotImuPose, robotImuRenderedPose;
+robot_home::imu::Telemetry robotImuTelemetry;
+bool robotImuEnabled=true, robotImuWakeAllowed=false;
+bool robotImuEventPending=false, robotImuPosePending=false;
+bool robotImuComboPending=false, robotImuComboConsumed=false;
+uint32_t robotImuSampleAt=0, robotImuComboAt=0, robotImuQuietAt=0;
+uint64_t robotImuReadTotalUs=0;
+bool robotImuQuiet=false;
+#endif
 void stopRobotReaction() {
   robotAnimation.cancel();
   robotTap.cancel();
@@ -202,9 +216,15 @@ void setPanelReset(bool high) {
   ioe1.digitalWrite(kIoePanelReset, high);
 }
 
-void enterDeskSleep() {
+void enterDeskSleep(bool allowImuWake = false) {
   if (deskSleeping || leftPressed || rightPressed || touchTracking) return;
   stopHaptic();
+#if defined(CODEX_STOPWATCH_HOME_IMU)
+  robotImuWakeAllowed=allowImuWake&&robotImuEnabled&&state.workspaceMode==workspace_mode::Mode::Home;
+  if(!robotImuWakeAllowed)robotImu.reset();
+#else
+  (void)allowImuWake;
+#endif
 #if defined(CODEX_STOPWATCH_USB_MIC)
   stopRobotReaction();
 #endif
@@ -358,6 +378,85 @@ bool noteActivity() {
   return !wasOff;
 }
 
+#if defined(CODEX_STOPWATCH_HOME_IMU)
+bool imuPoseChanged(const robot_home::imu::Pose& a,const robot_home::imu::Pose& b) {
+  return a.angle!=b.angle||a.x!=b.x||a.y!=b.y||a.scale!=b.scale;
+}
+
+void updateRobotImu() {
+  const uint32_t now=millis();
+  auto& t=robotImuTelemetry;
+  const bool home=state.workspaceMode==workspace_mode::Mode::Home;
+  const bool overlay=powerOverlay!=dashboard::PowerOverlay::None;
+  // Home's side keys are otherwise inert. One two-second chord toggles the
+  // polling/rendering experiment for same-binary A/B measurement.
+  const bool chord=home&&!deskSleeping&&!overlay&&M5.BtnA.isPressed()&&M5.BtnB.isPressed();
+  if(chord) {
+    if(!robotImuComboPending) {robotImuComboPending=true;robotImuComboAt=now;}
+    if(!robotImuComboConsumed&&now-robotImuComboAt>=2000) {
+      robotImuEnabled=!robotImuEnabled;robotImuComboConsumed=true;
+      robotImu.reset();robotImuWakeAllowed=false;
+      robotInputDirty=true;
+    }
+  } else {robotImuComboPending=false;robotImuComboConsumed=false;}
+  t.now=now;t.enabled=robotImuEnabled;t.available=M5.Imu.isEnabled();
+  t.sleeping=deskSleeping;t.brightness=appliedBrightness;
+  if(touchTracking||M5.Touch.getDetail().isPressed()||hapticActive||
+      M5.BtnA.isPressed()||M5.BtnB.isPressed()||powerButtonPressed) {
+    robotImuQuiet=true;robotImuQuietAt=now;
+  }
+  if(robotImuQuiet&&now-robotImuQuietAt>=250)robotImuQuiet=false;
+  t.active=home&&robotImuEnabled&&t.available&&!overlay&&!robotImuQuiet&&
+      !powerButtonGesture.pendingClick()&&(!deskSleeping||robotImuWakeAllowed);
+  if(!t.active) {
+    robotImu.reset();robotImuSampleAt=0;
+    // Disabled Home freezes the current posture, keeping static AMOLED pixels
+    // identical for the polling-overhead A/B comparison.
+    if(!home||overlay)robotImuPose={};
+    robotImuEventPending=false;robotImuPosePending=false;
+    t.phase=robot_home::imu::Phase::Calibrating;t.pose=robotImuPose;
+    codex.setImuTelemetry(t);return;
+  }
+  if(robotImuSampleAt&&now-robotImuSampleAt<20) {codex.setImuTelemetry(t);return;}
+  if(robotImuSampleAt)t.gapMaxMs=std::max(t.gapMaxMs,now-robotImuSampleAt);
+  robotImuSampleAt=now;
+  const uint32_t before=micros();
+  const auto mask=M5.Imu.update();
+  const auto data=M5.Imu.getImuData();
+  const uint32_t cost=micros()-before;
+  robotImuReadTotalUs+=cost;++t.samples;
+  t.readMaxUs=std::max(t.readMaxUs,cost);
+  t.readMeanUs=robotImuReadTotalUs/t.samples;
+  if((mask&(m5::IMU_Class::sensor_mask_accel|m5::IMU_Class::sensor_mask_gyro))!=
+      (m5::IMU_Class::sensor_mask_accel|m5::IMU_Class::sensor_mask_gyro)) {
+    ++t.errors;robotImu.reset();robotImuPose={};
+    t.phase=robot_home::imu::Phase::Calibrating;t.pose=robotImuPose;
+    codex.setImuTelemetry(t);return;
+  }
+  t.sample={data.accel.x,data.accel.y,data.accel.z,data.gyro.x,data.gyro.y,data.gyro.z};
+  const auto result=robotImu.update(t.sample,now);
+  t.phase=result.phase;
+  robotImuPose=result.pose;
+  robotImuPose.angle=std::round(robotImuPose.angle*2)/2;
+  robotImuPose.x=std::round(robotImuPose.x);
+  robotImuPose.y=std::round(robotImuPose.y);
+  t.pose=robotImuPose;
+  if(result.event!=robot_home::imu::Event::None) {
+    t.event=result.event;t.eventAt=now;t.qualifyingAt=result.since;
+    robotImuEventPending=true;t.eventFrameMs=0;
+    if(result.event==robot_home::imu::Event::Pickup) {
+      ++t.pickups;robotAnimation.cancel();noteActivity();
+    } else {++t.settles;robotAnimation.cancel();}
+    robotInputDirty=true;
+  }
+  if(result.phase==robot_home::imu::Phase::Held)lastActivityMs=now;
+  if(!robotImuPosePending&&imuPoseChanged(robotImuPose,robotImuRenderedPose)) {
+    robotImuPosePending=true;t.poseAt=now;
+  }
+  codex.setImuTelemetry(t);
+}
+#endif
+
 void updateIdleDimming() {
   // A held mic button or an ongoing touch counts as continuous use.
   if (leftPressed || rightPressed || touchTracking) lastActivityMs = millis();
@@ -366,7 +465,7 @@ void updateIdleDimming() {
   const uint32_t sleepAfterMs =
       docked ? kDockDeskSleepAfterMs : kBatteryDeskSleepAfterMs;
   if (idleMs >= sleepAfterMs) {
-    enterDeskSleep();
+    enterDeskSleep(true);
     return;
   }
   if (deskSleeping) return;
@@ -559,6 +658,9 @@ void drawScreen() {
       ui.character=robotCharacters.character();
       ui.touchX=robotTouchX;ui.touchY=robotTouchY;
       ui.transitionProgress=robotCharacters.transitionProgress(ui.nowMs);
+#if defined(CODEX_STOPWATCH_HOME_IMU)
+      ui.imuPose=robotImuPose;
+#endif
       homeFrameAnimated=robotAnimation.active(ui.nowMs) || ui.transitionProgress<1.0f;
       ui.batteryPercent=batteryPercent;ui.charging=charging;
       ui.connected=state.workspaceHostReady;
@@ -593,6 +695,18 @@ void drawScreen() {
     // Crossing expiry during rendering must still request the final idle frame.
     robotFrames.presented(homeFrameStartedMs, homeFrameAnimated);
     robotInputDirty = false;
+#if defined(CODEX_STOPWATCH_HOME_IMU)
+    robotImuRenderedPose=robotImuPose;
+    ++robotImuTelemetry.frames;
+    if(robotImuEventPending) {
+      robotImuTelemetry.eventFrameMs=lastDrawMs-robotImuTelemetry.eventAt;
+      robotImuEventPending=false;
+    }
+    if(robotImuPosePending&&robotAnimation.mood(homeFrameStartedMs)==robot_home::Mood::Idle) {
+      robotImuTelemetry.poseFrameMs=lastDrawMs-robotImuTelemetry.poseAt;
+      robotImuPosePending=false;
+    }
+#endif
   } else {
     canvas.clearPortraits();
     robotFrames.due(lastDrawMs, false, false, false);
@@ -980,6 +1094,10 @@ void updatePowerTelemetry(bool force = false) {
     charging = nextCharging;
 
     const int vinMv = M5.Power.getVBUSVoltage();
+#if defined(CODEX_STOPWATCH_HOME_IMU)
+    robotImuTelemetry.vbusMv=std::max(0,vinMv);
+    robotImuTelemetry.batteryMv=std::max(0,static_cast<int>(M5.Power.getBatteryVoltage()));
+#endif
     // Hysteresis prevents a marginal cable from bouncing power policy. VIN,
     // not charge state, defines Dock Mode because a full battery may not be
     // actively charging while it is still externally powered.
@@ -1039,6 +1157,10 @@ void handleWorkspaceModeTransition(workspace_mode::Mode previous,
   touchTracking = false;
   touchPowerHoldConsumed = false;
   stopRobotReaction();
+#if defined(CODEX_STOPWATCH_HOME_IMU)
+  robotImu.reset();robotImuPose={};robotImuSampleAt=0;
+  robotImuWakeAllowed=false;
+#endif
   if(previous==workspace_mode::Mode::Home &&
      next!=workspace_mode::Mode::Home)robotCharacters.reset();
   powerOverlay = dashboard::PowerOverlay::None;
@@ -1446,15 +1568,29 @@ void loop() {
         currentUi.docked != renderedDocked;
   }
 #if defined(CODEX_STOPWATCH_USB_MIC)
+  #if defined(CODEX_STOPWATCH_HOME_IMU)
+  updateRobotImu();
+  #endif
   updateRobotReaction(!deskSleeping && state.workspaceMode==workspace_mode::Mode::Home &&
       powerOverlay==dashboard::PowerOverlay::None);
   const uint32_t robotNow=millis();
   const bool homeVisible=!deskSleeping && state.workspaceMode==workspace_mode::Mode::Home &&
       powerOverlay==dashboard::PowerOverlay::None;
+  bool imuFrameDue=false;
+#if defined(CODEX_STOPWATCH_HOME_IMU)
+  imuFrameDue=robotNow-lastDrawMs>=34&&imuPoseChanged(robotImuPose,robotImuRenderedPose);
+#endif
   const bool robotFrame=robotFrames.due(robotNow,homeVisible,
       robotAnimation.active(robotNow) || robotCharacters.transitionProgress(robotNow)<1.0f,
-      robotInputDirty || derivedStateChanged || shouldRedraw);
-  if (!homeVisible && (deskSleeping || state.workspaceMode!=workspace_mode::Mode::Home))
+      robotInputDirty || imuFrameDue || derivedStateChanged || shouldRedraw);
+  bool discardRobotPortraits=deskSleeping||state.workspaceMode!=workspace_mode::Mode::Home;
+#if defined(CODEX_STOPWATCH_HOME_IMU)
+  // Retain the existing PSRAM cache during automatic Home sleep so wake
+  // does not decode all portraits before answering pickup.
+  if(deskSleeping&&robotImuWakeAllowed&&state.workspaceMode==workspace_mode::Mode::Home)
+    discardRobotPortraits=false;
+#endif
+  if (!homeVisible && discardRobotPortraits)
     canvas.clearPortraits();
   if(state.workspaceMode==workspace_mode::Mode::Home &&
      powerOverlay==dashboard::PowerOverlay::None) {

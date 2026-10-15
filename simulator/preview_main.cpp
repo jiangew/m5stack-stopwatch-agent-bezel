@@ -192,9 +192,42 @@ bool writeHomeSequence(const char* directory) {
   return true;
 }
 
+// Synthetic sensor playback through the actual detector and cached renderer.
+// This is a design preview, not hardware latency or false-trigger evidence.
+bool writeImuSequence(const char* directory) {
+  robot_home::PortraitCanvas<lgfx::LGFX_Sprite> frame;
+  frame.setColorDepth(16);
+  if(!frame.createSprite(466,466))return false;
+  frame.preparePortraits();
+  robot_home::imu::Detector detector;
+  robot_home::Animation animation;
+  unsigned index=0;
+  for(unsigned ms=0;ms<8000;ms+=20) {
+    robot_home::imu::Sample sample;
+    if(ms>=2000&&ms<2160)sample.az=1.16f;
+    if(ms>=2160&&ms<4800) {
+      const float roll=std::sin((ms-2160)/2640.0f*6.2831853f)*.6f;
+      sample.ay=std::sin(roll);sample.az=std::cos(roll);sample.gx=30;
+    }
+    const auto result=detector.update(sample,ms);
+    if(result.event==robot_home::imu::Event::Pickup)animation.cancel();
+    if(result.event==robot_home::imu::Event::Settled)animation.cancel();
+    if(ms%40)continue;
+    robot_home::State state;state.connected=true;state.batteryPercent=82;
+    state.character=robot_home::Character::BumblebeeFullbody;
+    state.imuPose=result.pose;state.mood=animation.mood(ms);
+    state.reactionElapsedMs=animation.elapsed(ms);
+    robot_home::render(frame,state);
+    char path[1024];std::snprintf(path,sizeof(path),"%s/imu-%03u.ppm",directory,index++);
+    if(!writePpm(frame,path))return false;
+  }
+  return true;
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
+  if(argc==3&&std::strcmp(argv[1],"--imu-sequence")==0)return writeImuSequence(argv[2])?0:1;
   if(argc==3&&std::strcmp(argv[1],"--home-sequence")==0)return writeHomeSequence(argv[2])?0:1;
   const char* outputPath = argc > 1 ? argv[1] : "dashboard-preview.ppm";
   const char* scenario = argc > 2 ? argv[2] : "live";

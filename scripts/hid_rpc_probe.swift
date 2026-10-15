@@ -18,6 +18,7 @@ private final class RpcResponseAssembler {
     let expectedID: Int
     private(set) var completion = Completion.pending
     private(set) var nonmatchingMessages = 0
+    private(set) var result: [String: Any]?
     private var buffer = Data()
 
     init(expectedID: Int) {
@@ -92,6 +93,7 @@ private final class RpcResponseAssembler {
                 completion = .failure("Matching RPC response has no result")
                 return
             }
+            result = message["result"] as? [String: Any]
             completion = .success
         }
     }
@@ -105,6 +107,9 @@ private struct ProbeRequest {
 
 private func makeRequest(mode: String) -> ProbeRequest {
     switch mode {
+    case "--imu-status":
+        return ProbeRequest(mode: mode, id: 4250,
+            json: #"{"method":"device.imu","params":{},"id":4250}"# + "\n")
     case "--demo-lights":
         return ProbeRequest(
             mode: mode,
@@ -174,6 +179,8 @@ private func requireSelfTest(_ condition: @autoclosure () -> Bool, _ message: St
 }
 
 private func runSelfTest() {
+    requireSelfTest(makeRequest(mode: "--imu-status").json.contains("device.imu"),
+                    "IMU diagnostics must use control-only device.imu")
     requireSelfTest(
         makeRequest(mode: "--workspace-deepseek").json ==
             #"{"method":"host.workspace_mode","params":{"mode":"deepseek","ttl_ms":15000},"id":4249}"# + "\n",
@@ -208,6 +215,7 @@ private func runSelfTest() {
         bytes: framedReport(fragment: response[split...], includeReportID: true)
     )
     if case .success = assembler.completion {
+        requireSelfTest(assembler.result?["ok"] as? Bool == true, "lost decoded result")
         // Expected.
     } else {
         requireSelfTest(false, "did not reassemble a matching result")
@@ -254,7 +262,7 @@ private func fail(_ message: String) -> Never {
     exit(EXIT_FAILURE)
 }
 
-private func runProbe(request: ProbeRequest) -> Int32 {
+private func runProbe(request: ProbeRequest, onResult: (([String: Any]) -> Void)? = nil) -> Int32 {
     let assembler = RpcResponseAssembler(expectedID: request.id)
     let manager = IOHIDManagerCreate(kCFAllocatorDefault, IOOptionBits(kIOHIDOptionsTypeNone))
     let matching: [String: Any] = [
@@ -305,7 +313,7 @@ private func runProbe(request: ProbeRequest) -> Int32 {
     }
     defer { IOHIDDeviceClose(device, IOOptionBits(kIOHIDOptionsTypeNone)) }
 
-    print("mode=\(request.mode)")
+    if onResult == nil { print("mode=\(request.mode)") }
     let payload = Array(request.json.utf8)
     var payloadOffset = 0
     var reportNumber = 0
@@ -330,7 +338,7 @@ private func runProbe(request: ProbeRequest) -> Int32 {
             )
         }
         reportNumber += 1
-        print(String(format: "setReport[%d](full 64 bytes)=0x%08X", reportNumber, writeResult))
+        if onResult == nil { print(String(format: "setReport[%d](full 64 bytes)=0x%08X", reportNumber, writeResult)) }
         guard writeResult == kIOReturnSuccess else { return EXIT_FAILURE }
         payloadOffset += chunkSize
         usleep(10_000)
@@ -343,7 +351,13 @@ private func runProbe(request: ProbeRequest) -> Int32 {
 
     switch assembler.completion {
     case .success:
-        print("rpcResponse=id=\(request.id) result=ok")
+        if let result = assembler.result {
+            if let onResult { onResult(result) }
+            else if request.mode == "--imu-status",
+                    let data = try? JSONSerialization.data(withJSONObject: result, options: [.sortedKeys]),
+                    let json = String(data: data, encoding: .utf8) { print(json) }
+        }
+        if onResult == nil { print("rpcResponse=id=\(request.id) result=ok") }
         return EXIT_SUCCESS
     case let .failure(message):
         fputs("hid_rpc_probe: \(message) for id \(request.id)\n", stderr)
@@ -358,7 +372,33 @@ private func runProbe(request: ProbeRequest) -> Int32 {
 }
 
 let arguments = Array(CommandLine.arguments.dropFirst())
+if arguments.first == "--imu-watch" {
+    guard arguments.count == 3, let seconds = Double(arguments[1]), seconds > 0, seconds <= 7200 else {
+        fail("Usage: hid_rpc_probe.swift --imu-watch SECONDS OUTPUT.jsonl (maximum 7200 seconds)")
+    }
+    guard !FileManager.default.fileExists(atPath: arguments[2]),
+          FileManager.default.createFile(atPath: arguments[2], contents: nil),
+          let output = FileHandle(forWritingAtPath: arguments[2]) else { fail("Cannot create output") }
+    defer { try? output.close() }
+    let deadline = Date().addingTimeInterval(seconds)
+    var count = 0
+    while Date() < deadline {
+        let started = Date()
+        let status = runProbe(request: makeRequest(mode: "--imu-status")) { result in
+            let row: [String: Any] = ["host_unix_s": Date().timeIntervalSince1970, "result": result]
+            guard let data = try? JSONSerialization.data(withJSONObject: row, options: [.sortedKeys]) else {
+                fail("Cannot serialize diagnostics")
+            }
+            output.write(data); output.write(Data([0x0a])); count += 1
+        }
+        if status != EXIT_SUCCESS { exit(status) }
+        Thread.sleep(forTimeInterval: max(0, 0.5 - Date().timeIntervalSince(started)))
+    }
+    print("Saved \(count) IMU snapshots; current_ma is unavailable on C152; timestamps are not physical onset measurements")
+    exit(EXIT_SUCCESS)
+}
 let knownModes = [
+    "--imu-status",
     "--device-status",
     "--demo-lights",
     "--completion-idle",
@@ -370,7 +410,7 @@ let knownModes = [
     "--self-test",
 ]
 guard arguments.count <= 1, arguments.allSatisfy({ knownModes.contains($0) }) else {
-    fail("Usage: hid_rpc_probe.swift [--device-status|--demo-lights|--completion-idle|--completion-done|--workspace-super|--workspace-deepseek|--workspace-hermes|--workspace-codex|--self-test]")
+    fail("Usage: hid_rpc_probe.swift [--imu-status|--device-status|--demo-lights|--completion-idle|--completion-done|--workspace-super|--workspace-deepseek|--workspace-hermes|--workspace-codex|--self-test] or --imu-watch SECONDS OUTPUT.jsonl")
 }
 
 let mode = arguments.first ?? "--device-status"

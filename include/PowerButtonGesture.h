@@ -38,6 +38,7 @@ class Detector {
   }
 
   void cancel() { pending_ = false; }
+  bool pendingClick() const { return pending_; }
 
  private:
   std::uint32_t doubleClickWindowMs_ = 0;

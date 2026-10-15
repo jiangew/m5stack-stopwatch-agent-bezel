@@ -17,6 +17,7 @@ enum class Method : std::uint8_t {
   LightsPreview,
   HostFocusedApp,
   WorkspaceMode,
+  DeviceImu,
 };
 
 enum class RpcDisposition : std::uint8_t {
@@ -35,6 +36,9 @@ inline Method classify(JsonObjectConst request) {
   if (std::strcmp(method, "device.status") == 0) {
     return Method::DeviceStatus;
   }
+#if defined(CODEX_STOPWATCH_HOME_IMU)
+  if (std::strcmp(method, "device.imu") == 0) return Method::DeviceImu;
+#endif
   if (std::strcmp(method, "v.oai.thstatus") == 0 &&
       params.is<JsonArrayConst>()) {
     return Method::ThreadStatus;
@@ -57,7 +61,8 @@ inline Method classify(JsonObjectConst request) {
 
 inline RpcDisposition disposition(Method method) {
   if (method == Method::Unsupported) return RpcDisposition::Unsupported;
-  if (method == Method::WorkspaceMode) return RpcDisposition::ControlOnly;
+  if (method == Method::WorkspaceMode || method == Method::DeviceImu)
+    return RpcDisposition::ControlOnly;
   return RpcDisposition::HostActivity;
 }
 

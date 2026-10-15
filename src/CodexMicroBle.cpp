@@ -873,6 +873,36 @@ host_rpc::RpcDisposition CodexMicroBle::handleRpc(
     return disposition;
   }
 
+#if defined(CODEX_STOPWATCH_HOME_IMU)
+  if(supportedMethod==host_rpc::Method::DeviceImu) {
+    StaticJsonDocument<2048> resultDoc;
+    const auto& t=imuTelemetry_;
+    resultDoc["pilot"]="home-imu-v1";
+    resultDoc["ms"]=t.now;
+    resultDoc["enabled"]=t.enabled;resultDoc["available"]=t.available;
+    resultDoc["active"]=t.active;resultDoc["sleeping"]=t.sleeping;
+    resultDoc["phase"]=static_cast<unsigned>(t.phase);
+    auto a=resultDoc.createNestedArray("accel_g");a.add(t.sample.ax);a.add(t.sample.ay);a.add(t.sample.az);
+    auto g=resultDoc.createNestedArray("gyro_dps");g.add(t.sample.gx);g.add(t.sample.gy);g.add(t.sample.gz);
+    auto p=resultDoc.createNestedArray("pose");p.add(t.pose.angle);p.add(t.pose.x);p.add(t.pose.y);p.add(t.pose.scale);
+    resultDoc["samples"]=t.samples;resultDoc["errors"]=t.errors;
+    resultDoc["pickups"]=t.pickups;resultDoc["settles"]=t.settles;
+    resultDoc["gap_max_ms"]=t.gapMaxMs;
+    resultDoc["read_max_us"]=t.readMaxUs;resultDoc["read_mean_us"]=t.readMeanUs;
+    resultDoc["event"]=static_cast<unsigned>(t.event);
+    resultDoc["event_at_ms"]=t.eventAt;resultDoc["qualifying_at_ms"]=t.qualifyingAt;
+    resultDoc["event_frame_ms"]=t.eventFrameMs;
+    resultDoc["pose_at_ms"]=t.poseAt;resultDoc["pose_frame_ms"]=t.poseFrameMs;
+    resultDoc["frames"]=t.frames;
+    resultDoc["battery_mv"]=t.batteryMv;resultDoc["vbus_mv"]=t.vbusMv;
+    resultDoc["brightness"]=t.brightness;
+    resultDoc["battery"]=batteryPercentage_;resultDoc["is_charging"]=charging_;
+    resultDoc["current_ma"]=nullptr; // Unsupported C152 API must not look like measured zero.
+    sendResult(id,resultDoc.as<JsonVariantConst>());
+    return disposition;
+  }
+#endif
+
   if (supportedMethod == host_rpc::Method::ThreadStatus) {
     updateThreadLighting(params.as<JsonArrayConst>());
     sendSuccess(id);
@@ -934,7 +964,11 @@ host_rpc::RpcDisposition CodexMicroBle::handleRpc(
 }
 
 void CodexMicroBle::sendResult(JsonVariantConst id, JsonVariantConst result) {
+#if defined(CODEX_STOPWATCH_HOME_IMU)
+  DynamicJsonDocument response(2560);
+#else
   DynamicJsonDocument response(512);
+#endif
   response["id"] = id;
   response["result"] = result;
   String json;

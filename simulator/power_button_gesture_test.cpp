@@ -8,6 +8,11 @@ using power_button_gesture::Detector;
 using power_button_gesture::Event;
 
 int main() {
+  power_button_gesture::Detector pending(300);
+  pending.release(100);
+  assert(pending.pendingClick());
+  pending.cancel();
+  assert(!pending.pendingClick());
   Detector single(500);
   assert(single.release(1000) == Event::None);
   assert(single.poll(1500) == Event::None);  // boundary still accepts click 2

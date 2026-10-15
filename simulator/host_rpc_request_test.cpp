@@ -70,4 +70,9 @@ int main() {
          RpcDisposition::HostActivity);
   assert(host_rpc::disposition(Method::Unsupported) ==
          RpcDisposition::Unsupported);
+#if defined(CODEX_STOPWATCH_HOME_IMU)
+  assert(host_rpc::disposition(classify(R"({"method":"device.imu","id":20})"))==RpcDisposition::ControlOnly);
+#else
+  assert(classify(R"({"method":"device.imu","id":20})")==Method::Unsupported);
+#endif
 }

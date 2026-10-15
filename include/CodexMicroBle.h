@@ -16,6 +16,9 @@
 
 #include "ConnectionHealth.h"
 #include "HostRpcRequest.h"
+#if defined(CODEX_STOPWATCH_HOME_IMU)
+#include "RobotHomeImuTelemetry.h"
+#endif
 #if defined(CODEX_STOPWATCH_USB_MIC)
 #include "WorkspaceMode.h"
 #include "WorkspaceNavigation.h"
@@ -58,6 +61,9 @@ class CodexMicroBle {
   void begin();
   void poll();
   void setBattery(uint8_t percentage, bool charging);
+#if defined(CODEX_STOPWATCH_HOME_IMU)
+  void setImuTelemetry(const robot_home::imu::Telemetry& value) {imuTelemetry_=value;}
+#endif
   void sendKey(const char* key, uint8_t action, int8_t agent = -1);
   void sendJoystick(float angle, float distance);
 #if defined(CODEX_STOPWATCH_USB_MIC)
@@ -142,6 +148,9 @@ class CodexMicroBle {
   bool hostRpcConnectionValid_ = false;
   uint8_t batteryPercentage_ = 100;
   bool charging_ = false;
+#if defined(CODEX_STOPWATCH_HOME_IMU)
+  robot_home::imu::Telemetry imuTelemetry_;
+#endif
   connection_health::ConnectionSet connections_;
   std::atomic<bool> connectionEventLost_{false};
 #if defined(CODEX_STOPWATCH_USB_MIC)

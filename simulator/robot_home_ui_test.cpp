@@ -65,6 +65,17 @@ int main(){
     Surface arrival;render(arrival,state);assert(arrival.portraits[0].scale<portrait.scale);
   }
   assert(identities.size()==9);
+  State tilted;tilted.imuPose={8,10,-8,1};
+  Surface tiltSurface;render(tiltSurface,tilted);
+  assert(tiltSurface.portraits[0].x==243&&tiltSurface.portraits[0].y==224);
+  assert(tiltSurface.portraits[0].angle==8);
+  State resting;resting.imuPose={0,0,4,.95f};
+  Surface restSurface;render(restSurface,resting);
+  assert(restSurface.portraits[0].y==236&&restSurface.portraits[0].scale<1.18f);
+  // Tap responses retain priority over the background posture transform.
+  tilted.mood=Mood::Press;
+  Surface pressing;render(pressing,tilted);
+  assert(pressing.portraits[0].x==233&&pressing.portraits[0].angle==0);
   for(int i=1;i<kCharacterCount;++i) {
     auto hero=static_cast<Character>(i);
     for(unsigned pose=1;pose<=(i<=2?2u:1u);++pose) {

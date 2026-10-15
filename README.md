@@ -2,6 +2,11 @@
 
 [简体中文](README.zh-CN.md)
 
+An explicitly selected [Home IMU pilot](docs/HOME_IMU_PILOT.md) explores pickup,
+tilt and settling via the `m5stack-stopwatch-home-imu` environment. It is disabled
+in normal release environments. Synthetic tests and native previews do not
+establish physical false-trigger rates, response latency or power consumption.
+
 **Stopwatch AgentBezel C152** is an independent, unofficial, open-source
 five-screen control surface for the **M5Stack StopWatch Dev Kit C152**:
 Codex Micro compatibility, DeepSeek Harness activation, super.engineering project controls, and Hermes
