@@ -29,6 +29,14 @@ also fixed. Fixed-count hit rate, interference scenarios, physical onset latency
 and power remain unmeasured; the first pilot's 600.80-second result is kept
 separate from this version's static trial.
 
+The swipe-resume version (`df5480c`, application hash prefix `c83363fcc22e`)
+was written to app0 on 2026-10-16 with application digest and protected-metadata
+checks passing. Reboot, calibrated IMU diagnostics and a 3.008-second USB
+microphone check passed. It preserves calibrated state only across successful
+Home up/down/right character swipes, retaining touch/haptic suppression and
+250ms quiet time. Swipe-to-tilt feedback and this version's static trial remain
+pending; earlier handfeel/static results do not establish its acceptance.
+
 **Stopwatch AgentBezel C152** is an independent, unofficial, open-source
 five-screen control surface for the **M5Stack StopWatch Dev Kit C152**:
 Codex Micro compatibility, DeepSeek Harness activation, super.engineering project controls, and Hermes
