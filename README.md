@@ -34,7 +34,9 @@ was written to app0 on 2026-10-16 with application digest and protected-metadata
 checks passing. Reboot, calibrated IMU diagnostics and a 3.008-second USB
 microphone check passed. It preserves calibrated state only across successful
 Home up/down/right character swipes, retaining touch/haptic suppression and
-250ms quiet time. Swipe-to-tilt feedback and this version's static trial remain
+250ms quiet time. The user reports that tracking starts quickly but remains
+noticeably behind during continuous tilt, so handfeel acceptance has not passed.
+Further filter/render-chain diagnosis and this version's static trial remain
 pending; earlier handfeel/static results do not establish its acceptance.
 
 **Stopwatch AgentBezel C152** is an independent, unofficial, open-source
