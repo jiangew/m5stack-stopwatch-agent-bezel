@@ -71,7 +71,7 @@ fixture=<<~CPP
   constexpr unsigned kPowerHoldPromptMs=2000,kTravelPowerOffMs=6000;
   constexpr int kButtonHapticDurationMs=30;
   constexpr const char* kLeftMicSwitch="left";constexpr const char* kVoiceChatCommandKey="voice";
-  unsigned esp_random(){return entropy;}
+  unsigned entropyCalls=0;unsigned esp_random(){++entropyCalls;return entropy;}
   #{extract(source,'bool directionalWorkspaceActive()')}
   #{extract(source,'workspace_input::Control controlForSwipe(')}
   int agentAtPoint(int,int){return -1;}
@@ -151,7 +151,7 @@ fixture=<<~CPP
     powerOverlay=dashboard::PowerOverlay::None;powerButtonGesture.cancel();powerButtonPressed=false;
     touchTracking=touchPowerHoldConsumed=hapticActive=deskSleeping=false;appliedBrightness=kActiveBrightness;
     robotCharacters.reset();robotAnimation.cancel();robotTap.cancel();workspaceCenterTap.cancel();
-    activeSwipe=Direction::None;robotFrames={};robotInputDirty=false;presentedFrames=sent=0;
+    activeSwipe=Direction::None;robotFrames={};robotInputDirty=false;presentedFrames=sent=entropy=entropyCalls=0;
   }
   void selectedPause(Direction direction=Direction::Up){begin();feed(moving,100);swipe(direction);feed(moving,100);}
   void quietResume(Sample s=positive){release();feed(s,280);}
@@ -175,13 +175,17 @@ fixture=<<~CPP
     feed(positive,240);sample(positive,9);assert(robotImuTelemetry.samples==quietSamples);
     sample(positive,1);assert(robotImuTelemetry.samples==quietSamples+1&&robotImuTelemetry.phase==Phase::Held);
 
-    // All three local directions work from portrait and every full-body role.
+    // All local directions preserve Held for portrait and all 16 faction roles.
     for(auto direction:{Direction::Up,Direction::Down,Direction::Right}){
-      for(unsigned role=0;role<9;++role){
+      for(unsigned role=0;role<17;++role){
         reset();calibrate();
-        if(role){entropy=role-1;selectedPause(direction);quietResume();assert(static_cast<unsigned>(robotCharacters.character())==role);}
+        if(role){entropy=(role-1)%8;selectedPause(role<=8?Direction::Up:Direction::Down);quietResume();assert(static_cast<unsigned>(robotCharacters.character())==role);}
+        entropy=0;entropyCalls=0;
         const auto pickups=robotImuTelemetry.pickups,samples=robotImuTelemetry.samples;
         selectedPause(direction);assert(robotImuTelemetry.samples==samples);quietResume();
+        const unsigned want=direction==Direction::Right?0:direction==Direction::Up?(role==1?2:1):(role==9?10:9);
+        assert(static_cast<unsigned>(robotCharacters.character())==want);
+        assert(entropyCalls==(direction==Direction::Right?0u:1u)&&sent==0);
         assert(robotImuTelemetry.phase==Phase::Held&&robotImuTelemetry.pickups==pickups);
         assert(robotImuPose.angle>0&&robotImuPose.x>0);
         feed(negative,180);assert(robotImuPose.angle<0&&robotImuPose.x<0);
@@ -189,7 +193,10 @@ fixture=<<~CPP
     }
     // Immediate second touch arrives before the first quiet window finishes.
     reset();calibrate();selectedPause();release();sample(positive,40);
+    begin();feed(moving,60);swipe(Direction::Down);feed(moving,100);release();sample(positive,40);
+    assert(robotCharacters.character()==robot_home::Character::Megatron);
     begin();feed(moving,60);swipe(Direction::Right);feed(moving,100);quietResume();
+    assert(robotCharacters.character()==robot_home::Character::Bumblebee);
     assert(robotImuTelemetry.phase==Phase::Held&&robotImuTelemetry.pickups==1);
     // A second ordinary touch/left swipe must revoke the first grant.
     for(bool left:{false,true}){
@@ -236,18 +243,20 @@ fixture=<<~CPP
     }
     // Actual workspace transitions away and back revoke even with NO IMU tick
     // between them; a state-only fixture would miss this lifecycle boundary.
+    for(auto direction:{Direction::Up,Direction::Down,Direction::Right})
     for(bool afterSelection:{false,true}){
-      reset();calibrate();begin();sample(moving);if(afterSelection)swipe();
+      reset();calibrate();begin();sample(moving);if(afterSelection)swipe(direction);
       handleWorkspaceModeTransition(workspace_mode::Mode::Home,workspace_mode::Mode::Codex);
       state.workspaceMode=workspace_mode::Mode::Codex;
       handleWorkspaceModeTransition(workspace_mode::Mode::Codex,workspace_mode::Mode::Home);
       state.workspaceMode=workspace_mode::Mode::Home;
-      swipe();quietResume();expectCalibration();
+      swipe(direction);quietResume();expectCalibration();
     }
     // Physical buttons and pending power invalidate before and after selection.
+    for(auto direction:{Direction::Up,Direction::Down,Direction::Right})
     for(int boundary=0;boundary<7;++boundary){
       for(bool afterSelection:{false,true}){
-        reset();calibrate();begin();sample(moving);if(afterSelection)swipe();
+        reset();calibrate();begin();sample(moving);if(afterSelection)swipe(direction);
         switch(boundary){
           case 0:M5.BtnA.pressed=true;break;
           case 1:M5.BtnB.pressed=true;break;
@@ -260,7 +269,7 @@ fixture=<<~CPP
         sample(moving);
         M5.BtnA.pressed=M5.BtnB.pressed=false;powerButtonGesture.cancel();
         powerOverlay=dashboard::PowerOverlay::None;robotImuEnabled=true;M5.Imu.available=true;deskSleeping=false;
-        if(!afterSelection)swipe();quietResume();expectCalibration();
+        if(!afterSelection)swipe(direction);quietResume();expectCalibration();
       }
     }
     // A real power-hold overlay is revoked even if finish clears the overlay
@@ -308,4 +317,4 @@ Dir.mktmpdir('home-imu-swipe-','/private/tmp') do |dir|
   system('clang++','-std=c++17','-fsanitize=address,undefined','-I'+File.join(repo,'include'),'-I'+File.join(repo,'usb-mic/.pio/libdeps/m5stack-stopwatch-usb-mic/ArduinoJson/src'),file,'-o',binary) or abort 'compile failed'
   system(binary) or abort 'actual touch/IMU swipe resume regression failed'
 end
-puts 'PASS actual touch/IMU swipe resume: U/D/R, all 9 roles, repeated/chained swipes, physical touch/haptic quiet, Held +/- tilt, Resting motion qualification, neutral/timer reset, startup/tap/left, actual workspace/power edges, button/overlay/disable/unavailable/sleep, bad samples, single-use/long gaps, 65ms render bookkeeping'
+puts 'PASS actual touch/IMU swipe resume: U/D/R, all 17 roles, repeated/chained swipes, physical touch/haptic quiet, Held +/- tilt, Resting motion qualification, neutral/timer reset, startup/tap/left, actual workspace/power edges, button/overlay/disable/unavailable/sleep, bad samples, single-use/long gaps, 65ms render bookkeeping'

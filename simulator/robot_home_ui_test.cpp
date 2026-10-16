@@ -30,7 +30,12 @@ struct Surface {
 };
 int main(){
   using namespace robot_home;
-  assert(kCharacterCount==9&&kFullbodyCount==8);
+  assert(kCharacterCount==17&&kAutobotCount==8&&kDecepticonCount==8&&kFullbodyCount==16);
+  // Selection behavior reaches both faction pages; art mapping arrives in Task 2/3.
+  CharacterSelector selector;
+  assert(selector.select(touch_gesture::Direction::Up,0,[]{return 7u;})==Character::Ratchet);
+  assert(selector.select(touch_gesture::Direction::Down,10,[]{return 7u;})==Character::Astrotrain);
+  assert(selector.select(touch_gesture::Direction::Right,20,[]{assert(false);return 0u;})==Character::Bumblebee);
   std::vector<const std::uint8_t*> identities;
   for(auto c:{Character::Bumblebee,Character::BumblebeeFullbody,Character::Optimus,
               Character::Jazz,Character::Hotrod,Character::Wheeljack,Character::Hound,
@@ -76,7 +81,7 @@ int main(){
   tilted.mood=Mood::Press;
   Surface pressing;render(pressing,tilted);
   assert(pressing.portraits[0].x==233&&pressing.portraits[0].angle==0);
-  for(int i=1;i<kCharacterCount;++i) {
+  for(int i=1;i<=8;++i) {
     auto hero=static_cast<Character>(i);
     for(unsigned pose=1;pose<=(i<=2?2u:1u);++pose) {
       auto action=character_art::actionFor(hero,pose);

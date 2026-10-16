@@ -58,42 +58,40 @@ fixture = <<~CPP
     updateTouchGesture(130,200);assert(sent==1&&haptics==1);
     reset();state.workspaceHostReady=false;updateTouchGesture(140,200);
     assert(sent==0&&haptics==0&&robotAnimation.mood(100)==robot_home::Mood::Connect);
-    reset();updateTouchGesture(200,140);assert(sent==0&&haptics==1&&speech==0&&cancels==1);
-    assert(activeSwipe==Direction::None&&!touchTracking);
-    assert(robotCharacters.character()==robot_home::Character::BumblebeeFullbody);
-    // The actual gesture path can reach both added bodies from the portrait.
-    for(const auto xy:{std::pair<int,int>{200,140},{200,260},{260,200}}){
-      reset();entropy=6;updateTouchGesture(xy.first,xy.second);
-      assert(robotCharacters.character()==robot_home::Character::Ironhide&&entropyCalls==1);
-      reset();entropy=7;updateTouchGesture(xy.first,xy.second);
-      assert(robotCharacters.character()==robot_home::Character::Ratchet&&entropyCalls==1);
-    }
-    entropy=0;
-    reset();updateTouchGesture(200,140);
-    reset(false);updateTouchGesture(200,140);
-    assert(robotCharacters.character()==robot_home::Character::Optimus);
-    assert(sent==0&&haptics==1&&entropyCalls==1);
-    reset();updateTouchGesture(200,260);assert(sent==0&&haptics==1&&speech==0&&cancels==1);
-    assert(activeSwipe==Direction::None&&!touchTracking);
-    assert(robotCharacters.character()==robot_home::Character::BumblebeeFullbody);
-    reset();updateTouchGesture(260,200);assert(sent==0&&haptics==1&&speech==0&&cancels==1);
-    assert(activeSwipe==Direction::None&&!touchTracking);
-    assert(robotCharacters.character()==robot_home::Character::BumblebeeFullbody);
-    // Each accepted local character gesture gives exactly one existing swipe tick,
-    // even offline; held movement cannot repeat, and waking cannot change character.
-    for(const auto xy:{std::pair<int,int>{200,140},{200,260},{260,200}}){
+    // Literal outcomes catch wrong faction routing and accidental right entropy.
+    const std::pair<int,int> local[]{ {200,140},{200,260},{260,200} };
+    const unsigned first[]{1,9,0}, repeated[]{2,10,0};
+    for(unsigned direction=0;direction<3;++direction){
+      const auto xy=local[direction];
       for(bool ready:{false,true}){
-        reset();state.workspaceHostReady=ready;updateTouchGesture(xy.first,xy.second);
-        assert(sent==0&&speech==0&&haptics==1);
+        reset();entropy=0;state.workspaceHostReady=ready;updateTouchGesture(xy.first,xy.second);
+        assert(static_cast<unsigned>(robotCharacters.character())==first[direction]);
+        assert(sent==0&&speech==0&&cancels==1&&haptics==1);
+        assert(entropyCalls==(direction==2?0u:1u));
+        assert(activeSwipe==Direction::None&&!touchTracking);
         assert(intensity==kSwipeHapticIntensity&&duration==kSwipeHapticDurationMs);
-        updateTouchGesture(xy.first,xy.second);assert(haptics==1);
+        updateTouchGesture(xy.first,xy.second);assert(haptics==1&&cancels==1);
         reset(false);state.workspaceHostReady=ready;updateTouchGesture(xy.first,xy.second);
-        assert(robotCharacters.character()==robot_home::Character::Optimus&&haptics==1);
-        reset();awake=false;updateTouchGesture(xy.first,xy.second);
-        assert(robotCharacters.character()==robot_home::Character::Bumblebee);
-        assert(sent==0&&haptics==1&&duration==kWakeHapticDurationMs&&!touchTracking);
+        assert(static_cast<unsigned>(robotCharacters.character())==repeated[direction]);
+        assert(sent==0&&speech==0&&haptics==1&&entropyCalls==(direction==2?0u:1u));
+        reset(false);awake=false;updateTouchGesture(xy.first,xy.second);
+        assert(static_cast<unsigned>(robotCharacters.character())==repeated[direction]);
+        assert(sent==0&&haptics==1&&duration==kWakeHapticDurationMs&&!touchTracking&&entropyCalls==0);
       }
     }
+    // Exercise every pool member through actual updateTouchGesture, then return
+    // each of the 16 bodies to the portrait with one tick and no host/entropy.
+    for(unsigned direction=0;direction<2;++direction){
+      for(unsigned sample=0;sample<8;++sample){
+        reset();entropy=sample;updateTouchGesture(local[direction].first,local[direction].second);
+        assert(static_cast<unsigned>(robotCharacters.character())==sample+(direction==0?1:9));
+        assert(sent==0&&speech==0&&haptics==1&&entropyCalls==1);
+        reset(false);updateTouchGesture(260,200);
+        assert(robotCharacters.character()==robot_home::Character::Bumblebee);
+        assert(sent==0&&speech==0&&haptics==1&&entropyCalls==0);
+      }
+    }
+    entropy=0;
     reset();updateTouchGesture(201,200);assert(sent==0&&haptics==0);
     reset();awake=false;updateTouchGesture(140,200);
     assert(sent==0&&haptics==1&&duration==kWakeHapticDurationMs&&!touchTracking&&speech==0);

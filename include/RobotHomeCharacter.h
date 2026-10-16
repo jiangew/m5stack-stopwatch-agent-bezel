@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
+#include <array>
 #include <cstdint>
 
 #include "TouchGesture.h"
@@ -17,10 +18,28 @@ enum class Character : std::uint8_t {
   Hound,
   Ironhide,
   Ratchet,
+  Megatron,
+  Starscream,
+  Soundwave,
+  Shockwave,
+  Thundercracker,
+  Skywarp,
+  Blitzwing,
+  Astrotrain,
 };
 
-inline constexpr std::uint8_t kCharacterCount = 9;
-inline constexpr std::uint8_t kFullbodyCount = 8;
+inline constexpr std::uint8_t kCharacterCount = 17;
+inline constexpr std::uint8_t kAutobotCount = 8;
+inline constexpr std::uint8_t kDecepticonCount = 8;
+inline constexpr std::uint8_t kFullbodyCount = 16;
+inline constexpr std::array<Character, 8> kAutobots{
+    Character::BumblebeeFullbody, Character::Optimus, Character::Jazz,
+    Character::Hotrod, Character::Wheeljack, Character::Hound,
+    Character::Ironhide, Character::Ratchet};
+inline constexpr std::array<Character, 8> kDecepticons{
+    Character::Megatron, Character::Starscream, Character::Soundwave,
+    Character::Shockwave, Character::Thundercracker, Character::Skywarp,
+    Character::Blitzwing, Character::Astrotrain};
 
 class CharacterSelector {
  public:
@@ -32,16 +51,32 @@ class CharacterSelector {
       return character_;
     }
 
-    const bool fromPortrait = character_ == Character::Bumblebee;
-    const std::uint32_t range = fromPortrait ? kFullbodyCount : kFullbodyCount - 1;
+    if (direction == touch_gesture::Direction::Right) {
+      character_ = Character::Bumblebee;
+      transitionSince_ = nowMs;
+      transitioning_ = true;
+      return character_;
+    }
+
+    const auto& pool = direction == touch_gesture::Direction::Up
+                           ? kAutobots : kDecepticons;
+    std::uint32_t current = pool.size();
+    for (std::uint32_t i = 0; i < pool.size(); ++i) {
+      if (pool[i] == character_) {
+        current = i;
+        break;
+      }
+    }
+    const std::uint32_t range =
+        current < pool.size() ? pool.size() - 1 : pool.size();
     const std::uint64_t accepted = (std::uint64_t{1} << 32) / range * range;
     std::uint32_t sample;
     do {
       sample = randomFn();
     } while (sample >= accepted);
     std::uint32_t candidate = sample % range;
-    if (!fromPortrait && candidate >= static_cast<std::uint32_t>(character_) - 1) ++candidate;
-    character_ = static_cast<Character>(candidate + 1);
+    if (current < pool.size() && candidate >= current) ++candidate;
+    character_ = pool[candidate];
     transitionSince_ = nowMs;
     transitioning_ = true;
     return character_;
