@@ -1,8 +1,8 @@
-# Home Autobot artwork
+# Home faction artwork
 
-The shipped roster contains nine 300×300 baseline RGB JPEGs on black. Their
+The shipped roster contains seventeen 300×300 baseline RGB JPEGs on black. Their
 outer 18px remains black within 12/255 JPEG tolerance so the 1.18× Home
-animation can stay clear of the status and battery rows. The eight full-body
+animation can stay clear of the status and battery rows. The sixteen full-body
 images are built-in imagegen fan illustrations of recognizable Transformers
 characters. The preserved portrait and new images are unofficial, unlicensed
 artwork embedded in firmware; Home does not fetch images over a network.
@@ -59,9 +59,56 @@ swift -module-cache-path /private/tmp/autobot-swift-cache simulator/robot_home_a
 ```
 
 The preparation script preserves the accepted Bumblebee radial crop and JPEG
-encoder settings. It serializes the other eight black-backed PNGs without resizing
-them, then removes retired generated JPEGs. The embed script validates the JPEG
+encoder settings. It serializes the sixteen black-backed PNGs without resizing
+them, then removes retired generated JPEGs. Existing assets keep quality=95; the eight new
+Decepticons use quality=93, 4:4:4 sampling and the same baseline RGB encoding
+to remain below 50KiB. The embed script validates the JPEG
 boundary and 50 KiB ceiling. The tests check exact header payloads, ImageIO
 decoding, margins, distinct decoded artwork, deterministic regeneration and the
 preserved Bumblebee digest. Pillow/libjpeg upgrades can change JPEG bytes and
 therefore require deliberate regeneration and review.
+
+## Decepticon sources added 2026-10-16
+
+`megatron.png`, `starscream.png`, `soundwave.png`, `shockwave.png`,
+`thundercracker.png`, `skywarp.png`, `blitzwing.png`, and `astrotrain.png` are
+fitted full-body PNGs from built-in imagegen. The former ring portraits
+`megatron.jpg` and `starscream.jpg` remain unchanged and are not embedded for
+these new identities. The existing nine idle and ten response JPEGs remain
+byte-identical to the accepted baseline.
+
+All sixteen new originals (eight idle / response pairs) were generated or
+edited through built-in imagegen, with no API key or external image service.
+The brief requires recognizable G1 identities, roughly three-head-tall chibi
+proportions, dark outlines, crisp cel shading, a pure black background, and
+complete helmets, wings, hands and boots. Starscream, Soundwave and Shockwave
+received proportion refinements; Thundercracker, Skywarp and Blitzwing received
+face refinements. The response edits change one arm into an acknowledgement,
+retaining the idle's square canvas, head, torso, feet, scale and visual style.
+Exact path-free prompts, selected source SHA-256 values, fitted PNG and final
+JPEG hashes, and numeric transforms are in `actions/manifest.json`; readable
+prompt copies are in `actions/PROMPTS.md`. Raw originals, discarded variants
+and local source paths stay in ignored task outputs.
+
+Fitting uses the idle's non-black bounding box (>12/255), one uniform scale
+that fits within 246×252px, and one centered translation. The **same** affine
+transform samples each paired response's whole original canvas, retaining arm
+extensions beyond the idle bounding box. Both frames are composited through
+the same 24px black safety canvas aperture; fitting rejects any visible pixels
+(>24/255) outside it. The 24px block-aligned canvas prevents JPEG ringing at the
+required 18px idle margin. No character or response artwork is drawn by Python.
+
+For a deliberate local re-fit with the selected ignored imagegen input record:
+
+```sh
+python3 scripts/prepare_robot_home_art.py --imagegen-inputs artifacts/home-factions/imagegen/inputs.json
+```
+
+Ordinary builds use the committed fitted PNGs and response JPEGs and need no
+originals or image generation. Tests replay the full pair fitting in an
+isolated directory when the ignored originals are available, compare final
+bytes and manifests, check real head/boot registration and substantive response
+changes, and execute the C++ enum-to-payload mapping. Swift ImageIO independently
+decodes all 17 idle and 18 response assets (`--actions` for the response bank).
+These checks and the local previews establish asset-level evidence only;
+physical-device display and animation acceptance remain separate.

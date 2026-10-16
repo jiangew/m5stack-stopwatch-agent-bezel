@@ -1,7 +1,7 @@
 # Character response poses
 
-Ten baseline JPEGs, 300×300, each below 50KiB. They are separate from the nine
-accepted idle JPEGs and never enter the eight-body random selection pool.
+Eighteen baseline JPEGs, 300×300, each below 50KiB. They are separate from the
+seventeen accepted idle JPEGs; selection chooses among the sixteen full-body identities.
 
 Four JPEGs are exact copies of the Bumblebee full-body and Optimus pilots
 accepted on 2026-10-14; their captured source details are in
@@ -30,3 +30,19 @@ ruby scripts/embed_robot_home_action_art.rb assets/robot-home/actions include/Ro
 JPEG. No energy-effect overlays or audio are used. Low-memory fallback keeps
 the correct idle figure and its native transform rather than decoding action
 JPEGs per frame. These remain unofficial fan-art assets.
+
+Eight Decepticon responses added on 2026-10-16 are built-in imagegen edits of
+their selected full-body idle originals. Their 300px JPEGs use quality=93 with
+4:4:4 sampling and optimized baseline RGB encoding. The existing ten response
+payloads and nine idle payloads retain their accepted bytes. Every new response
+uses the corresponding idle's exact uniform scale, translation, whole-canvas
+sampling and black safety aperture; none is independently centered. Source,
+fitted-input and JPEG SHA-256 values and both fixed transforms are recorded in
+`manifest.json`; no personal paths are tracked. The fitting method and local
+reproduction command are documented in `../GENERATION.md`.
+
+The eight gestures are Megatron's raised non-cannon fist, Starscream's greeting,
+Soundwave's listening hand, Shockwave's raised index finger, Thundercracker's
+thumbs-up, Skywarp's open-hand wave, Blitzwing's raised fist, and
+Astrotrain's temple salute. These are unofficial fan illustrations
+embedded locally in firmware; Home performs no network image fetch.

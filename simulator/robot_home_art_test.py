@@ -1,4 +1,4 @@
-"""Decode the shipped nine-portrait JPEGs and verify reproducible embedding.
+"""Decode the shipped seventeen-portrait JPEGs and verify reproducible embedding.
 
 Run with a Python environment providing Pillow and numpy. Identity is checked
 by distinct pixels/palette and exact name-to-header payloads; the generation
@@ -18,7 +18,7 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / 'assets/robot-home/generated'
-HEROES = ('Bumblebee', 'BumblebeeFullbody', 'Optimus', 'Jazz', 'Hotrod', 'Wheeljack', 'Hound', 'Ironhide', 'Ratchet')
+HEROES = ('Bumblebee', 'BumblebeeFullbody', 'Optimus', 'Jazz', 'Hotrod', 'Wheeljack', 'Hound', 'Ironhide', 'Ratchet', 'Megatron', 'Starscream', 'Soundwave', 'Shockwave', 'Thundercracker', 'Skywarp', 'Blitzwing', 'Astrotrain')
 PRESERVED = {
     'bumblebee': 'f1bb7e24fe30631b15e1999c35a0b8d4024d3fc52b222aa0ad6c5d6676a9d191',
     'bumblebeefullbody': '6a8b98ad78c0b872d121fba3c785a65db655bd8c461014b3b96888e9427e06a6',
@@ -56,7 +56,10 @@ def visually_distinct(first, second):
 
 
 class HeroArtTest(unittest.TestCase):
-    def test_exactly_nine_idle_assets_are_embedded(self):
+    def test_exactly_seventeen_idle_assets_are_embedded(self):
+        for name in HEROES:
+            self.assertTrue((ASSETS / f'{name.lower()}-idle.jpg').is_file(),
+                            f'missing shipped idle: {name}')
         embedded = payloads(HEADER.read_text())
         self.assertEqual(set(embedded), set(HEROES))
         for name in HEROES:
@@ -72,6 +75,7 @@ class HeroArtTest(unittest.TestCase):
                 self.assertEqual(image.format, 'JPEG')
                 self.assertEqual(image.size, (300, 300))
                 self.assertFalse(image.info.get('progressive', False))
+                self.assertEqual(image.mode, 'RGB')
 
     def test_real_jpegs_have_black_margins_and_distinct_identity(self):
         fingerprints, decoded = [], []
@@ -91,7 +95,7 @@ class HeroArtTest(unittest.TestCase):
                 self.assertGreater(int((pixels.max(axis=2) > 70).sum()), 6000, name)
                 fingerprints.append(sha256(data).hexdigest())
                 decoded.append(pixels)
-        self.assertEqual(len(set(fingerprints)), 9, 'heroes must not alias one JPEG')
+        self.assertEqual(len(set(fingerprints)), 17, 'heroes must not alias one JPEG')
         for index, first in enumerate(decoded):
             for second in decoded[index + 1:]:
                 self.assertTrue(visually_distinct(first, second),
@@ -111,6 +115,30 @@ class HeroArtTest(unittest.TestCase):
                 pixels = np.array(original)
                 self.assertFalse(np.array_equal(pixels, reencoded))
                 self.assertFalse(visually_distinct(pixels, reencoded), name)
+
+    def test_character_enum_resolves_the_actual_idle_and_action_payloads(self):
+        # Execute the C++ mapping: reaching an enum must not silently return
+        # Bumblebee or another character's response even if headers are valid.
+        lines = ['#include <cassert>', '#include "RobotHomeCharacters.h"',
+                 'int main() { using namespace robot_home;']
+        for name in HEROES:
+            lines += [f'assert(character_art::assetFor(Character::{name}).bytes == art_data::k{name}Jpg);',
+                      f'assert(character_art::assetFor(Character::{name}).size == art_data::k{name}JpgSize);',
+                      f'assert(character_art::actionFor(Character::{name},99).bytes == art_data::k{name}Jpg);']
+            for pose in range(1, 3 if name in ('BumblebeeFullbody','Optimus') else 2):
+                if name == 'Bumblebee':
+                    continue
+                lines += [f'assert(character_art::actionFor(Character::{name},{pose}).bytes == art_data::k{name}Pose{pose}Jpg);',
+                          f'assert(character_art::actionFor(Character::{name},{pose}).size == art_data::k{name}Pose{pose}JpgSize);',
+                          f'assert(character_art::idleForAsset(character_art::actionFor(Character::{name},{pose})).bytes == art_data::k{name}Jpg);']
+        lines += ['assert(character_art::kActionCount == 18);', '}']
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary)/'mapping.cpp'
+            source.write_text('\n'.join(lines))
+            binary = Path(temporary)/'mapping'
+            subprocess.run(['clang++','-std=c++17','-I'+str(ROOT/'include'),
+                            str(source),'-o',str(binary)], check=True, capture_output=True)
+            subprocess.run([str(binary)], check=True, capture_output=True)
 
     def test_preserved_robot_portrait_pixels(self):
         # Preserve the accepted ring-free crop, not the removed rim or blink.
