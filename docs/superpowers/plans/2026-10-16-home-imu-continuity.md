@@ -32,9 +32,9 @@
 - Add `bool FrameClock::motionDue(std::uint32_t now, bool changed) const`; consumes changed pose, produces cadence eligibility without mutating the animation clock.
 - Keep `Detector::update(const Sample&, uint32_t)` / Result / telemetry schema unchanged.
 
-- [ ] **Step 1: Reproduce extra frame waiting against actual main code.** Extend the adapter fixture to compile the actual `bool imuFrameDue=false; ...` selection block from `main.cpp`, and keep existing hardware stubs. Include the real `RobotHomeFrame.h`, enable the pilot macro and expose a fixture function with `robotNow`/`homeVisible`. With a frame started at130ms, completed at195ms and a changed pose at200ms, the actual selection must be true; it is false on the old code. Also cover an unchanged pose, a fast-render sample before34ms, at34ms and wraparound. Assert observable eligibility, not source text. Run the adapter test and save its expected assertion failure.
+- [x] **Step 1: Reproduce extra frame waiting against actual main code.** Extend the adapter fixture to compile the actual `bool imuFrameDue=false; ...` selection block from `main.cpp`, and keep existing hardware stubs. Include the real `RobotHomeFrame.h`, enable the pilot macro and expose a fixture function with `robotNow`/`homeVisible`. With a frame started at130ms, completed at195ms and a changed pose at200ms, the actual selection must be true; it is false on the old code. Also cover an unchanged pose, a fast-render sample before34ms, at34ms and wraparound. Assert observable eligibility, not source text. Run the adapter test and save its expected assertion failure.
 
-- [ ] **Step 2: Implement start-based cadence.** Use the existing clock state:
+- [x] **Step 2: Implement start-based cadence.** Use the existing clock state:
 
 ```cpp
 bool motionDue(std::uint32_t now, bool changed) const {
@@ -46,9 +46,9 @@ imuFrameDue=robotFrames.motionDue(robotNow,imuPoseChanged(robotImuPose,robotImuR
 
 Run the actual adapter and frame clock tests. Keep `presented(homeFrameStartedMs, ...)` unchanged and preserve existing FrameClock::due semantics.
 
-- [ ] **Step 3: Reproduce sampling-dependent tilt lag.** Add a real-detector test with startup calibration, one pickup, then a10-degree roll step with gyro25dps. At sample intervals20/30/45/60/90ms, after180ms the returned angle must be between1.70 and2.00degrees (final unsaturated target is1.89degrees); reverse the roll and assert a clear negative response within180ms. Use literal physical fixtures, not the production filter formula as the test oracle. Show the test fails against the fixed20% filter before changing it. Cover stable pose and wraparound in the new temporal path.
+- [x] **Step 3: Reproduce sampling-dependent tilt lag.** Add a real-detector test with startup calibration, one pickup, then a10-degree roll step with gyro25dps. At sample intervals20/30/45/60/90ms, after180ms the returned angle must be between1.70 and2.00degrees (final unsaturated target is1.89degrees); reverse the roll and assert a clear negative response within180ms. Use literal physical fixtures, not the production filter formula as the test oracle. Show the test fails against the fixed20% filter before changing it. Cover stable pose and wraparound in the new temporal path.
 
-- [ ] **Step 4: Implement elapsed-time smoothing.** In the valid-sample path, after initial sample seeding and before updating `last_`, compute unsigned elapsed time and use:
+- [x] **Step 4: Implement elapsed-time smoothing.** In the valid-sample path, after initial sample seeding and before updating `last_`, compute unsigned elapsed time and use:
 
 ```cpp
 const float alpha=1.0f-std::exp(-static_cast<float>(static_cast<std::uint32_t>(now-last_))/60.0f);
@@ -57,11 +57,11 @@ fx_+=alpha*(s.ax-fx_);fy_+=alpha*(s.ay-fy_);fz_+=alpha*(s.az-fz_);
 
 Run new continuity and existing detector tests with sanitizers. Preserve reset behavior and actual board mapping. Do not add gyro integration or another attitude subsystem.
 
-- [ ] **Step 5: Reproduce late settled feedback.** In the continuity test, establish Held, change to still and then record the first qualifying still sample. At580ms since that sample no settled event is allowed; at600ms one settled event and the resting pose must appear. Repeat stillness without duplicate events, then immediately perform another pickup/tilt/settle. Add an interruption at400ms and verify it restarts the600ms dwell. Assert startup is still Calibrating before1500ms. Run this test against1500ms Held dwell and save the expected failure.
+- [x] **Step 5: Reproduce late settled feedback.** In the continuity test, establish Held, change to still and then record the first qualifying still sample. At580ms since that sample no settled event is allowed; at600ms one settled event and the resting pose must appear. Repeat stillness without duplicate events, then immediately perform another pickup/tilt/settle. Add an interruption at400ms and verify it restarts the600ms dwell. Assert startup is still Calibrating before1500ms. Run this test against1500ms Held dwell and save the expected failure.
 
-- [ ] **Step 6: Separate calibration and settled dwell.** Keep a1500ms calibration duration and set Held dwell600ms. Choose the duration from the current phase in the stillness block. Update the old test's waiting assumptions to the approved600ms contract, without removing isolated-knock, noise, interruption, invalid/gap and wraparound coverage. Run all changed tests, plus existing Home UI/interaction/motion/frame and input regressions appropriate to these paths.
+- [x] **Step 6: Separate calibration and settled dwell.** Keep a1500ms calibration duration and set Held dwell600ms. Choose the duration from the current phase in the stillness block. Update the old test's waiting assumptions to the approved600ms contract, without removing isolated-knock, noise, interruption, invalid/gap and wraparound coverage. Run all changed tests, plus existing Home UI/interaction/motion/frame and input regressions appropriate to these paths.
 
-- [ ] **Step 7: Build and record candidate status.** Build default firmware and selected pilot with existing caches, sequentially to avoid shared build locks. Run `ruby simulator/robot_home_imu_main_test.rb`, the detector/continuity/frame tests, and the Swift probe self-test. Build native preview if supported by the existing environment. The local completion chime remains skipped while the host streams microphone audio. Do not flash or reset the device.
+- [x] **Step 7: Build and record candidate status.** Build default firmware and selected pilot with existing caches, sequentially to avoid shared build locks. Run `ruby simulator/robot_home_imu_main_test.rb`, the detector/continuity/frame tests, and the Swift probe self-test. Build native preview if supported by the existing environment. The local completion chime remains skipped while the host streams microphone audio. Do not flash or reset the device.
 
 ```sh
 pio run -e m5stack-stopwatch
@@ -70,4 +70,4 @@ HOMEBREW_PREFIX=/opt/homebrew pio run -e native-preview
 ruby simulator/robot_home_imu_main_test.rb
 ```
 
-- [ ] **Step 8: Document, commit and self-review.** Distinguish the physically deployed first pilot (fe28100 /5bdd3ed9026a) from the new unflashed candidate. Mark old1.5s results and old zero-static-false-pickup result as first-pilot evidence. Explain the new600ms Held dwell, retained1500ms calibration, elapsed-time filter, render-start cadence, possible increased redraw power and pending physical retest. Keep frozen first-pilot artifacts intact. Stage exact changed paths; commit code/tests and final documentation. Record test commands, expected red failures, green outputs and build results in the task report. Return status, commit IDs, brief test/build summary and concerns only.
+- [x] **Step 8: Document, commit and self-review.** Distinguish the physically deployed first pilot (fe28100 /5bdd3ed9026a) from the new unflashed candidate. Mark old1.5s results and old zero-static-false-pickup result as first-pilot evidence. Explain the new600ms Held dwell, retained1500ms calibration, elapsed-time filter, render-start cadence, possible increased redraw power and pending physical retest. Keep frozen first-pilot artifacts intact. Stage exact changed paths; commit code/tests and final documentation. Record test commands, expected red failures, green outputs and build results in the task report. Return status, commit IDs, brief test/build summary and concerns only.

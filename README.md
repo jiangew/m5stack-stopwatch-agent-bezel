@@ -6,13 +6,19 @@ An explicitly selected [Home IMU pilot](docs/HOME_IMU_PILOT.md) explores pickup,
 tilt and settling via the `m5stack-stopwatch-home-imu` environment. It is disabled
 in normal release environments. Synthetic tests and native previews do not
 establish physical false-trigger rates, response latency or power consumption.
-The first pilot was written to app0 on 2026-10-16 with verified application and
+The first pilot (`fe28100`, application hash prefix `5bdd3ed9026a`) was written to app0 on 2026-10-16 with verified application and
 protected-metadata checks. The user confirmed natural direction in the initial
 three cycles and normal feedback in a follow-up trial, then chose to stop before
 the 30-cycle protocol. Its exact action count is unconfirmed, so no hit rate is
 reported. A separate 600.80-second desk-still trial recorded zero unintended
 pickups and zero sensor-read errors. Interference scenarios, physical P95 latency
 and power remain unmeasured; this is a pilot, not full acceptance.
+The current source is an **unflashed continuity candidate**: a 60ms elapsed-time
+acceleration filter, IMU redraw cadence measured from render start, and 600ms
+Held-to-Resting stillness. Initial/recovery calibration remains 1500ms, with the
+accepted roll/pitch mapping and input guards preserved. More frequent redraws
+may increase power use. Physical follow-up and a new false-pickup trial remain
+pending; the first pilot's 600.80-second result does not validate this candidate.
 
 **Stopwatch AgentBezel C152** is an independent, unofficial, open-source
 five-screen control surface for the **M5Stack StopWatch Dev Kit C152**:
