@@ -118,6 +118,9 @@ decodes all 17 idle and 18 response assets (`--actions` for the response bank).
 These checks and the local previews establish asset-level evidence only;
 physical-device display and animation acceptance remain separate.
 
-The antialiasing correction is an unflashed asset revision. Physical Home
+The antialiasing correction (`24676b8` / application `298f1c7b3ef4`) was
+flashed locally to app0 on 2026-10-17. Independent ROM verification, protected
+byte equality, HID/IMU diagnostics and a short USB microphone capture passed.
+Corrected display clarity and interaction feedback are pending. Physical Home
 acceptance recorded for `81f91fef` / `0aaa4606a3c3` belongs to the previous
-sampling output; the corrected display must be checked on the device separately.
+sampling output and is not transferred to this revision.
