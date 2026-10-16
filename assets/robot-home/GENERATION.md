@@ -121,6 +121,7 @@ physical-device display and animation acceptance remain separate.
 The antialiasing correction (`24676b8` / application `298f1c7b3ef4`) was
 flashed locally to app0 on 2026-10-17. Independent ROM verification, protected
 byte equality, HID/IMU diagnostics and a short USB microphone capture passed.
-Corrected display clarity and interaction feedback are pending. Physical Home
+The user confirmed noticeably improved clarity and normal interaction on
+2026-10-17. This is qualitative display/interaction acceptance. Physical Home
 acceptance recorded for `81f91fef` / `0aaa4606a3c3` belongs to the previous
 sampling output and is not transferred to this revision.

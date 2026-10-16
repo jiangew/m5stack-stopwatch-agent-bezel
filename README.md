@@ -70,8 +70,10 @@ See the
 - Current local clarity revision: `24676b8` / `298f1c7b3ef4` was flashed to
   app0 on 2026-10-17, with independent ROM verification, unchanged protected
   bytes, HID/IMU diagnostics and a short USB microphone capture passing. It
-  corrects Decepticon downsampling aliasing; display and interaction feedback
-  are pending. The earlier Home acceptance below belongs to the prior image.
+  corrects Decepticon downsampling aliasing; the user confirmed noticeably
+  improved clarity and normal interaction. The earlier Home acceptance below
+  belongs to the prior image. Quantitative latency, static false-trigger rate
+  and power remain unmeasured for this revision.
 - Home: 17 pages (Bumblebee portrait, eight Autobots, eight Decepticons).
   Up selects an Autobot; down selects a Decepticon; right returns to the portrait.
   Same-faction random selection excludes the current role; cross-faction selection
