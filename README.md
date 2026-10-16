@@ -58,8 +58,8 @@ Companion build14 unifies foreground handling for all four Agent pages. Left
 selects a page without activating a background app. A foreground target is ready
 immediately; a missing or background target waits for a center tap to launch or
 activate and reopen a closed last window. Mac foreground changes preserve the selected page. This Companion release
-originally used build9; the deployed nine-image Home firmware and the unflashed
-17-page Home faction candidate are distinguished below. DSH, SUPER and Hermes
+originally used build9; the historical nine-image Home firmware and the locally
+deployed 17-page Home faction version are distinguished below. DSH, SUPER and Hermes
 check for an actual application window; closing the last window returns to
 **TAP TO OPEN** on the next one-second check. A slow reopen automatically becomes
 operational when its real foreground window is ready, including after a timeout.
@@ -67,16 +67,20 @@ See the
 [control diagnosis and acceptance record](docs/CONTROL_AVAILABILITY.zh-CN.md).
 
 - Five screens: robot Home → Codex / ChatGPT → DSH → SUPER → HERMES → Home.
-- Home candidate: 17 pages (Bumblebee portrait, eight Autobots, eight Decepticons).
+- Home: 17 pages (Bumblebee portrait, eight Autobots, eight Decepticons).
   Up selects an Autobot; down selects a Decepticon; right returns to the portrait.
   Same-faction random selection excludes the current role; cross-faction selection
   includes all eight. Short taps retain the silent 600ms response, immediate 3%
-  compression and one 25ms haptic. This candidate has not been flashed or physically
-  accepted. The deployed nine-image USB-mic application from `4b1b6e9` was flashed
+  compression and one 25ms haptic. Source `81f91fef`, application hash prefix
+  `0aaa4606a3c3`, was flashed to app0 on 2026-10-16; independent ROM verification,
+  unchanged protected bytes, HID/IMU diagnostics and USB microphone capture passed.
+  The user confirmed correct switching/tap responses and acceptable tilt tracking.
+  This is qualitative acceptance; static false triggers, physical latency and power
+  were not measured for this version. The historical nine-image USB-mic application from `4b1b6e9` was flashed
   on 2026-10-14, app0 only. Application digest/protected metadata, reboot, USB
   input-only audio, BLE HID status RPC and a short microphone capture passed;
   the user confirmed its Home interactions normal. Subsequent IMU swipe-resume
-  acceptance belongs only to `df5480c` / `c83363fcc22e` above. Quantified latency,
+  acceptance above belongs to `df5480c` / `c83363fcc22e`. Quantified latency,
   frame rate, motor timing and PSRAM headroom remain unmeasured.
 - DSH: the same four-triangle layout as SUPER. Up/down navigate existing
   threads in sidebar order across project boundaries; right switches Chat /
@@ -101,7 +105,7 @@ cover earlier images; the current change record documents the DSH acceptance sco
 
 Home requires matching source-built Companion and USB-mic firmware. Boot,
 reconnect and Companion startup select Home without activating a Mac app.
-Home stays selected even when the Mac foreground changes. The 17-page Home candidate includes
+Home stays selected even when the Mac foreground changes. The 17-page Home includes
 Bumblebee portrait (default); eight Autobots (Bumblebee full body, Optimus Prime,
 Jazz, Hot Rod, Wheeljack, Hound, Ironhide, Ratchet); and eight Decepticons (Megatron,
 Starscream, Soundwave, Shockwave, Thundercracker, Skywarp, Blitzwing, Astrotrain). Touch down inside
@@ -127,9 +131,10 @@ The idle bank can use one reusable buffer; action allocation failure preserves
 the idle figure and motion without per-frame decoding. Home
 redraws only for animation or state changes. The same cached renderer drives
 native previews; build/preview results do not establish C152 response latency.
-The 17-page candidate has not been flashed or physically accepted. Asset/cache
-size and native pixels do not measure latency or power. Existing physical IMU
-acceptance belongs to `df5480c` / application hash prefix `c83363fcc22e` only.
+The locally deployed 17-page version (`81f91fef` / `0aaa4606a3c3`) passed the
+user's switching, tap and continuous IMU-follow trial. Asset/cache size and native
+pixels do not measure latency or power. Earlier IMU/static results remain attached
+to their historical versions; no new static trial was performed.
 No speech or Mac action is requested by portrait interaction. USB microphone and
 Codex completion chime behavior are unchanged. See
 [Home hero interaction and validation](docs/HOME_HERO_INTERACTION.md).
