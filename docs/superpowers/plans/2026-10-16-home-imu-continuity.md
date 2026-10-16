@@ -71,3 +71,15 @@ ruby simulator/robot_home_imu_main_test.rb
 ```
 
 - [x] **Step 8: Document, commit and self-review.** Distinguish the physically deployed first pilot (fe28100 /5bdd3ed9026a) from the new unflashed candidate. Mark old1.5s results and old zero-static-false-pickup result as first-pilot evidence. Explain the new600ms Held dwell, retained1500ms calibration, elapsed-time filter, render-start cadence, possible increased redraw power and pending physical retest. Keep frozen first-pilot artifacts intact. Stage exact changed paths; commit code/tests and final documentation. Record test commands, expected red failures, green outputs and build results in the task report. Return status, commit IDs, brief test/build summary and concerns only.
+
+
+### Final review fix wave: automatic pickup wake continuity
+
+Final whole-branch review found one P2 integration issue inherited from the first pilot: Pickup called `noteActivity()` and synchronously presented its pose, then unconditionally marked the same frame dirty again. This could create two65ms renders plus the8ms loop delay before sampling and trigger the unchanged120ms gap protection. The65ms duration comes from prior first-pilot frame measurements; this is deterministic modeled integration evidence, not candidate physical validation or an explanation of earlier ambiguous recalibration logs.
+
+- [x] Add the failing regression before production edits. Extract actual `noteActivity()`, `wakeDeskSleep()`, Home presentation bookkeeping, IMU adapter and main frame selection; stub only hardware/raster boundaries. Expected RED: automatic pickup wake presents two frames where one is required.
+- [x] Move event dirty marking before synchronous wake. Ordinary awake pickup still leaves its frame pending; a synchronous wake draw can consume it. Preserve input/state/final-animation priorities, all detector timing, calibration/filter/mapping and the120ms reset contract.
+- [x] Verify one65ms wake frame, no unnecessary outer frame, retained Held at the next73ms sample after the8ms delay, and continued positive tilt. Re-run actual adapter and affected Home/input/draw/reaction regressions; frame/detector/continuity suites pass with ASan/UBSan.
+- [x] Commit code/tests first as `43d8e91`; build default and selected Home IMU environments sequentially from that clean committed source using cached dependencies. Do not rebuild unchanged native preview.
+- [x] Preserve pre-fix candidate binaries and manifest exactly. Freeze uniquely named post-wake-fix images and a separate manifest with complete SHA256/size/source commit, `deployed:false` and supersedes links in ignored local artifacts. Record red/green/build/self-review evidence in the local final-fix report.
+- [ ] Physical retest remains pending. Keep the deployed first pilot (`fe28100` / `5bdd3ed9026a`); no flash/reset, host/Companion change, dependency install, push or merge was performed by this fix wave.
