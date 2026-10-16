@@ -36,9 +36,10 @@ microphone check passed. It preserves calibrated state only across successful
 Home up/down/right character swipes, retaining touch/haptic suppression and
 250ms quiet time. The user initially reported continuous tilt lag, then reported
 better behavior on the same firmware without another flash or parameter change.
-Whether that improvement includes immediate post-swipe tracking is awaiting
-confirmation; further behavior changes are on hold. This version's static trial
-remains pending; earlier handfeel/static results do not establish its acceptance.
+The user then explicitly accepted immediate tracking after up/down/right
+character swipes. Keep this firmware; no additional tuning was applied.
+The user chose to skip this version's static retest. Quantified false-trigger
+rate, physical onset latency and power remain unmeasured.
 
 **Stopwatch AgentBezel C152** is an independent, unofficial, open-source
 five-screen control surface for the **M5Stack StopWatch Dev Kit C152**:
