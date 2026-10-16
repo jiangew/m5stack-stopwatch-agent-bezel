@@ -38,15 +38,16 @@ constexpr uint32_t kVoiceTapBannerMs = 900;
 constexpr uint32_t kVoiceClickPulseMs = 70;
 constexpr uint32_t kTouchKeyPulseMs = 55;
 constexpr int kSwipeThresholdPx = 52;
-constexpr uint8_t kButtonHapticIntensity = 176;
-// 144 (56% PWM duty) sat at the motor's start threshold and spun up only
-// sometimes; 176 matches the physical buttons, which never felt flaky.
-constexpr uint8_t kTouchHapticIntensity = 176;
-constexpr uint8_t kSwipeHapticIntensity = 168;
-constexpr uint32_t kWakeHapticDurationMs = 20;
-constexpr uint32_t kButtonHapticDurationMs = 42;
-constexpr uint32_t kTouchHapticDurationMs = 32;
-constexpr uint32_t kSwipeHapticDurationMs = 40;
+// Quiet candidate; physical startup reliability and noise are not yet measured.
+constexpr uint8_t kButtonHapticIntensity = 160;
+constexpr uint8_t kTouchHapticIntensity = 160;
+constexpr uint8_t kSwipeHapticIntensity = 160;
+constexpr uint32_t kWakeHapticDurationMs = 12;
+constexpr uint32_t kButtonHapticDurationMs = 20;
+constexpr uint32_t kTouchHapticDurationMs = 16;
+constexpr uint32_t kSwipeHapticDurationMs = 20;
+constexpr uint32_t kHomeTapHapticDurationMs = 16;
+constexpr uint32_t kPowerOffHapticDurationMs = 24;
 constexpr uint32_t kBatteryDimAfterMs = 120000;
 constexpr uint32_t kBatteryDeskSleepAfterMs = 300000;
 constexpr uint32_t kDockDimAfterMs = 600000;
@@ -96,6 +97,7 @@ M5Canvas canvas(&M5.Display);
 #endif
 M5PM1 powerManager;
 uint32_t lastDrawMs = 0;
+bool shouldRedraw = false;
 uint32_t lastBatteryMs = 0;
 uint32_t lastPowerTelemetryMs = 0;
 uint32_t quotaWaitingSinceMs = 0;
@@ -660,8 +662,13 @@ dashboard::State dashboardState() {
 
 void drawScreen() {
   if (deskSleeping) return;
-#if defined(CODEX_STOPWATCH_USB_MIC)
   updateHaptic(); // stop an expired pulse before synchronous rendering
+  if (hapticActive) {
+    shouldRedraw = true;
+    return;
+  }
+  shouldRedraw = false;
+#if defined(CODEX_STOPWATCH_USB_MIC)
   bool homeFrameAnimated = false;
   uint32_t homeFrameStartedMs = 0;
   // Drawing stays on the installed dashboard for every Codex launch state;
@@ -748,11 +755,10 @@ void commitTouchAgent() {
   const int8_t agent = activeTouchAgent;
   startHaptic(kTouchHapticIntensity, kTouchHapticDurationMs);
   codex.sendKey(kAgentKeys[agent], 1, agent);
-  delay(kTouchKeyPulseMs);
-  codex.sendKey(kAgentKeys[agent], 0, agent);
-  // Stop here for a deterministic pulse; leaving it to the loop-end check
-  // stretched the buzz by however long the next full redraw took.
+  delay(kTouchHapticDurationMs);
   stopHaptic();
+  delay(kTouchKeyPulseMs - kTouchHapticDurationMs);
+  codex.sendKey(kAgentKeys[agent], 0, agent);
   touchAgentPressed = false;
   activeTouchAgent = -1;
   drawScreen();
@@ -778,9 +784,10 @@ void commitTouchSend() {
   if (!touchSendPressed) return;
   startHaptic(kTouchHapticIntensity, kTouchHapticDurationMs);
   codex.sendKey(kSendKey, 1);
-  delay(kTouchKeyPulseMs);
-  codex.sendKey(kSendKey, 0);
+  delay(kTouchHapticDurationMs);
   stopHaptic();
+  delay(kTouchKeyPulseMs - kTouchHapticDurationMs);
+  codex.sendKey(kSendKey, 0);
   touchSendPressed = false;
   drawScreen();
 }
@@ -979,8 +986,9 @@ void finishTouchGesture(int x, int y) {
       if(robotTap.finish(x,y,millis(),kSwipeThresholdPx)&&noteActivity()) {
         robotTouchX=x;robotTouchY=y;
         requestRobotReaction();
+        if (hapticActive) stopHaptic(); // a new response frame precedes its pulse
         drawScreen(); // release answers immediately, even after a recent frame
-        startHaptic(kTouchHapticIntensity, 25); // exclude first-frame render time
+        startHaptic(kTouchHapticIntensity, kHomeTapHapticDurationMs); // exclude first-frame render time
       } else if (robotAnimation.mood(millis()) == robot_home::Mood::Press) {
         stopRobotReaction();
         drawScreen();
@@ -1224,16 +1232,17 @@ void handleWorkspaceModeTransition(workspace_mode::Mode previous,
 #endif
 
 [[noreturn]] void enterTravelPowerOff() {
+  stopHaptic();
 #if defined(CODEX_STOPWATCH_USB_MIC)
   stopRobotReaction();
 #endif
   touchPowerHoldConsumed = true;
   powerOverlay = dashboard::PowerOverlay::PoweringOff;
   drawScreen();
-  startHaptic(kButtonHapticIntensity, 60);
-  delay(70);
+  startHaptic(kButtonHapticIntensity, kPowerOffHapticDurationMs);
+  delay(kPowerOffHapticDurationMs);
   stopHaptic();
-  delay(480);  // leave enough time to read the offline warning
+  delay(550 - kPowerOffHapticDurationMs);  // preserve the offline warning wait
 
   releaseControlsForPowerOff();
 #if !defined(CODEX_STOPWATCH_USB_MIC)
@@ -1432,10 +1441,9 @@ void setup() {
 void loop() {
   M5.update();
   codex.poll();
-  bool shouldRedraw = false;
 #if defined(CODEX_STOPWATCH_USB_MIC)
   CodexMicroState latest = codex.snapshot();
-  shouldRedraw = latest.dirty;
+  shouldRedraw = shouldRedraw || latest.dirty;
   if (state.connectionEpoch != latest.connectionEpoch ||
       (state.connected && !latest.connected)) {
     // A reconnect must not inherit an old gesture or release it to a new peer.
@@ -1448,7 +1456,7 @@ void loop() {
   const workspace_mode::Mode previousWorkspaceMode = state.workspaceMode;
   handleWorkspaceModeTransition(previousWorkspaceMode, latest.workspaceMode);
   state = latest;
-  if (shouldRedraw) {
+  if (latest.dirty) {
     if (workspace_mode::silencesAgentTransitions(previousWorkspaceMode,
                                                  state.workspaceMode)) {
       synchronizeAgentStatusBaseline(state);
@@ -1589,8 +1597,8 @@ void loop() {
   }
 #if !defined(CODEX_STOPWATCH_USB_MIC)
   CodexMicroState latest = codex.snapshot();
-  shouldRedraw = latest.dirty;
-  if (shouldRedraw) {
+  shouldRedraw = shouldRedraw || latest.dirty;
+  if (latest.dirty) {
     detectAgentTransitions(latest);
   }
   state = latest;

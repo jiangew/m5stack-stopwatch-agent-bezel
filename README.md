@@ -74,6 +74,15 @@ See the
   improved clarity and normal interaction. The earlier Home acceptance below
   belongs to the prior image. Quantitative latency, static false-trigger rate
   and power remain unmeasured for this revision.
+- Unflashed quiet-haptics candidate: source now requests intensity 160 for all
+  feedback, with 16ms Home/ordinary touch, 20ms swipe/button, 12ms wake and 24ms
+  travel-off confirmation. Pending frames wait for motor stop before rendering;
+  Home's first response frame precedes its pulse, including overlapping taps.
+  Ordinary touch keeps the 55ms host-key pulse, stopping the motor after 16ms.
+  Travel-off retains the 550ms prompt wait. The accepted image `298f1c7b3ef4`
+  and its physical feedback remain the deployed baseline. Candidate startup
+  reliability, physical pulse width, feel and noise have not been measured;
+  simulated boundaries do not establish quieter physical operation.
 - Home: 17 pages (Bumblebee portrait, eight Autobots, eight Decepticons).
   Up selects an Autobot; down selects a Decepticon; right returns to the portrait.
   Same-faction random selection excludes the current role; cross-faction selection
@@ -117,14 +126,15 @@ Bumblebee portrait (default); eight Autobots (Bumblebee full body, Optimus Prime
 Jazz, Hot Rod, Wheeljack, Hound, Ironhide, Ratchet); and eight Decepticons (Megatron,
 Starscream, Soundwave, Shockwave, Thundercracker, Skywarp, Blitzwing, Astrotrain). Touch down inside
 x=64..402/y=64..398 for immediate 3% compression; release within
-500ms without a swipe to play a silent 600ms character response and one 25ms haptic. New taps
+500ms without a swipe to play a silent 600ms character response and one 16ms haptic
+in the unflashed candidate (25ms in the deployed baseline). New taps
 interrupt the current reaction instead of being ignored. Moving outside the
 portrait area or reaching the 52px swipe threshold cancels the tap.
 Swipe up to select uniformly among the eight Autobots, or down among the eight
 Decepticons. Within the same faction the current role is excluded; from the
 portrait or opposite faction all eight are eligible. Right selects the Bumblebee
 portrait with no random draw. Each valid selection retains the 320ms transition
-and one 40ms haptic, even
+and one 20ms candidate haptic (40ms in the deployed baseline), even
 offline. Held motion cannot repeat. Left retains the workspace cycle. The first
 sleeping-screen touch only wakes the display. Leaving Home, sleep or power
 confirmation cancels the reaction; existing long-hold power controls remain.

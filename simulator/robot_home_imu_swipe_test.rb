@@ -19,6 +19,7 @@ selection_first=source.index('  bool imuFrameDue=false;')
 selection_last=source.index(';',source.index('  const bool robotFrame=',selection_first))+1
 selection=source[selection_first...selection_last]
 draw=extract(source,'void drawScreen() {')
+constants=source.lines.grep(/^constexpr (?:uint8_t|uint32_t) k\w*Haptic\w* =/).join
 presentation=extract(draw[draw.index('  lastDrawMs = millis();')..],'if (state.workspaceMode == workspace_mode::Mode::Home) {')
 fixture=<<~CPP
   #include <cassert>
@@ -66,10 +67,9 @@ fixture=<<~CPP
   int activeTouchAgent=-1,robotTouchX=0,robotTouchY=0,workspaceTouchEndX=0,workspaceTouchEndY=0;
   short touchStartX=0,touchStartY=0;
   Direction activeSwipe=Direction::None;
-  constexpr int kSwipeThresholdPx=52,kSwipeHapticIntensity=77,kSwipeHapticDurationMs=40;
-  constexpr int kButtonHapticIntensity=11,kWakeHapticDurationMs=22,kTouchHapticIntensity=11,kTouchHapticDurationMs=25;
+  constexpr int kSwipeThresholdPx=52;
+  #{constants}
   constexpr unsigned kPowerHoldPromptMs=2000,kTravelPowerOffMs=6000;
-  constexpr int kButtonHapticDurationMs=30;
   constexpr const char* kLeftMicSwitch="left";constexpr const char* kVoiceChatCommandKey="voice";
   unsigned entropyCalls=0;unsigned esp_random(){++entropyCalls;return entropy;}
   #{extract(source,'bool directionalWorkspaceActive()')}
