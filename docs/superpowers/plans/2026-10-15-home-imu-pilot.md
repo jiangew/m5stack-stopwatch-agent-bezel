@@ -4,7 +4,7 @@
 
 **Goal:** Add a reversible Home-only pickup, tilt and settled interaction pilot and prepare evidence for false activations, response latency and power comparisons.
 
-**Architecture:** An allocation-free, host-testable detector consumes accelerometer (g), gyro (degrees/second) and monotonic timestamps. The optional USB-mic-derived pilot samples at 50 Hz, keeps touch/host controls independent, composes bounded portrait transforms and exposes read-only diagnostic snapshots through a dedicated control-only RPC. The existing production environments remain opt-out by build flag.
+**Architecture:** An allocation-free, host-testable detector consumes accelerometer (g), gyro (degrees/second) and monotonic timestamps. The optional USB-mic-derived pilot targets 50 Hz sampling, keeps touch/host controls independent, composes bounded portrait transforms and exposes read-only diagnostic snapshots through a dedicated control-only RPC. The existing production environments remain opt-out by build flag. Physical diagnostic polling currently observes about 32 Hz, so the target is not a measured rate.
 
 **Tech Stack:** C++17 native assertions, M5Unified BMI270, M5GFX native preview, Arduino/PlatformIO, Swift IOHID probe.
 
@@ -56,5 +56,7 @@ Files: docs/HOME_IMU_PILOT.md, README.md, README.zh-CN.md.
 - [x] Build default firmware, native preview and selected USB-mic pilot, using existing dependency caches.
 - [x] Document 10-minute still/tap/desk-noise false-trigger trials, 30 pickup cycles and 30 tilt trials; report counts with denominators and misses separately. Proposed target: no static false pickup; pickup >=29/30; physical onset-to-visible P95 <=200 ms; tilt <=150 ms; rest 1.5–2 seconds. Targets are unvalidated until measured.
 - [x] Document external current A/B measurement (same brightness, BLE, audio, charge state); use steady windows and report mean/peak/integrated energy. Without meter, perform repeatable long battery comparisons and retain uncertainty.
-- [ ] Before flash: resolve exact C152 port, preserve baseline binary/readback and protected metadata, request target-specific confirmation, app0 only. After flash separately verify USB input audio, BLE/HID, host controls and manual motion trials.
-- [ ] Publish a local result record separating synthetic tests, builds, native previews and physical measurements. Do not mark unperformed measurements as passed.
+- [x] Before flash: resolve exact C152 port, preserve baseline binary/readback and protected metadata, request target-specific confirmation, app0 only. Independently verify application digest and protected metadata; restore runtime and separately verify USB input audio, BLE/HID diagnostics and manual motion feedback.
+- [ ] Full physical host-control/power-button regression and physical onset-to-visible latency remain unmeasured; native adapter regressions do not substitute for those checks.
+- [x] Record scope change: user chose to stop before the 30-cycle protocol after normal feedback; exact action denominator is unconfirmed. User has no power meter and explicitly deferred power measurement.
+- [x] Publish a local result record separating synthetic tests, builds, native previews and physical measurements. Controlled desk-still window: 600.80 seconds, 600 snapshots, zero unintended pickups, zero new sensor-read errors. User-confirmed interaction feedback is qualitative; fixed-count hit rate, interference scenarios, physical onset latency and power remain unmeasured.

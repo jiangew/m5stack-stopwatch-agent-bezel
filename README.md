@@ -7,9 +7,12 @@ tilt and settling via the `m5stack-stopwatch-home-imu` environment. It is disabl
 in normal release environments. Synthetic tests and native previews do not
 establish physical false-trigger rates, response latency or power consumption.
 The first pilot was written to app0 on 2026-10-16 with verified application and
-protected-metadata checks. The user confirmed three pickup/tilt/settle cycles
-with natural direction. Controlled false-trigger statistics, physical P95 latency
-and power remain separate measurements.
+protected-metadata checks. The user confirmed natural direction in the initial
+three cycles and normal feedback in a follow-up trial, then chose to stop before
+the 30-cycle protocol. Its exact action count is unconfirmed, so no hit rate is
+reported. A separate 600.80-second desk-still trial recorded zero unintended
+pickups and zero sensor-read errors. Interference scenarios, physical P95 latency
+and power remain unmeasured; this is a pilot, not full acceptance.
 
 **Stopwatch AgentBezel C152** is an independent, unofficial, open-source
 five-screen control surface for the **M5Stack StopWatch Dev Kit C152**:
