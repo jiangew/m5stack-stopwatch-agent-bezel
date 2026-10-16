@@ -37,7 +37,7 @@
 - Consumes: `Detector::update(const Sample&, uint32_t) -> Result`, `Detector::reset()`, `Detector::result() const -> const Result&`；实际 `beginTouchGesture(int,int)`, `updateTouchGesture(int,int)`, `updateRobotImu()`。
 - Produces: 一个由生产恢复路径调用的 Detector 接续接口，保留已校准阶段及中性方向、清除瞬态并重新播种样本；主循环内部拥有范围受限的暂存／授权状态，不向设备协议增加控制入口。
 
-- [ ] **Step 1: 写失败回归并确认失败原因。** 新 Ruby fixture 按现有测试方式抽取真实函数，使用真实 CharacterSelector、Detector、Tap 和 Animation，仅替换硬件与昂贵绘制边界。主要断言：
+- [x] **Step 1: 写失败回归并确认失败原因。** 新 Ruby fixture 按现有测试方式抽取真实函数，使用真实 CharacterSelector、Detector、Tap 和 Animation，仅替换硬件与昂贵绘制边界。主要断言：
 
 ```cpp
 // Calibrate flat, qualify pickup; begin actual touch, feed while pressed;
@@ -51,7 +51,7 @@ assert(positiveTilt.angle > 0 && positiveTilt.x > 0);
 
 Run: `ruby simulator/robot_home_imu_swipe_test.rb`。预期先在恢复后 Held／非零姿态断言失败，而非编译错误。记录完整 red 命令与失败原因到任务报告。
 
-- [ ] **Step 2: 实现最小状态恢复。** 在触摸开始早于绘制和输入 reset 时捕获有效已校准状态。仅成功的 Home U/D/R 设置恢复授权；静默后恢复一次并清除暂存。Detector 的生产接续接口语义为：
+- [x] **Step 2: 实现最小状态恢复。** 在触摸开始早于绘制和输入 reset 时捕获有效已校准状态。仅成功的 Home U/D/R 设置恢复授权；静默后恢复一次并清除暂存。Detector 的生产接续接口语义为：
 
 ```cpp
 // Preserve result_.phase and neutralRoll_/neutralPitch_.
@@ -61,7 +61,7 @@ Run: `ruby simulator/robot_home_imu_swipe_test.rb`。预期先在恢复后 Held�
 
 在实际硬失效边界清除暂存与授权；不要通过放宽 kMaxGapMs 处理暂停，不要跳过恢复样本合法性检查。
 
-- [ ] **Step 3: 补齐行为回归并运行。** 覆盖三个方向、头像及八个全身角色、连续切换、延迟释放、振动延长、Held 正反向倾斜、Resting 静置无假 Pickup、Resting 恢复后仍需 60ms 运动、旧放稳计时不被继承、未校准滑动、普通点击／左滑、工作区离开返回、按键、电源 pending、叠层、禁用、不可用、坏样本及未授权长间隙。测试直接断言 phase/pose/event/counters，而非代码文本。模拟当前 65ms 提交成本，确认实际路径不会因新恢复逻辑制造重复绘制与超时。Run:
+- [x] **Step 3: 补齐行为回归并运行。** 覆盖三个方向、头像及八个全身角色、连续切换、延迟释放、振动延长、Held 正反向倾斜、Resting 静置无假 Pickup、Resting 恢复后仍需 60ms 运动、旧放稳计时不被继承、未校准滑动、普通点击／左滑、工作区离开返回、按键、电源 pending、叠层、禁用、不可用、坏样本及未授权长间隙。测试直接断言 phase/pose/event/counters，而非代码文本。模拟当前 65ms 提交成本，确认实际路径不会因新恢复逻辑制造重复绘制与超时。Run:
 
 ```sh
 ruby simulator/robot_home_imu_swipe_test.rb
@@ -73,9 +73,9 @@ clang++ -std=c++17 -fsanitize=address,undefined -Iinclude simulator/robot_home_i
 /private/tmp/home-imu-continuity-swipe
 ```
 
-- [ ] **Step 4: 更新文档并提交。** 文档区分“已部署连续动作版”和“滑动恢复候选”，列明 red/green 证据与实机待验证。`git diff --check` 后，仅 stage 本任务明确文件并提交。报告写入指定 ignored 报告路径，包括提交、命令、失败及成功输出、未验证事项和自审结论。
+- [x] **Step 4: 更新文档并提交。** 文档区分“已部署连续动作版”和“滑动恢复候选”，列明 red/green 证据与实机待验证。`git diff --check` 后，仅 stage 本任务明确文件并提交。报告写入指定 ignored 报告路径，包括提交、命令、失败及成功输出、未验证事项和自审结论。
 
-- [ ] **Step 5: 控制器完成构建及冻结。** 通过任务复核后，顺序构建默认环境、显式 IMU 环境与 native-preview；使用已有缓存，必要时窄范围沙箱升级，不安装新依赖。控制器计算 app SHA-256／大小，复制到新的 ignored artifacts 子目录并生成含源码提交、构建环境、未烧录标志和回滚摘要的 manifest。
+- [x] **Step 5: 控制器完成构建及冻结。** 通过任务复核后，顺序构建默认环境、显式 IMU 环境与 native-preview；使用已有缓存，必要时窄范围沙箱升级，不安装新依赖。控制器计算 app SHA-256／大小，复制到新的 ignored artifacts 子目录并生成含源码提交、构建环境、未烧录标志和回滚摘要的 manifest。
 
 ```sh
 /opt/homebrew/bin/pio run -e m5stack-stopwatch
@@ -83,4 +83,4 @@ clang++ -std=c++17 -fsanitize=address,undefined -Iinclude simulator/robot_home_i
 HOMEBREW_PREFIX=/opt/homebrew /opt/homebrew/bin/pio run -e native-preview
 ```
 
-- [ ] **Step 6: 最终复核与交付。** 任务范围复核与完整分支复核均记录到本计划 ledger；修复有证据的阻塞发现后，检查候选 SHA 与当前生产源码一致、回滚镜像仍存在且摘要一致。仅交付候选与进入下载模式的实机准备请求；随后另行核对实际端口和该候选烧录授权。
+- [x] **Step 6: 最终复核与交付。** 任务范围复核与完整分支复核均记录到本计划 ledger；修复有证据的阻塞发现后，检查候选 SHA 与当前生产源码一致、回滚镜像仍存在且摘要一致。仅交付候选与进入下载模式的实机准备请求；随后另行核对实际端口和该候选烧录授权。
