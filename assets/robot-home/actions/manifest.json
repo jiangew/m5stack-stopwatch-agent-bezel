@@ -187,7 +187,7 @@
           4.642857142857142,
           -74.42857142857142
         ],
-        "resampling": "BICUBIC",
+        "resampling": "LANCZOS antialiased box resize",
         "canvas_size": [
           300,
           300
@@ -223,7 +223,7 @@
           4.642857142857142,
           -74.42857142857142
         ],
-        "resampling": "BICUBIC",
+        "resampling": "LANCZOS antialiased box resize",
         "canvas_size": [
           300,
           300
@@ -244,9 +244,9 @@
       "fit": "Fixed idle transform; wholecanvas sampling, no independent pose fit",
       "idle_prompt": "Use case: stylized-concept. Asset type: one full-body robot character sprite for a 300x300 round-watch UI. Create a recognizable classic Transformers G1 MEGATRON, alone, full body from helmet to boots. Match Japanese super-deformed mecha cartoon style: approximately THREE HEADS TALL, oversized head, bold clean dark ink outlines, intricate but readable segmented armor, crisp cel-shaded silver/charcoal metal planes, red eyes, black waist and joints, red small armor accents, distinctive gray Megatron bucket helmet and angular stern face. His iconic black cylindrical forearm cannon may be compact and integral to the arm, pointed harmlessly downward. Relaxed confident idle stance, both feet planted at same baseline, one hand lightly clenched by waist, no attack, no projectile. Square image, pure solid BLACK #000000 background, centered isolated character, generous pure black padding all around; figure occupies at most 78% width and 86% height. Whole head, hands and boots inside canvas. Flat 2D anime/cel illustration, NOT photorealistic, NOT metallic 3D toy render, NOT pixel art. Camera front three-quarter view very slight, readable at tiny size, consistent chibi proportions. No circle or halo, no glow, no effects, no scenery, no ground shadow extending into padding, no labels, typography, logos, watermarks, UI or second character. Single production-ready character illustration only.",
       "pose_prompt": "Use case: precise-object-edit. Edit this EXACT megatron full-body idle sprite into its one click-response animation frame. Bend and raise ONLY his non-cannon arm (on viewer RIGHT), bring a strongly clenched fist beside upper chest/shoulder in a confident acknowledgement. Cannon arm remains lowered. CRITICAL REGISTRATION: keep original square canvas size, pure black background, exact head size/location/orientation and face, chest/hips, legs and boots pixel positions, stance, body scale, camera, lighting, ink/cel style and every color unchanged. Modify only the specified shoulder/elbow/forearm/hand and necessary joint occlusion; do not redesign, zoom, recenter, move legs, enlarge helmet or change wings. Keep full character inside canvas. Clearly different arm silhouette from idle. No extra effects, rings, glow, text, scene, character or weapon. This frame will toggle with the unmodified original; stable feet/head/body alignment is essential.",
-      "idle_jpeg_sha256": "8596ad3236fdb991a57cda60407cd21afe83e9c2cd18ae0eb9dda9cf2ed21252",
-      "idle_fitted_sha256": "cfc3493d4e27f9023f34b358b801348fc1021ed7878d5c5cdc928969787d61bc",
-      "jpeg_sha256": "12716fc4ba54ab8925087167952158fbb2ca3b0b576ebbf7b090932b66fdb8ac"
+      "idle_jpeg_sha256": "4a2dfa7ad178cc95daea4281343d6228a049035ad7d5fd50f6895f281b3545e9",
+      "idle_fitted_sha256": "0f011029af60b6a988a7aa91ee193ab9d6d7d3c2bbc09a13557613507bc5fec9",
+      "jpeg_sha256": "68eb2fdcfa72c17e01832418617f8a7be84a5d067c524bb9c35d27c73e733311"
     },
     {
       "hero": "starscream",
@@ -277,7 +277,7 @@
           4.5436507936507935,
           -49.04761904761904
         ],
-        "resampling": "BICUBIC",
+        "resampling": "LANCZOS antialiased box resize",
         "canvas_size": [
           300,
           300
@@ -313,7 +313,7 @@
           4.5436507936507935,
           -49.04761904761904
         ],
-        "resampling": "BICUBIC",
+        "resampling": "LANCZOS antialiased box resize",
         "canvas_size": [
           300,
           300
@@ -335,9 +335,9 @@
       "idle_prompt": "Use case: stylized-concept. One production full-body character sprite, square pure solid BLACK #000000 background, centered and isolated from head to both boots with generous black padding: at most78% width and86% height. Japanese super-deformed mecha ANIME drawing, THREE HEADS TALL oversized helmet/head, bold dark outlines, detailed but readable layered armor, crisp cel-shaded metal planes and dark joints; flat 2D cel illustration matching a tiny watch Autobot cast, not photorealistic or 3D render. Both feet planted at one stable baseline. No circle, halo, glow, effects, scene, text, watermark, extra character or detached weapon. Complete head/hands/boots in frame. Subject: Classic G1 STARSCREAM: recognizable gray/white jet-robot, red chest with dark blue canopy, blue forearms and blue boots, dark helmet and silver smirking face with red eyes, angular swept jet wings behind shoulders with red trim, symmetrical wing silhouette and compact integral upper-arm null rays. Proud relaxed idle stance, hands lightly curled at sides; three-quarter front view slight.",
       "pose_prompt": "Use case: precise-object-edit. Edit this EXACT starscream full-body idle sprite into its one click-response animation frame. Raise ONLY the arm on viewer RIGHT into a playful open-hand greeting near shoulder/head level, palm visible; the other arm remains at its original side. CRITICAL REGISTRATION: keep original square canvas size, pure black background, exact head size/location/orientation and face, chest/hips, legs and boots pixel positions, stance, body scale, camera, lighting, ink/cel style and every color unchanged. Modify only the specified shoulder/elbow/forearm/hand and necessary joint occlusion; do not redesign, zoom, recenter, move legs, enlarge helmet or change wings. Keep full character inside canvas. Clearly different arm silhouette from idle. No extra effects, rings, glow, text, scene, character or weapon. This frame will toggle with the unmodified original; stable feet/head/body alignment is essential.",
       "proportion_edit_prompt": "Use case: style-transfer. Image1 is the EDIT TARGET: starscream idle sprite. Image2 is the accepted Optimus sprite and is ONLY the exact CHIBI PROPORTION / illustration style reference. Rework image1 to match image2's compact super-deformed body proportions and bold detailed cel shading. The helmet/head including face must occupy roughly ONE THIRD of the complete figure height, NOT one sixth. Shorten torso and legs and enlarge head; very short stocky thighs, large chunky boots, broad compact body. Approximately THREE HEADS TALL in total, like image2. Keep unmistakable starscream identity, existing colors, distinctive helmet, face/visor/eye, armor and integrated vehicle parts from image1; DO NOT give it Optimus features or Autobot colors. Full body, relaxed idle hands, boots planted. Pure black square background and generous padding; do not crop hands/wings/helmet/boots. No scene, text, circle, glow, added character or effects. Change proportions/style only; one clear compact chibi character suitable for a tiny round watch screen.",
-      "idle_jpeg_sha256": "920d5250e1a9fbc52d436187aa3cdc3c447a10406d56496d3170c681d1aeec83",
-      "idle_fitted_sha256": "dec9b948e148f22a392a3072afea707b6fbd57df3a6878e84cc8748f4513b857",
-      "jpeg_sha256": "903cd78c87660528a13e51a169be11aeca20f17a5ef49efc5812a48bdb24ad66"
+      "idle_jpeg_sha256": "3b99ae62fdd235a9ddd6482a0039ba73f917cacc5f49bf1bbcc2d1481cb03fa2",
+      "idle_fitted_sha256": "942ad0e1a385979fb492d26fb4d25f3f3a8e729896e703bff074782442a9f236",
+      "jpeg_sha256": "6ebdcf1bdec3115d8657f6c31a78b031676fd3aec100600561b457c04ee3c9cc"
     },
     {
       "hero": "soundwave",
@@ -368,7 +368,7 @@
           4.5476190476190474,
           -45.14285714285714
         ],
-        "resampling": "BICUBIC",
+        "resampling": "LANCZOS antialiased box resize",
         "canvas_size": [
           300,
           300
@@ -404,7 +404,7 @@
           4.5476190476190474,
           -45.14285714285714
         ],
-        "resampling": "BICUBIC",
+        "resampling": "LANCZOS antialiased box resize",
         "canvas_size": [
           300,
           300
@@ -426,9 +426,9 @@
       "idle_prompt": "Use case: stylized-concept. One production full-body character sprite, square pure solid BLACK #000000 background, centered and isolated from head to both boots with generous black padding: at most78% width and86% height. Japanese super-deformed mecha ANIME drawing, THREE HEADS TALL oversized helmet/head, bold dark outlines, detailed but readable layered armor, crisp cel-shaded metal planes and dark joints; flat 2D cel illustration matching a tiny watch Autobot cast, not photorealistic or 3D render. Both feet planted at one stable baseline. No circle, halo, glow, effects, scene, text, watermark, extra character or detached weapon. Complete head/hands/boots in frame. Subject: Classic G1 SOUNDWAVE: navy blue cassette-deck robot, squared dark blue helmet with white angular crest, red horizontal visor and silver mouthplate; large gold-bordered dark cassette-window chest, white/silver forearms and thighs, dark blue shin armor with white blocks, compact integral shoulder cylinder. Broad calm upright idle stance, hands lowered; slight front three-quarter view.",
       "pose_prompt": "Use case: precise-object-edit. Edit this EXACT soundwave full-body idle sprite into its one click-response animation frame. Raise ONLY the hand on viewer RIGHT to the side of his helmet as a listening acknowledgement, fingertips near ear; other arm unchanged, cassette chest unchanged. CRITICAL REGISTRATION: keep original square canvas size, pure black background, exact head size/location/orientation and face, chest/hips, legs and boots pixel positions, stance, body scale, camera, lighting, ink/cel style and every color unchanged. Modify only the specified shoulder/elbow/forearm/hand and necessary joint occlusion; do not redesign, zoom, recenter, move legs, enlarge helmet or change wings. Keep full character inside canvas. Clearly different arm silhouette from idle. No extra effects, rings, glow, text, scene, character or weapon. This frame will toggle with the unmodified original; stable feet/head/body alignment is essential.",
       "proportion_edit_prompt": "Use case: style-transfer. Image1 is the EDIT TARGET: soundwave idle sprite. Image2 is the accepted Optimus sprite and is ONLY the exact CHIBI PROPORTION / illustration style reference. Rework image1 to match image2's compact super-deformed body proportions and bold detailed cel shading. The helmet/head including face must occupy roughly ONE THIRD of the complete figure height, NOT one sixth. Shorten torso and legs and enlarge head; very short stocky thighs, large chunky boots, broad compact body. Approximately THREE HEADS TALL in total, like image2. Keep unmistakable soundwave identity, existing colors, distinctive helmet, face/visor/eye, armor and integrated vehicle parts from image1; DO NOT give it Optimus features or Autobot colors. Full body, relaxed idle hands, boots planted. Pure black square background and generous padding; do not crop hands/wings/helmet/boots. No scene, text, circle, glow, added character or effects. Change proportions/style only; one clear compact chibi character suitable for a tiny round watch screen.",
-      "idle_jpeg_sha256": "47f5cb05cca86dd0ad9b62b5a71cf982f68591d8ab5236ced4f73380a12bffd2",
-      "idle_fitted_sha256": "ef011cbc0c8c3d0d6167804d2bd92edabd6eaae26b30366734eb4f77bd1ec216",
-      "jpeg_sha256": "3f895aceef40a17dd7264cf3c2fa33117986598375143ccb4be5335c8d325917"
+      "idle_jpeg_sha256": "b634fc9d89ec10585ec2e55b2a8f797ef408be85cda038e722adcce0a62a36a3",
+      "idle_fitted_sha256": "b8e7c30d833a9798bd6ba479629b8a8900d7852e23b4b66df3521c41864e6307",
+      "jpeg_sha256": "1c6f86f44c1f3716225e3fe1d440825d853ba2683f3834d04cf5dc1ad95b5b45"
     },
     {
       "hero": "shockwave",
@@ -459,7 +459,7 @@
           4.5436507936507935,
           -34.04761904761904
         ],
-        "resampling": "BICUBIC",
+        "resampling": "LANCZOS antialiased box resize",
         "canvas_size": [
           300,
           300
@@ -495,7 +495,7 @@
           4.5436507936507935,
           -34.04761904761904
         ],
-        "resampling": "BICUBIC",
+        "resampling": "LANCZOS antialiased box resize",
         "canvas_size": [
           300,
           300
@@ -517,9 +517,9 @@
       "idle_prompt": "Use case: stylized-concept. One production full-body character sprite, square pure solid BLACK #000000 background, centered and isolated from head to both boots with generous black padding: at most78% width and86% height. Japanese super-deformed mecha ANIME drawing, THREE HEADS TALL oversized helmet/head, bold dark outlines, detailed but readable layered armor, crisp cel-shaded metal planes and dark joints; flat 2D cel illustration matching a tiny watch Autobot cast, not photorealistic or 3D render. Both feet planted at one stable baseline. No circle, halo, glow, effects, scene, text, watermark, extra character or detached weapon. Complete head/hands/boots in frame. Subject: Classic G1 SHOCKWAVE: rich purple cyclopean robot, hexagonal helmet enclosing ONE luminous-yellow painted eye (no aura), no face or mouth, translucent-looking pink/magenta geometric chest window rendered with crisp cel shading, silver joints, large squared purple boots, one hand and compact integrated left forearm barrel. Calm analytical idle stance, single hand near hip, barrel safely downward. Slight front three-quarter view.",
       "pose_prompt": "Use case: precise-object-edit. Edit this EXACT shockwave full-body idle sprite into its one click-response animation frame. Raise ONLY his normal non-cannon hand (on viewer LEFT) with one index finger pointing upward beside chest in an analytical acknowledgement; integrated cannon arm remains safely lowered. CRITICAL REGISTRATION: keep original square canvas size, pure black background, exact head size/location/orientation and face, chest/hips, legs and boots pixel positions, stance, body scale, camera, lighting, ink/cel style and every color unchanged. Modify only the specified shoulder/elbow/forearm/hand and necessary joint occlusion; do not redesign, zoom, recenter, move legs, enlarge helmet or change wings. Keep full character inside canvas. Clearly different arm silhouette from idle. No extra effects, rings, glow, text, scene, character or weapon. This frame will toggle with the unmodified original; stable feet/head/body alignment is essential.",
       "proportion_edit_prompt": "Use case: style-transfer. Image1 is the EDIT TARGET: shockwave idle sprite. Image2 is the accepted Optimus sprite and is ONLY the exact CHIBI PROPORTION / illustration style reference. Rework image1 to match image2's compact super-deformed body proportions and bold detailed cel shading. The helmet/head including face must occupy roughly ONE THIRD of the complete figure height, NOT one sixth. Shorten torso and legs and enlarge head; very short stocky thighs, large chunky boots, broad compact body. Approximately THREE HEADS TALL in total, like image2. Keep unmistakable shockwave identity, existing colors, distinctive helmet, face/visor/eye, armor and integrated vehicle parts from image1; DO NOT give it Optimus features or Autobot colors. Full body, relaxed idle hands, boots planted. Pure black square background and generous padding; do not crop hands/wings/helmet/boots. No scene, text, circle, glow, added character or effects. Change proportions/style only; one clear compact chibi character suitable for a tiny round watch screen.",
-      "idle_jpeg_sha256": "c634e60495af1415b99f9615f9b5673d8b9dcfba831ed3dcf43464d1d606a6d5",
-      "idle_fitted_sha256": "b62b65de8beef26d8d0d346f2134dd95061989635932d07b2a7c79e4367f112f",
-      "jpeg_sha256": "9a3e70589530b6a59248282f149bb8fd45f17d39157581809f788d87cdecec4d"
+      "idle_jpeg_sha256": "b910b6bda80022953db6c3a04c465e1590459d00270d74350aa13795a7fe2c4c",
+      "idle_fitted_sha256": "ac73338728eb5af7ae4f7f1f8ec843b1b5bc474be25ddc8bb311864b696eee61",
+      "jpeg_sha256": "37b414f15b19276ca81dec18fb1291f574df102d5a588f55855720ef332597ec"
     },
     {
       "hero": "thundercracker",
@@ -550,7 +550,7 @@
           4.440476190476191,
           -43.57142857142857
         ],
-        "resampling": "BICUBIC",
+        "resampling": "LANCZOS antialiased box resize",
         "canvas_size": [
           300,
           300
@@ -586,7 +586,7 @@
           4.440476190476191,
           -43.57142857142857
         ],
-        "resampling": "BICUBIC",
+        "resampling": "LANCZOS antialiased box resize",
         "canvas_size": [
           300,
           300
@@ -608,9 +608,9 @@
       "idle_prompt": "Use case: style-transfer. EDIT the attached accepted Optimus watch sprite into a DIFFERENT classic G1 Decepticon character described below. Preserve this exact compact super-deformed cartoon proportion: oversized head about ONE THIRD of full figure height, short stocky body and legs, chunky boots, about three heads tall. Preserve bold detailed dark ink outlines, crisp vivid cel shading, and readability at300px. Replace Optimus identity, armor, helmet, face and colors completely with the requested character; do NOT retain Autobot truck windows or Optimus helmet. One complete isolated full-body figure, relaxed idle stance, both boots on same baseline, hands lowered or relaxed. Square pure BLACK #000000 background, generous black safety padding, no halo/circle/glow/effects/scenery/text/UI/watermark/other character. All helmet, wings, hands and boots fit in canvas. Subject replacement: THUNDERCRACKER: cobalt and medium-blue classic Seeker jet robot, light gray arms/thighs, dark helmet around silver face with red eyes; orange/yellow cockpit canopy chest, swept broad blue wings with white and red trim behind shoulders, compact integrated arm cylinders, chunky blue boots. Calm confident expression. Distinctly BLUE, not Starscream red.",
       "pose_prompt": "Use case: precise-object-edit. Edit this EXACT thundercracker full-body idle sprite into its one click-response animation frame. Raise the viewer-RIGHT forearm into a friendly clear thumbs-up beside the chest; the other arm stays down.\nCRITICAL REGISTRATION: keep the original square canvas size, pure black background, exact head size/location/orientation and face, chest/hips, legs and boots pixel positions, stance, body scale, camera, lighting, ink/cel style and every color unchanged. Modify only the specified shoulder/elbow/forearm/hand and necessary joint occlusion; do not redesign, zoom, recenter, move legs, enlarge the helmet or change wings. Clearly different arm silhouette, no effects, rings, text, scene or extra weapon.",
       "face_edit_prompt": "Use case: precise-object-edit. Edit ONLY the small silver lower-face area of this thundercracker G1 robot. Replace the current featureless silver mouth-mask plate with a recognizable sculpted angular SILVER ROBOT FACE showing a distinct nose bridge, narrow visible mouth/lips and chin/jaw, as classic G1 Decepticons have; no Optimus-style mask. Preserve exact helmet outline and size, red eyes, entire rest of body/armor/colors, pose, boots/feet, camera/framing, style, square canvas and black background unchanged. Do not enlarge the face, change the head position, alter any body part, add text/effects or redesign anything else.",
-      "idle_jpeg_sha256": "a0819f03e92e6fc64f5a72eea012852c49b9996b5e56fdad92ddd9d52181613e",
-      "idle_fitted_sha256": "ad95e92aa4781f5c7a9d6d78ae7287022f1a014001a132c436638060ebc703c3",
-      "jpeg_sha256": "2395d9239eae44d0af224965a8f7c55eb76729f1c28dc93dc921b9f1e57bd54e"
+      "idle_jpeg_sha256": "8649ee199862462f2c97a3820352d97464b5bd61851064129f32b76db9adba10",
+      "idle_fitted_sha256": "0a7c07cf87c17b1d786b6f0519df54b9c234551b3b0067b5a721d29516c42cc8",
+      "jpeg_sha256": "e4ddff3603a1bdf411473dbc2d9340876164f9016c6e707ee0e96b560eb94f25"
     },
     {
       "hero": "skywarp",
@@ -641,7 +641,7 @@
           4.388888888888889,
           -33.33333333333334
         ],
-        "resampling": "BICUBIC",
+        "resampling": "LANCZOS antialiased box resize",
         "canvas_size": [
           300,
           300
@@ -677,7 +677,7 @@
           4.388888888888889,
           -33.33333333333334
         ],
-        "resampling": "BICUBIC",
+        "resampling": "LANCZOS antialiased box resize",
         "canvas_size": [
           300,
           300
@@ -699,9 +699,9 @@
       "idle_prompt": "Use case: style-transfer. EDIT the attached accepted Optimus watch sprite into a DIFFERENT classic G1 Decepticon character described below. Preserve this exact compact super-deformed cartoon proportion: oversized head about ONE THIRD of full figure height, short stocky body and legs, chunky boots, about three heads tall. Preserve bold detailed dark ink outlines, crisp vivid cel shading, and readability at300px. Replace Optimus identity, armor, helmet, face and colors completely with the requested character; do NOT retain Autobot truck windows or Optimus helmet. One complete isolated full-body figure, relaxed idle stance, both boots on same baseline, hands lowered or relaxed. Square pure BLACK #000000 background, generous black safety padding, no halo/circle/glow/effects/scenery/text/UI/watermark/other character. All helmet, wings, hands and boots fit in canvas. Subject replacement: SKYWARP: classic Seeker jet robot in BLACK/charcoal and vivid PURPLE, silver-gray thighs and upper arms, black helmet with silver face and red eyes, orange/yellow canopy in chest, purple forearms and chunky purple/black boots, black swept wings with purple edges. Mischievous expression, idle compact stance. Distinct black-purple scheme.",
       "pose_prompt": "Use case: precise-object-edit. Edit this EXACT skywarp full-body idle sprite into its one click-response animation frame. Raise the viewer-RIGHT forearm and open the purple hand for a short friendly wave beside the cheek; the other arm stays down.\nCRITICAL REGISTRATION: keep the original square canvas size, pure black background, exact head size/location/orientation and face, chest/hips, legs and boots pixel positions, stance, body scale, camera, lighting, ink/cel style and every color unchanged. Modify only the specified shoulder/elbow/forearm/hand and necessary joint occlusion; do not redesign, zoom, recenter, move legs, enlarge the helmet or change wings. Clearly different arm silhouette, no effects, rings, text, scene or extra weapon.",
       "face_edit_prompt": "Use case: precise-object-edit. Edit ONLY the small silver lower-face area of this skywarp G1 robot. Replace the current featureless silver mouth-mask plate with a recognizable sculpted angular SILVER ROBOT FACE showing a distinct nose bridge, narrow visible mouth/lips and chin/jaw, as classic G1 Decepticons have; no Optimus-style mask. Preserve exact helmet outline and size, red eyes, entire rest of body/armor/colors, pose, boots/feet, camera/framing, style, square canvas and black background unchanged. Do not enlarge the face, change the head position, alter any body part, add text/effects or redesign anything else.",
-      "idle_jpeg_sha256": "45992898279712853ac66b46a875f76ae419a20127e00cd7a86517475395aaab",
-      "idle_fitted_sha256": "9fb3131232267bd8ef270f2bcf31d7714fb5935538fc06a892ff9fb2d4a787b9",
-      "jpeg_sha256": "25c03d29788667af922cd8e57d14e6a27fa97a1b51885a5c6ad8535db31352cb"
+      "idle_jpeg_sha256": "62cd6e4cefc024b9de407daa444e94505fb762a02afbb6bdc07a2975a29d1987",
+      "idle_fitted_sha256": "77511fca77b190efe97d9a03e3a17f02a1b381477d8a03eb8937479ae24c7a5c",
+      "jpeg_sha256": "61fc2450c8d066ee4430672231fd05541d97c9a65d6ffdaf5048ba68d210b330"
     },
     {
       "hero": "blitzwing",
@@ -732,7 +732,7 @@
           4.416666666666667,
           -42.0
         ],
-        "resampling": "BICUBIC",
+        "resampling": "LANCZOS antialiased box resize",
         "canvas_size": [
           300,
           300
@@ -768,7 +768,7 @@
           4.416666666666667,
           -42.0
         ],
-        "resampling": "BICUBIC",
+        "resampling": "LANCZOS antialiased box resize",
         "canvas_size": [
           300,
           300
@@ -790,9 +790,9 @@
       "idle_prompt": "Use case: style-transfer. EDIT the attached accepted Optimus watch sprite into a DIFFERENT classic G1 Decepticon character described below. Preserve this exact compact super-deformed cartoon proportion: oversized head about ONE THIRD of full figure height, short stocky body and legs, chunky boots, about three heads tall. Preserve bold detailed dark ink outlines, crisp vivid cel shading, and readability at300px. Replace Optimus identity, armor, helmet, face and colors completely with the requested character; do NOT retain Autobot truck windows or Optimus helmet. One complete isolated full-body figure, relaxed idle stance, both boots on same baseline, hands lowered or relaxed. Square pure BLACK #000000 background, generous black safety padding, no halo/circle/glow/effects/scenery/text/UI/watermark/other character. All helmet, wings, hands and boots fit in canvas. Subject replacement: BLITZWING: classic G1 triple-changer tank/jet robot, tan/sand shoulder and upper-body armor, angular PURPLE helmet/face-surround and purple chest/waist accents, red visor and silver face, chunky tan boots and dark-purple lower leg sections, short tank treads integrated along outer shins and a compact folded turret silhouette behind shoulders. Broad stocky sturdy stance, no tank vehicle separate.",
       "pose_prompt": "Use case: precise-object-edit. Edit this EXACT blitzwing full-body idle sprite into its one click-response animation frame. Bend the viewer-RIGHT elbow to raise one clenched purple fist beside the upper chest as a confident acknowledgement; the other arm stays down.\nCRITICAL REGISTRATION: keep the original square canvas size, pure black background, exact head size/location/orientation and face, chest/hips, legs and boots pixel positions, stance, body scale, camera, lighting, ink/cel style and every color unchanged. Modify only the specified shoulder/elbow/forearm/hand and necessary joint occlusion; do not redesign, zoom, recenter, move legs, enlarge the helmet or change wings. Clearly different arm silhouette, no effects, rings, text, scene or extra weapon.",
       "face_edit_prompt": "Use case: precise-object-edit. Edit ONLY the small silver lower-face area of this blitzwing G1 robot. Replace the current featureless silver mouth-mask plate with a recognizable sculpted angular SILVER ROBOT FACE showing a distinct nose bridge, narrow visible mouth/lips and chin/jaw, as classic G1 Decepticons have; no Optimus-style mask. Preserve exact helmet outline and size, red eyes, entire rest of body/armor/colors, pose, boots/feet, camera/framing, style, square canvas and black background unchanged. Do not enlarge the face, change the head position, alter any body part, add text/effects or redesign anything else.",
-      "idle_jpeg_sha256": "192e56d351dbf0aab9c6ef9f85ef3136ec49b7e1cd240066b5ae969dec634b97",
-      "idle_fitted_sha256": "2cef4bce2e61abcdaf99a3737fc9dc2e9dd66aba2af2ed4ea6ef8ea798396943",
-      "jpeg_sha256": "75475336247c68fd6de2cedcf84dfe69223eb8ea1034717f4878d8987fd1e9ec"
+      "idle_jpeg_sha256": "ed86d2702f6827411ceab9d1bfb8961316fcf379df423c531f482ffd610d78bc",
+      "idle_fitted_sha256": "46840a1d1067eb6151a59308ebc6cece9078d80c7af5e6ff7812d52d5bf5abf4",
+      "jpeg_sha256": "02095b55ee4ccd93f6e207ed867f8a1b8939a7abb706d4abed5f49fc0a7aa2d3"
     },
     {
       "hero": "astrotrain",
@@ -823,7 +823,7 @@
           4.400793650793651,
           -31.61904761904762
         ],
-        "resampling": "BICUBIC",
+        "resampling": "LANCZOS antialiased box resize",
         "canvas_size": [
           300,
           300
@@ -859,7 +859,7 @@
           4.400793650793651,
           -31.61904761904762
         ],
-        "resampling": "BICUBIC",
+        "resampling": "LANCZOS antialiased box resize",
         "canvas_size": [
           300,
           300
@@ -880,9 +880,9 @@
       "fit": "Fixed idle transform; wholecanvas sampling, no independent pose fit",
       "idle_prompt": "Use case: style-transfer. EDIT the attached accepted Optimus watch sprite into a DIFFERENT classic G1 Decepticon character described below. Preserve this exact compact super-deformed cartoon proportion: oversized head about ONE THIRD of full figure height, short stocky body and legs, chunky boots, about three heads tall. Preserve bold detailed dark ink outlines, crisp vivid cel shading, and readability at300px. Replace Optimus identity, armor, helmet, face and colors completely with the requested character; do NOT retain Autobot truck windows or Optimus helmet. One complete isolated full-body figure, relaxed idle stance, both boots on same baseline, hands lowered or relaxed. Square pure BLACK #000000 background, generous black safety padding, no halo/circle/glow/effects/scenery/text/UI/watermark/other character. All helmet, wings, hands and boots fit in canvas. Subject replacement: ASTROTRAIN: classic G1 triple-changer space-shuttle/train robot, white and light gray helmet and upper armor with deep purple chest/waist/shin sections, silver face and RED eyes beneath gray angular helmet brow, compact folded white shuttle wings behind shoulders with black trim, integrated wheel motifs on legs and oversized purple boots. Stable broad friendly idle stance, no separate train or shuttle.",
       "pose_prompt": "Use case: precise-object-edit. Edit this EXACT astrotrain full-body idle sprite into its one click-response animation frame. Lift the viewer-RIGHT forearm with a flat hand near the temple in a friendly salute; the other arm stays down.\nCRITICAL REGISTRATION: keep the original square canvas size, pure black background, exact head size/location/orientation and face, chest/hips, legs and boots pixel positions, stance, body scale, camera, lighting, ink/cel style and every color unchanged. Modify only the specified shoulder/elbow/forearm/hand and necessary joint occlusion; do not redesign, zoom, recenter, move legs, enlarge the helmet or change wings. Clearly different arm silhouette, no effects, rings, text, scene or extra weapon.",
-      "idle_jpeg_sha256": "a9097762e675e714da385606c64dcc70928af8f6345a51d604bafeb548aaec34",
-      "idle_fitted_sha256": "a41b2f489f042a795a18b976f9b37759c5ed75305ff5217bfef1a20a1b5250d7",
-      "jpeg_sha256": "9b719555f1b571d1d6fb377f675e476cdc57c4cba45aa9a802d0b652e3cba45a"
+      "idle_jpeg_sha256": "259ab408753b176cc2bd94063c77deca87b393eb64fcc24565f384208d41d4a1",
+      "idle_fitted_sha256": "68fa87a8125f67a4094accb5a5b75bd9e9074bffb47b9a832011a824d51e9320",
+      "jpeg_sha256": "fc656b190fe22e0a9d245c1d994c02947275d500848d4711bf07bb14da7618e8"
     }
   ]
 }

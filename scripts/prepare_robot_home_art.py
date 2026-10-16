@@ -9,10 +9,11 @@ import argparse
 from hashlib import sha256
 from io import BytesIO
 import json
+from math import ceil
 from pathlib import Path
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageOps
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / 'assets/robot-home'
@@ -81,10 +82,19 @@ def fit_imagegen(inputs_path):
                      'idle_bbox': [left, top, right, bottom],
                      'scale': scale, 'paste_xy': list(paste),
                      'affine_output_to_source': list(affine),
-                     'resampling': 'BICUBIC', 'canvas_size': [300, 300],
+                     'resampling': 'LANCZOS antialiased box resize', 'canvas_size': [300, 300],
                      'black_canvas_aperture': [24, 24, 276, 276]}
-        fitted = [image.transform((300,300), Image.Transform.AFFINE, affine,
-                                  resample=Image.Resampling.BICUBIC, fillcolor=(0,0,0))
+        # transform(BICUBIC) samples a fixed-size kernel even for ~4.5x
+        # reductions, aliasing fine lines into jagged detail. resize() widens
+        # its low-pass kernel for downsampling. The source box expresses the
+        # SAME inverse affine geometry; black padding permits out-of-canvas
+        # coordinates without cropping/recentering either response frame.
+        x0, y0 = affine[2], affine[5]
+        x1, y1 = x0 + 300/scale, y0 + 300/scale
+        padding = ceil(max(0, -x0, -y0, x1-idle.width, y1-idle.height))
+        source_box = (x0+padding, y0+padding, x1+padding, y1+padding)
+        fitted = [ImageOps.expand(image, border=padding, fill=(0,0,0)).resize(
+                      (300,300), resample=Image.Resampling.LANCZOS, box=source_box)
                   for image in originals]
         # Composite onto a pure black safety canvas. Only near-black outer
         # source background is outside this aperture; the complete figures and

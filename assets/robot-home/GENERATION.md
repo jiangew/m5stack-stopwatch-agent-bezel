@@ -92,8 +92,13 @@ and local source paths stay in ignored task outputs.
 
 Fitting uses the idle's non-black bounding box (>12/255), one uniform scale
 that fits within 246×252px, and one centered translation. The **same** affine
-transform samples each paired response's whole original canvas, retaining arm
-extensions beyond the idle bounding box. Both frames are composited through
+transform defines an identical source box for each paired response's whole
+original canvas, retaining arm extensions beyond the idle bounding box. Black
+padding permits source coordinates outside that canvas. LANCZOS box resizing
+applies a scale-aware antialias filter: the previous affine BICUBIC sampler
+introduced jagged lines and moire during the roughly 4.5× reduction. The source
+illustrations, figure dimensions, translation and JPEG quality remain unchanged.
+Both frames are composited through
 the same 24px black safety canvas aperture; fitting rejects any visible pixels
 (>24/255) outside it. The 24px block-aligned canvas prevents JPEG ringing at the
 required 18px idle margin. No character or response artwork is drawn by Python.
@@ -112,3 +117,7 @@ changes, and execute the C++ enum-to-payload mapping. Swift ImageIO independentl
 decodes all 17 idle and 18 response assets (`--actions` for the response bank).
 These checks and the local previews establish asset-level evidence only;
 physical-device display and animation acceptance remain separate.
+
+The antialiasing correction is an unflashed asset revision. Physical Home
+acceptance recorded for `81f91fef` / `0aaa4606a3c3` belongs to the previous
+sampling output; the corrected display must be checked on the device separately.
