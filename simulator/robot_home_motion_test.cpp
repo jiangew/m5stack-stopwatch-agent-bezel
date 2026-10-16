@@ -25,6 +25,11 @@ int main() {
       assert(end.pose==0&&end.scale==1&&end.offsetY==0&&end.angle==0);
     }
   }
+  for(auto hero:kDecepticons) {
+    for(unsigned ms=0;ms<600;++ms)assert(motionFor(hero,Mood::Skill,ms).pose==1);
+    const auto mid=motionFor(hero,Mood::Skill,300);
+    assert(mid.scale!=1||mid.offsetY!=0||mid.angle!=0); // fallback must visibly respond
+  }
   // Preserve the accepted pilot's discrete body poses and exact return.
   assert(motionFor(Character::Bumblebee,Mood::Skill,0).offsetY>0); // first release frame answers
   assert(motionFor(Character::BumblebeeFullbody,Mood::Skill,0).pose==1);

@@ -4,7 +4,7 @@ preview=File.expand_path(ARGV.fetch(0))
 Dir.mktmpdir('hero-spacing-','/private/tmp') do |dir|
   abort 'sequence render failed' unless system(preview,'--home-sequence',dir)
   header="P6\n466 466\n255\n"
-  %w[bumblebee bumblebeefullbody optimus jazz hotrod wheeljack hound ironhide ratchet].each do |hero|
+  %w[bumblebee bumblebeefullbody optimus jazz hotrod wheeljack hound ironhide ratchet megatron starscream soundwave shockwave thundercracker skywarp blitzwing astrotrain].each do |hero|
     frames=(0...54).map do |i|
       raw=File.binread(File.join(dir,format('%s-%03d.ppm',hero,i)))
       abort 'unexpected framebuffer' unless raw.start_with?(header)

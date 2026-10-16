@@ -58,7 +58,8 @@ Companion build14 unifies foreground handling for all four Agent pages. Left
 selects a page without activating a background app. A foreground target is ready
 immediately; a missing or background target waits for a center tap to launch or
 activate and reopen a closed last window. Mac foreground changes preserve the selected page. This Companion release
-originally used build9; the current nine-image Home firmware deployment is recorded below. DSH, SUPER and Hermes
+originally used build9; the deployed nine-image Home firmware and the unflashed
+17-page Home faction candidate are distinguished below. DSH, SUPER and Hermes
 check for an actual application window; closing the last window returns to
 **TAP TO OPEN** on the next one-second check. A slow reopen automatically becomes
 operational when its real foreground window is ready, including after a timeout.
@@ -66,14 +67,16 @@ See the
 [control diagnosis and acceptance record](docs/CONTROL_AVAILABILITY.zh-CN.md).
 
 - Five screens: robot Home → Codex / ChatGPT → DSH → SUPER → HERMES → Home.
-- Home: nine images, with a 600ms character response after a short tap:
-  wave, fist/nod, thumbs-up, wrench, salute acknowledgement or OK. Press gives
-  immediate 3% compression; release requests one 25ms haptic. Repeat taps
-  interrupt, and up/down/right still randomly select a full-body hero.
-  The USB-mic application built from `4b1b6e9` was flashed on 2026-10-14,
-  app0 only. Application digest/protected metadata, reboot, USB input-only audio,
-  BLE HID status RPC and a short microphone capture passed. On 2026-10-14,
-  the user confirmed the deployed Home interactions normal. Quantified latency,
+- Home candidate: 17 pages (Bumblebee portrait, eight Autobots, eight Decepticons).
+  Up selects an Autobot; down selects a Decepticon; right returns to the portrait.
+  Same-faction random selection excludes the current role; cross-faction selection
+  includes all eight. Short taps retain the silent 600ms response, immediate 3%
+  compression and one 25ms haptic. This candidate has not been flashed or physically
+  accepted. The deployed nine-image USB-mic application from `4b1b6e9` was flashed
+  on 2026-10-14, app0 only. Application digest/protected metadata, reboot, USB
+  input-only audio, BLE HID status RPC and a short microphone capture passed;
+  the user confirmed its Home interactions normal. Subsequent IMU swipe-resume
+  acceptance belongs only to `df5480c` / `c83363fcc22e` above. Quantified latency,
   frame rate, motor timing and PSRAM headroom remain unmeasured.
 - DSH: the same four-triangle layout as SUPER. Up/down navigate existing
   threads in sidebar order across project boundaries; right switches Chat /
@@ -98,28 +101,39 @@ cover earlier images; the current change record documents the DSH acceptance sco
 
 Home requires matching source-built Companion and USB-mic firmware. Boot,
 reconnect and Companion startup select Home without activating a Mac app.
-Home stays selected even when the Mac foreground changes. The nine Home images are
-Bumblebee portrait (default), Bumblebee full body, Optimus Prime, Jazz, Hot Rod, Wheeljack, Hound, Ironhide and Ratchet. Touch down inside
+Home stays selected even when the Mac foreground changes. The 17-page Home candidate includes
+Bumblebee portrait (default); eight Autobots (Bumblebee full body, Optimus Prime,
+Jazz, Hot Rod, Wheeljack, Hound, Ironhide, Ratchet); and eight Decepticons (Megatron,
+Starscream, Soundwave, Shockwave, Thundercracker, Skywarp, Blitzwing, Astrotrain). Touch down inside
 x=64..402/y=64..398 for immediate 3% compression; release within
 500ms without a swipe to play a silent 600ms character response and one 25ms haptic. New taps
 interrupt the current reaction instead of being ignored. Moving outside the
 portrait area or reaching the 52px swipe threshold cancels the tap.
-Swipe up, down or right to select uniformly among the eight full-body heroes from
-the default portrait, then among the other seven full-body heroes. The portrait
-is excluded from the random pool. The same direction may be repeated and each selection gives one 40ms haptic, even
+Swipe up to select uniformly among the eight Autobots, or down among the eight
+Decepticons. Within the same faction the current role is excluded; from the
+portrait or opposite faction all eight are eligible. Right selects the Bumblebee
+portrait with no random draw. Each valid selection retains the 320ms transition
+and one 40ms haptic, even
 offline. Held motion cannot repeat. Left retains the workspace cycle. The first
 sleeping-screen touch only wakes the display. Leaving Home, sleep or power
 confirmation cancels the reaction; existing long-hold power controls remain.
 All portraits remain without a decorative boundary circle. The firmware caches
-nine idle and ten optional response RGB565 sprites in PSRAM (3,420,000 pixel bytes).
+seventeen idle RGB565 sprites and at most two response sprites for the current
+role in PSRAM (at most 19 slots / 3,420,000 pixel bytes, excluding other memory).
+Role switches evict the old response bank; repeated taps on the same role reuse
+it. New Decepticons use one response pose for 600ms with a small native transform;
+existing Autobot motion remains unchanged.
 The idle bank can use one reusable buffer; action allocation failure preserves
 the idle figure and motion without per-frame decoding. Home
 redraws only for animation or state changes. The same cached renderer drives
 native previews; build/preview results do not establish C152 response latency.
+The 17-page candidate has not been flashed or physically accepted. Asset/cache
+size and native pixels do not measure latency or power. Existing physical IMU
+acceptance belongs to `df5480c` / application hash prefix `c83363fcc22e` only.
 No speech or Mac action is requested by portrait interaction. USB microphone and
 Codex completion chime behavior are unchanged. See
 [Home hero interaction and validation](docs/HOME_HERO_INTERACTION.md).
-[Native preview of all nine responses](artifacts/robot-home-responses.png).
+[Historical native preview of the nine deployed responses](artifacts/robot-home-responses.png).
 An awake Home left swipe with a ready Companion link gives the same single
 vibration as other workspace swipes; offline left remains silent. This is gesture
 feedback, not confirmation of Mac activation.
@@ -173,9 +187,9 @@ app” behavior is replaced by this fixed cycle.
 | Left physical / right physical | No action¹ | Push to talk / Voice Chat | No action¹ | No action¹ | No action¹ |
 | Center tap | Press compression / character response + short haptic | Launch/retry when waiting; Send when active | Launch/retry when waiting; no action when active | Launch/retry when waiting; no action when active | Launch/retry when waiting; no action when active |
 | Swipe left | Select Codex | Select DSH | Select SUPER | Select HERMES | Enter Home |
-| Swipe up | Random different hero | Existing app mapping | Previous thread | Previous project | Browse previous session |
-| Swipe down | Random different hero | Existing app mapping | Next thread | Next project | Browse next session |
-| Swipe right | Random different hero | Existing app mapping | Chat / Trajectory | Next session Tab | Open owned selection; otherwise no action |
+| Swipe up | Random Autobot (exclude current in faction) | Existing app mapping | Previous thread | Previous project | Browse previous session |
+| Swipe down | Random Decepticon (exclude current in faction) | Existing app mapping | Next thread | Next project | Browse next session |
+| Swipe right | Fixed Bumblebee portrait | Existing app mapping | Chat / Trajectory | Next session Tab | Open owned selection; otherwise no action |
 | Power controls | Desk sleep / Travel Mode | Same | Same | Same | Same |
 
 ¹ Directional screens and device-side isolation require the explicitly chosen

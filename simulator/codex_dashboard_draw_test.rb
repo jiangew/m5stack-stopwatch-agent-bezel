@@ -19,7 +19,7 @@ end
 archive = Dir[File.join(repo, '.pio/build/native-preview/**/libM5GFX.a')].first
 abort 'Existing native-preview M5GFX archive required (no build/install attempted)' unless archive
 prefix = ENV.fetch('HOMEBREW_PREFIX', '/opt/homebrew')
-flags = ['clang++', '-std=c++17', "-I#{repo}/include",
+flags = ['clang++', '-std=c++17', '-fsanitize=address,undefined', "-I#{repo}/include",
   "-I#{repo}/usb-mic/.pio/libdeps/m5stack-stopwatch-usb-mic/ArduinoJson/src",
   "-I#{repo}/.pio/libdeps/m5stack-stopwatch/M5GFX/src", "-I#{prefix}/include/SDL2"]
 link = [archive, "-L#{prefix}/lib", '-lSDL2']
@@ -131,6 +131,36 @@ fixture = <<~CPP
     state.workspaceMode=Mode::Home;
     drawScreen();
     assert(!renderedHealthValid && renderedWorkspaceMode==Mode::Home);
+    // Every role reaches the actual drawScreen branch. A reference Canvas uses
+    // the requested role explicitly, so a missing role argument in firmware
+    // changes the action pixels and fails this comparison.
+    robot_home::PortraitCanvas<lgfx::LGFX_Sprite> homeReference;
+    homeReference.setColorDepth(16);assert(homeReference.createSprite(466,466));
+    homeReference.setTextWrap(false);
+    for(int role=0;role<17;++role) {
+      robotCharacters.reset();now=2000;
+      if(role>0)robotCharacters.select(role<9?touch_gesture::Direction::Up:touch_gesture::Direction::Down,
+          now-320,[role]{return static_cast<unsigned>(role<9?role-1:role-9);});
+      assert(static_cast<int>(robotCharacters.character())==role);
+      for(bool skill:{false,true}) {
+        robotAnimation.cancel();
+        if(skill){robotAnimation.press(now-200);robotAnimation.release(now-200);}
+        drawScreen();
+        robot_home::State expected;
+        expected.character=static_cast<robot_home::Character>(role);
+        expected.connected=true;expected.batteryPercent=82;
+        expected.nowMs=now;expected.mood=skill?robot_home::Mood::Skill:robot_home::Mood::Idle;
+        expected.reactionElapsedMs=skill?200:0;
+        homeReference.preparePortraits(expected.character);
+        robot_home::render(homeReference,expected);
+        assert(pixels(canvas)==pixels(homeReference));
+        const auto beforeSleep=pixels(canvas);
+        deskSleeping=true;now+=10;drawScreen();assert(pixels(canvas)==beforeSleep);
+        deskSleeping=false;now-=10;drawScreen();assert(pixels(canvas)==beforeSleep);
+        canvas.clearPortraits();drawScreen(); // same role must prepare again after explicit clear
+        assert(pixels(canvas)==pixels(homeReference));
+      }
+    }
   #endif
   }
 CPP
@@ -154,4 +184,4 @@ Dir.mktmpdir('codex-dashboard-', '/private/tmp') do |dir|
   end
   abort 'Codex pending preview differs from installed dashboard fixture' unless frames.all? { |frame| frame == frames.first }
 end
-puts 'PASS actual drawScreen: Codex active/idle/opening/error dashboard pixel equality; default + USB-mic; three directional UIs unchanged; preview equality'
+puts 'PASS actual drawScreen: Codex active/idle/opening/error dashboard pixel equality; default + USB-mic; three directional UIs unchanged; 17 Home roles/skills/sleep/clear pixels; preview equality'

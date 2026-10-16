@@ -668,7 +668,7 @@ void drawScreen() {
   // directionalWorkspaceActive() still isolates pending-state input below.
   if (directionalWorkspaceActive() && !workspace_mode::isCodex(state.workspaceMode)) {
     if (state.workspaceMode == workspace_mode::Mode::Home) {
-      canvas.preparePortraits();
+      canvas.preparePortraits(robotCharacters.character());
       robot_home::State ui;
       ui.nowMs=millis();ui.mood=robotAnimation.mood(ui.nowMs);
       homeFrameStartedMs=ui.nowMs;

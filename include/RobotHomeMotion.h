@@ -56,6 +56,28 @@ inline Motion motionFor(Character character, Mood mood, std::uint32_t elapsed) {
       motion.pose=elapsed<500?1:0;
       motion.scale+=.035f*envelope;
       break;
+    case Character::Megatron:
+    case Character::Shockwave:
+      motion.pose=1;
+      motion.scale+=.025f*envelope;
+      motion.offsetY=-1.5f*envelope;
+      break;
+    case Character::Starscream:
+    case Character::Skywarp:
+      motion.pose=1;
+      motion.angle=2*envelope;
+      break;
+    case Character::Soundwave:
+    case Character::Thundercracker:
+      motion.pose=1;
+      motion.angle=-1.5f*envelope;
+      break;
+    case Character::Blitzwing:
+    case Character::Astrotrain:
+      motion.pose=1;
+      motion.scale+=.015f*envelope;
+      motion.offsetY=-2*envelope;
+      break;
     case Character::Ratchet:
       motion.pose=elapsed<500?1:0;
       motion.angle=-1.5f*envelope;

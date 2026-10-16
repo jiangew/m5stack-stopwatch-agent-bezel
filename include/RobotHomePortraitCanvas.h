@@ -6,19 +6,27 @@
 namespace robot_home {
 // Both firmware and native preview use this canvas, so previews exercise the
 // same RGB565 cache, rotation and scale operations as the device.
-template<class Base>
+template<class Base, class Sprite = lgfx::LGFX_Sprite>
 class PortraitCanvas : public Base {
  public:
   template<class...Args> explicit PortraitCanvas(Args&&...args):Base(std::forward<Args>(args)...) {}
-  void preparePortraits() {
+  void preparePortraits(Character current = Character::Bumblebee) {
     PortraitImage images[kCharacterCount];
     for(int i=0;i<kCharacterCount;++i)images[i]=character_art::assetFor(static_cast<Character>(i));
     cache_.prepare(images,kCharacterCount);
-    PortraitImage actions[character_art::kActionCount];
-    for(std::size_t i=0;i<character_art::kActionCount;++i)actions[i]=character_art::kActions[i].image;
-    actions_.prepare(actions,character_art::kActionCount,false);
+    if(actionsPrepared_&&current==current_)return;
+    actions_.clear(); // evict the old role before allocating the new role
+    PortraitImage actions[2];
+    std::size_t count=0;
+    for(const auto& action:character_art::kActions)
+      if(action.character==current&&count<2)actions[count++]=action.image;
+    actions_.prepare(actions,count,false);
+    current_=current;actionsPrepared_=true; // remember failures too; no frame retries
   }
-  void clearPortraits() {actions_.clear();cache_.clear();}
+  void clearPortraits() {
+    actions_.clear();cache_.clear();
+    current_=Character::Bumblebee;actionsPrepared_=false;
+  }
   void drawPortrait(const std::uint8_t* bytes,std::uint32_t size,float cx,float cy,float scale,float angle) {
     std::int32_t x,y,w,h;
     this->getClipRect(&x,&y,&w,&h);
@@ -40,7 +48,9 @@ class PortraitCanvas : public Base {
     this->setClipRect(x,y,w,h);
   }
  private:
-  PortraitCache<lgfx::LGFX_Sprite> cache_;
-  PortraitCache<lgfx::LGFX_Sprite,character_art::kActionCount> actions_;
+  PortraitCache<Sprite,kCharacterCount> cache_;
+  PortraitCache<Sprite,2> actions_;
+  Character current_=Character::Bumblebee;
+  bool actionsPrepared_=false;
 };
 }

@@ -118,7 +118,9 @@ super_workspace::State superPreviewState(const char* scenario) {
 bool validScenario(const char* scenario) {
   for (const char* base : {"home","home-bumblebee","home-bumblebeefullbody",
                            "home-optimus","home-jazz","home-hotrod","home-wheeljack","home-hound",
-                           "home-ironhide","home-ratchet"})
+                           "home-ironhide","home-ratchet","home-megatron","home-starscream",
+                           "home-soundwave","home-shockwave","home-thundercracker","home-skywarp",
+                           "home-blitzwing","home-astrotrain"})
     for (const char* suffix : {"","-press","-skill","-transition"})
       if (std::string(scenario)==std::string(base)+suffix) return true;
   for (const char* name : {"home-offline","home-charging","home-unknown","home-low","home-power-hold"})
@@ -178,11 +180,12 @@ bool writeHomeSequence(const char* directory) {
   robot_home::PortraitCanvas<lgfx::LGFX_Sprite> frame;
   frame.setColorDepth(16);
   if(!frame.createSprite(466,466))return false;
-  frame.setTextWrap(false);frame.preparePortraits();
-  const char* names[]={"bumblebee","bumblebeefullbody","optimus","jazz","hotrod","wheeljack","hound","ironhide","ratchet"};
+  frame.setTextWrap(false);
+  const char* names[]={"bumblebee","bumblebeefullbody","optimus","jazz","hotrod","wheeljack","hound","ironhide","ratchet","megatron","starscream","soundwave","shockwave","thundercracker","skywarp","blitzwing","astrotrain"};
   for(int hero=0;hero<robot_home::kCharacterCount;++hero)for(int i=0;i<54;++i) {
     robot_home::State state;state.character=static_cast<robot_home::Character>(hero);
     state.connected=true;state.batteryPercent=82;
+    frame.preparePortraits(state.character);
     if(i>=12&&i<15) {state.mood=robot_home::Mood::Press;state.reactionElapsedMs=(i-12)*1000/30;}
     if(i>=15&&i<33) {state.mood=robot_home::Mood::Skill;state.reactionElapsedMs=(i-15)*1000/30;}
     robot_home::render(frame,state);
@@ -198,7 +201,6 @@ bool writeImuSequence(const char* directory) {
   robot_home::PortraitCanvas<lgfx::LGFX_Sprite> frame;
   frame.setColorDepth(16);
   if(!frame.createSprite(466,466))return false;
-  frame.preparePortraits();
   robot_home::imu::Detector detector;
   robot_home::Animation animation;
   unsigned index=0;
@@ -215,6 +217,7 @@ bool writeImuSequence(const char* directory) {
     if(ms%40)continue;
     robot_home::State state;state.connected=true;state.batteryPercent=82;
     state.character=robot_home::Character::BumblebeeFullbody;
+    frame.preparePortraits(state.character);
     state.imuPose=result.pose;state.mood=animation.mood(ms);
     state.reactionElapsedMs=animation.elapsed(ms);
     robot_home::render(frame,state);
@@ -259,6 +262,14 @@ int main(int argc, char** argv) {
     if(std::strncmp(scenario,"home-hound",10)==0)state.character=robot_home::Character::Hound;
     if(std::strncmp(scenario,"home-ironhide",13)==0)state.character=robot_home::Character::Ironhide;
     if(std::strncmp(scenario,"home-ratchet",12)==0)state.character=robot_home::Character::Ratchet;
+    if(std::strncmp(scenario,"home-megatron",13)==0)state.character=robot_home::Character::Megatron;
+    if(std::strncmp(scenario,"home-starscream",15)==0)state.character=robot_home::Character::Starscream;
+    if(std::strncmp(scenario,"home-soundwave",14)==0)state.character=robot_home::Character::Soundwave;
+    if(std::strncmp(scenario,"home-shockwave",14)==0)state.character=robot_home::Character::Shockwave;
+    if(std::strncmp(scenario,"home-thundercracker",19)==0)state.character=robot_home::Character::Thundercracker;
+    if(std::strncmp(scenario,"home-skywarp",12)==0)state.character=robot_home::Character::Skywarp;
+    if(std::strncmp(scenario,"home-blitzwing",14)==0)state.character=robot_home::Character::Blitzwing;
+    if(std::strncmp(scenario,"home-astrotrain",15)==0)state.character=robot_home::Character::Astrotrain;
     if(std::strstr(scenario,"-transition")!=nullptr)state.transitionProgress=0.5f;
     const std::uint32_t elapsed = argc > 3 ? std::strtoul(argv[3], nullptr, 10) : 100;
     robot_home::Animation animation;
@@ -268,7 +279,7 @@ int main(int argc, char** argv) {
     state.nowMs=start+elapsed;
     state.mood=animation.mood(state.nowMs);
     state.reactionElapsedMs=animation.elapsed(state.nowMs);
-    framebuffer.preparePortraits();
+    framebuffer.preparePortraits(state.character);
     if(std::strcmp(scenario,"home-offline")==0)state.connected=false;
     if(std::strcmp(scenario,"home-charging")==0)state.charging=true;
     if(std::strcmp(scenario,"home-unknown")==0)state.batteryPercent=-1;
