@@ -35,7 +35,7 @@ int main() {
   assert(t.last.event==Event::Pickup&&t.pickups==1);
   assert(t.last.since==start&&t.now-start==60);
   t.feed({0,.5f,.8660254f,25,0,0},400);
-  assert(t.last.phase==Phase::Held&&t.last.pose.angle>3);
+  assert(t.last.phase==Phase::Held&&t.last.pose.y>3);
   assert(std::fabs(t.last.pose.angle)<=8&&std::fabs(t.last.pose.x)<=10&&std::fabs(t.last.pose.y)<=8);
   t.feed({0,.5f,.8660254f,0,0,0},1400);
   assert(t.settles==0);
@@ -50,7 +50,7 @@ int main() {
     float roll=i*.003f;
     gentle.feed({0,std::sin(roll),std::cos(roll),5,0,0},20);
   }
-  assert(gentle.pickups==1&&gentle.last.pose.angle>0); // slow tilt has no >18 dps impulse
+  assert(gentle.pickups==1&&gentle.last.pose.y>0); // slow forward/back tilt has no >18 dps impulse
   // Rotation qualifies even when accelerometer magnitude stays at 1 g.
   slow.feed({0,.3f,.953939f,22,0,0},80);
   assert(slow.pickups==1);
@@ -77,5 +77,13 @@ int main() {
   Trace wrap;wrap.now=0xfffff800u;wrap.ready();
   wrap.feed({0,0,1.2f,0,0,0},80);assert(wrap.pickups==1);
   wrap.feed({},1800);assert(wrap.settles==1);
+  // In upright handheld use, screen-left/right banking changes X gravity.
+  // It must rotate the portrait in opposite directions, not move it up/down.
+  Trace upright;upright.feed({0,1,0,0,0,0},1600);
+  upright.feed({0,1.15f,0,0,0,30},80);
+  auto left=upright.feed({.5f,.8660254f,0,0,0,30},400).pose;
+  auto right=upright.feed({-.5f,.8660254f,0,0,0,-30},400).pose;
+  assert(left.angle< -3&&left.x<0&&right.angle>3&&right.x>0);
+  assert(std::fabs(left.y)<1&&std::fabs(right.y)<1);
   std::puts("IMU synthetic traces passed: 600s desk noise, 30 knocks, pickup 60ms qualification; not physical measurements");
 }
