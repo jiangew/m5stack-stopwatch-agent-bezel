@@ -122,6 +122,12 @@ bool robotImuComboPending=false, robotImuComboConsumed=false;
 uint32_t robotImuSampleAt=0, robotImuComboAt=0, robotImuQuietAt=0;
 uint64_t robotImuReadTotalUs=0;
 bool robotImuQuiet=false;
+robot_home::imu::Detector robotImuSwipeSnapshot;
+bool robotImuSwipeCaptured=false, robotImuSwipeAuthorized=false;
+
+void revokeRobotImuSwipeResume() {
+  robotImuSwipeCaptured=false;robotImuSwipeAuthorized=false;
+}
 #endif
 void stopRobotReaction() {
   robotAnimation.cancel();
@@ -221,7 +227,9 @@ void enterDeskSleep(bool allowImuWake = false) {
   stopHaptic();
 #if defined(CODEX_STOPWATCH_HOME_IMU)
   robotImuWakeAllowed=allowImuWake&&robotImuEnabled&&state.workspaceMode==workspace_mode::Mode::Home;
-  if(!robotImuWakeAllowed)robotImu.reset();
+  if(!robotImuWakeAllowed) {
+    revokeRobotImuSwipeResume();robotImu.reset();
+  }
 #else
   (void)allowImuWake;
 #endif
@@ -401,6 +409,10 @@ void updateRobotImu() {
   } else {robotImuComboPending=false;robotImuComboConsumed=false;}
   t.now=now;t.enabled=robotImuEnabled;t.available=M5.Imu.isEnabled();
   t.sleeping=deskSleeping;t.brightness=appliedBrightness;
+  if(!home||overlay||!robotImuEnabled||!t.available||
+      M5.BtnA.isPressed()||M5.BtnB.isPressed()||powerButtonPressed||
+      powerButtonGesture.pendingClick()||(deskSleeping&&!robotImuWakeAllowed))
+    revokeRobotImuSwipeResume();
   if(touchTracking||M5.Touch.getDetail().isPressed()||hapticActive||
       M5.BtnA.isPressed()||M5.BtnB.isPressed()||powerButtonPressed) {
     robotImuQuiet=true;robotImuQuietAt=now;
@@ -429,11 +441,16 @@ void updateRobotImu() {
   t.readMeanUs=robotImuReadTotalUs/t.samples;
   if((mask&(m5::IMU_Class::sensor_mask_accel|m5::IMU_Class::sensor_mask_gyro))!=
       (m5::IMU_Class::sensor_mask_accel|m5::IMU_Class::sensor_mask_gyro)) {
-    ++t.errors;robotImu.reset();robotImuPose={};
+    ++t.errors;revokeRobotImuSwipeResume();robotImu.reset();robotImuPose={};
     t.phase=robot_home::imu::Phase::Calibrating;t.pose=robotImuPose;
     codex.setImuTelemetry(t);return;
   }
   t.sample={data.accel.x,data.accel.y,data.accel.z,data.gyro.x,data.gyro.y,data.gyro.z};
+  if(robotImuSwipeAuthorized) {
+    robotImu=robotImuSwipeSnapshot;
+    robotImu.resumeFresh();
+  }
+  revokeRobotImuSwipeResume(); // consume once, including a bad fresh sample
   const auto result=robotImu.update(t.sample,now);
   t.phase=result.phase;
   robotImuPose=result.pose;
@@ -780,6 +797,24 @@ void clearTouchCandidate() {
 }
 
 void beginTouchGesture(int x, int y) {
+#if defined(CODEX_STOPWATCH_HOME_IMU)
+  // Capture before the press draw and before input suppression resets Detector.
+  const bool canResume=state.workspaceMode==workspace_mode::Mode::Home&&
+      !deskSleeping&&powerOverlay==dashboard::PowerOverlay::None&&
+      robotImuEnabled&&M5.Imu.isEnabled()&&!M5.BtnA.isPressed()&&
+      !M5.BtnB.isPressed()&&!powerButtonPressed&&!powerButtonGesture.pendingClick();
+  const bool carry=canResume&&robotImuSwipeAuthorized&&robotImuQuiet;
+  if(!carry) {
+    revokeRobotImuSwipeResume();
+    if(canResume&&!robotImuQuiet&&!hapticActive&&robotImuSampleAt&&
+        millis()-robotImuSampleAt<=robot_home::imu::Detector::kMaxGapMs&&
+        robotImu.result().phase!=robot_home::imu::Phase::Calibrating) {
+      robotImuSwipeSnapshot=robotImu;robotImuSwipeCaptured=true;
+    }
+  }
+  // A chained touch must earn its own local-character confirmation.
+  robotImuSwipeAuthorized=false;
+#endif
   touchTracking = true;
   touchStartX = static_cast<int16_t>(x);
   touchStartY = static_cast<int16_t>(y);
@@ -875,12 +910,18 @@ void updateTouchGesture(int x, int y) {
       case touch_gesture::Direction::Right:
         stopRobotReaction();
         robotCharacters.select(direction,millis(), [] {return esp_random();});
+#if defined(CODEX_STOPWATCH_HOME_IMU)
+        robotImuSwipeAuthorized=robotImuSwipeCaptured;
+#endif
         startHaptic(kSwipeHapticIntensity, kSwipeHapticDurationMs);
         activeSwipe=touch_gesture::Direction::None;
         touchTracking=false;
         drawScreen();
         break;
       case touch_gesture::Direction::Left:
+#if defined(CODEX_STOPWATCH_HOME_IMU)
+        revokeRobotImuSwipeResume();
+#endif
         stopRobotReaction();
         if(state.workspaceHostReady) {
           sendSwipePress(direction);
@@ -907,6 +948,9 @@ void finishTouchGesture(int x, int y) {
   (void)x; (void)y;
 #endif
   if (!touchTracking) return;
+#if defined(CODEX_STOPWATCH_HOME_IMU)
+  revokeRobotImuSwipeResume(); // accepted character swipes already ended tracking
+#endif
   touchTracking = false;
 
   if (touchPowerHoldConsumed) {
@@ -985,6 +1029,9 @@ void updateTouchPowerHold() {
     touchSendPressed = false;  // releasing now must not emit Send
 #if defined(CODEX_STOPWATCH_USB_MIC)
     touchPowerHoldCandidate = false;
+#endif
+#if defined(CODEX_STOPWATCH_HOME_IMU)
+    revokeRobotImuSwipeResume();
 #endif
     powerOverlay = dashboard::PowerOverlay::HoldToPowerOff;
     lastPowerOverlayDrawMs = 0;
@@ -1159,7 +1206,7 @@ void handleWorkspaceModeTransition(workspace_mode::Mode previous,
   touchPowerHoldConsumed = false;
   stopRobotReaction();
 #if defined(CODEX_STOPWATCH_HOME_IMU)
-  robotImu.reset();robotImuPose={};robotImuSampleAt=0;
+  revokeRobotImuSwipeResume();robotImu.reset();robotImuPose={};robotImuSampleAt=0;
   robotImuWakeAllowed=false;
 #endif
   if(previous==workspace_mode::Mode::Home &&
@@ -1218,6 +1265,9 @@ void handleWorkspaceModeTransition(workspace_mode::Mode previous,
 }
 
 void beginPowerButtonPress() {
+#if defined(CODEX_STOPWATCH_HOME_IMU)
+  revokeRobotImuSwipeResume();
+#endif
   powerButtonPressed = true;
   powerButtonWokeDisplay = deskSleeping;
   lastActivityMs = millis();

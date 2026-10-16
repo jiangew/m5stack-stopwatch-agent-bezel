@@ -66,6 +66,12 @@ class Detector {
     previous_=s;last_=now;
     return result_;
   }
+  // A caller-authorized input pause preserves calibration, but no sample or
+  // qualifying timer spans the pause. update() still validates the fresh seed.
+  void resumeFresh() {
+    result_.event=Event::None;result_.since=0;
+    valid_=false;motionPending_=false;stillPending_=false;
+  }
   void reset() {
     result_={};valid_=false;motionPending_=false;stillPending_=false;
   }

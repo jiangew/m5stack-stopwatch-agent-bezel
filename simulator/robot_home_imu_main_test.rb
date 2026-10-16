@@ -17,6 +17,7 @@ selection_last=source.index(';',source.index('  const bool robotFrame=',selectio
 selection=source[selection_first...selection_last]
 draw=extract(source,'void drawScreen() {')
 presentation=extract(draw[draw.index('  lastDrawMs = millis();')..],'if (state.workspaceMode == workspace_mode::Mode::Home) {')
+globals=source[source.index('robot_home::imu::Detector robotImu;')...source.index('#endif',source.index('robot_home::imu::Detector robotImu;'))]
 fixture=<<~CPP
   #include <cassert>
   #include <cmath>
@@ -41,13 +42,8 @@ fixture=<<~CPP
   void setPanelRail(bool){}void setPanelReset(bool){}
   struct {void println(const char*){}} Serial;
   power_button_gesture::Detector powerButtonGesture(500);
-  robot_home::imu::Detector robotImu;
-  robot_home::imu::Pose robotImuPose,robotImuRenderedPose;
-  robot_home::imu::Telemetry robotImuTelemetry;
-  bool robotImuEnabled=true,robotImuWakeAllowed=false,robotImuEventPending=false,robotImuPosePending=false;
-  bool robotImuComboPending=false,robotImuComboConsumed=false,robotImuQuiet=false,robotInputDirty=false;
-  unsigned robotImuSampleAt=0,robotImuComboAt=0,robotImuQuietAt=0;
-  std::uint64_t robotImuReadTotalUs=0;
+  #{globals}
+  bool robotInputDirty=false;
   robot_home::Animation robotAnimation;
   robot_home::FrameClock robotFrames;
   struct {float transitionProgress(unsigned){return 1;}} robotCharacters;
