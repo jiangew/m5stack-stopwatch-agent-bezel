@@ -12,7 +12,7 @@ struct Pose { float angle=0, x=0, y=0, scale=1; };
 struct Result { Event event=Event::None; Phase phase=Phase::Calibrating; Pose pose; std::uint32_t since=0; };
 class Detector {
  public:
-  static constexpr std::uint32_t kMotionMs=60, kStillMs=1500, kMaxGapMs=120;
+  static constexpr std::uint32_t kMotionMs=60, kCalibrationMs=1500, kStillMs=600, kMaxGapMs=120;
   Result update(const Sample& s, std::uint32_t now) {
     const float a=norm(s.ax,s.ay,s.az), g=norm(s.gx,s.gy,s.gz);
     if(!std::isfinite(a)||!std::isfinite(g)||a<.5f||a>2.0f||g>1000) {
@@ -26,7 +26,8 @@ class Detector {
     }
     const float delta=norm(s.ax-previous_.ax,s.ay-previous_.ay,s.az-previous_.az);
     const bool still=std::fabs(a-1)<.04f&&g<4&&delta<.025f;
-    fx_+=.2f*(s.ax-fx_);fy_+=.2f*(s.ay-fy_);fz_+=.2f*(s.az-fz_);
+    const float alpha=1.0f-std::exp(-static_cast<float>(static_cast<std::uint32_t>(now-last_))/60.0f);
+    fx_+=alpha*(s.ax-fx_);fy_+=alpha*(s.ay-fy_);fz_+=alpha*(s.az-fz_);
     const float roll=std::atan2(fy_,fz_)*57.2957795f;
     const float pitch=std::atan2(-fx_,std::sqrt(fy_*fy_+fz_*fz_))*57.2957795f;
     const bool orientationShift=result_.phase==Phase::Resting&&
@@ -44,7 +45,8 @@ class Detector {
     if(result_.phase!=Phase::Resting) {
       if(still) {
         if(!stillPending_) {stillPending_=true;stillAt_=now;}
-        if(static_cast<std::uint32_t>(now-stillAt_)>=kStillMs) {
+        const auto stillDuration=result_.phase==Phase::Calibrating?kCalibrationMs:kStillMs;
+        if(static_cast<std::uint32_t>(now-stillAt_)>=stillDuration) {
           if(result_.phase==Phase::Held) {result_.event=Event::Settled;result_.since=stillAt_;}
           result_.phase=Phase::Resting;neutralRoll_=roll;neutralPitch_=pitch;
           stillPending_=false;

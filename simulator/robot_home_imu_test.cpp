@@ -37,7 +37,7 @@ int main() {
   t.feed({0,.5f,.8660254f,25,0,0},400);
   assert(t.last.phase==Phase::Held&&t.last.pose.angle>3);
   assert(std::fabs(t.last.pose.angle)<=8&&std::fabs(t.last.pose.x)<=10&&std::fabs(t.last.pose.y)<=8);
-  t.feed({0,.5f,.8660254f,0,0,0},1400);
+  t.feed({0,.5f,.8660254f,0,0,0},580);
   assert(t.settles==0);
   t.feed({0,.5f,.8660254f,0,0,0},200);
   assert(t.settles==1&&t.last.phase==Phase::Resting);
@@ -54,10 +54,10 @@ int main() {
   // Rotation qualifies even when accelerometer magnitude stays at 1 g.
   slow.feed({0,.3f,.953939f,22,0,0},80);
   assert(slow.pickups==1);
-  slow.feed({0,0,1,0,0,0},1000);
+  slow.feed({0,0,1,0,0,0},400);
   slow.feed({0,0,1,10,0,0},20); // interrupted stillness must restart dwell
-  slow.feed({},1000);assert(slow.settles==0);
-  slow.feed({},600);assert(slow.settles==1);
+  slow.feed({},580);assert(slow.settles==0);
+  slow.feed({},40);assert(slow.settles==1);
 
   Trace invalid;invalid.ready();
   invalid.feed({0,0,1.2f,0,0,0},40);

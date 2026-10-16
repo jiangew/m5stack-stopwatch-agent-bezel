@@ -11,6 +11,9 @@ class FrameClock {
     return !valid_ || changed || (animated_ && !animated) ||
            (animated && static_cast<std::uint32_t>(now - last_) >= 34);
   }
+  bool motionDue(std::uint32_t now, bool changed) const {
+    return changed && (!valid_ || static_cast<std::uint32_t>(now-last_) >= 34);
+  }
   void presented(std::uint32_t now, bool animated) {
     last_ = now; animated_ = animated; valid_ = true;
   }

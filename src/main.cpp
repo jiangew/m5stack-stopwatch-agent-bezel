@@ -1578,7 +1578,7 @@ void loop() {
       powerOverlay==dashboard::PowerOverlay::None;
   bool imuFrameDue=false;
 #if defined(CODEX_STOPWATCH_HOME_IMU)
-  imuFrameDue=robotNow-lastDrawMs>=34&&imuPoseChanged(robotImuPose,robotImuRenderedPose);
+  imuFrameDue=robotFrames.motionDue(robotNow,imuPoseChanged(robotImuPose,robotImuRenderedPose));
 #endif
   const bool robotFrame=robotFrames.due(robotNow,homeVisible,
       robotAnimation.active(robotNow) || robotCharacters.transitionProgress(robotNow)<1.0f,

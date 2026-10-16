@@ -12,10 +12,15 @@ def extract(source,signature)
   end
   source[first...last]
 end
+selection_first=source.index('  bool imuFrameDue=false;') or abort 'missing IMU frame selection'
+selection_last=source.index(';',source.index('  const bool robotFrame=',selection_first))+1
+selection=source[selection_first...selection_last]
 fixture=<<~CPP
   #include <cassert>
   #include <cmath>
   #include <algorithm>
+  #define CODEX_STOPWATCH_HOME_IMU 1
+  #include "RobotHomeFrame.h"
   #include "RobotHomeImuTelemetry.h"
   #include "RobotHomeInteraction.h"
   #include "PowerButtonGesture.h"
@@ -36,6 +41,10 @@ fixture=<<~CPP
   unsigned robotImuSampleAt=0,robotImuComboAt=0,robotImuQuietAt=0;
   std::uint64_t robotImuReadTotalUs=0;
   robot_home::Animation robotAnimation;
+  robot_home::FrameClock robotFrames;
+  struct {float transitionProgress(unsigned){return 1;}} robotCharacters;
+  unsigned lastDrawMs=0;
+  bool derivedStateChanged=false,shouldRedraw=false;
   struct Button {bool pressed=false;bool isPressed(){return pressed;}};
   struct Triple {float x=0,y=0,z=0;};
   struct Imu {
@@ -51,11 +60,33 @@ fixture=<<~CPP
   unsigned wakes=0;bool noteActivity(){++wakes;deskSleeping=false;lastActivityMs=now;return true;}
   #{extract(source,'bool imuPoseChanged(')}
   #{extract(source,'void updateRobotImu()')}
+  bool frameDue(unsigned robotNow,bool homeVisible=true) {
+    #{selection}
+    return robotFrame;
+  }
   void feed(robot_home::imu::Sample s={},unsigned duration=20) {
     M5.Imu.data.accel={s.ax,s.ay,s.az};M5.Imu.data.gyro={s.gx,s.gy,s.gz};
     for(unsigned i=0;i<duration;i+=20){now+=20;updateRobotImu();}
   }
   int main(){
+    // Catch post-transfer waiting in the actual main-loop selection.
+    robotFrames.presented(130,false);lastDrawMs=195;
+    robotImuPose.angle=1;
+    assert(frameDue(200)); // 65ms rendering already consumed the cadence
+    robotImuRenderedPose=robotImuPose;assert(!frameDue(201));
+    robotFrames.presented(300,false);lastDrawMs=305;robotImuPose.angle=2;
+    assert(!frameDue(333));assert(frameDue(334));
+    robotFrames.presented(0xfffffff0u,false);lastDrawMs=0xfffffff5u;
+    assert(!frameDue(17));assert(frameDue(18));
+    assert(!frameDue(19,false)); // hidden Home does not render
+    assert(frameDue(20)); // first visible frame after invalidation
+    robotFrames.presented(400,false);robotImuRenderedPose=robotImuPose;
+    robotInputDirty=true;assert(frameDue(401));robotInputDirty=false;
+    derivedStateChanged=true;assert(frameDue(401));derivedStateChanged=false;
+    shouldRedraw=true;assert(frameDue(401));shouldRedraw=false;
+    robotFrames.presented(400,true);assert(frameDue(401)); // final animation frame
+    robotImuPose={};robotImuRenderedPose={};
+
     feed({},1600);assert(robotImuTelemetry.phase==robot_home::imu::Phase::Resting);
     auto resting=robotImuPose;
     M5.BtnA.pressed=true;feed({},100); // physical chord edges are staggered
@@ -102,4 +133,4 @@ Dir.mktmpdir('home-imu-main-') do |dir|
   system('clang++','-std=c++17','-I'+File.join(repo,'include'),file,'-o',binary) or abort 'compile failed'
   system(binary) or abort 'actual main IMU policy regression failed'
 end
-puts 'PASS actual IMU adapter: staggered A/B chord, swallowed physical touch, quiet interval, workspace/power boundaries and sensor availability'
+puts 'PASS actual IMU adapter: render-start cadence, unchanged/fast/wrapped/hidden frames, priority bypass; staggered A/B chord, swallowed physical touch, quiet interval, workspace/power boundaries and sensor availability'
