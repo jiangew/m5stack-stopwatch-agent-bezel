@@ -207,7 +207,7 @@ bool writeImuSequence(const char* directory) {
     if(ms>=2000&&ms<2160)sample.az=1.16f;
     if(ms>=2160&&ms<4800) {
       const float roll=std::sin((ms-2160)/2640.0f*6.2831853f)*.6f;
-      sample.ax=std::sin(roll);sample.az=std::cos(roll);sample.gy=30;
+      sample.ay=std::sin(roll);sample.az=std::cos(roll);sample.gx=30;
     }
     const auto result=detector.update(sample,ms);
     if(result.event==robot_home::imu::Event::Pickup)animation.cancel();

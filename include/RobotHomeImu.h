@@ -55,11 +55,9 @@ class Detector {
     if(result_.phase==Phase::Held) {
       const float r=deadzone(wrapped(roll-neutralRoll_));
       const float p=deadzone(wrapped(pitch-neutralPitch_));
-      // X gravity changes when the display banks left/right, including
-      // upright holding. Y/Z roll controls the small fore/aft displacement.
-      result_.pose.angle=bound(p*.27f,8);
-      result_.pose.x=bound(p*.33f,10);
-      result_.pose.y=bound(r*.27f,8);
+      result_.pose.angle=bound(r*.27f,8);
+      result_.pose.x=bound(r*.33f,10);
+      result_.pose.y=bound(p*.27f,8);
     } else if(result_.phase==Phase::Resting) {
       result_.pose.scale=.95f;result_.pose.y=4;
     }
