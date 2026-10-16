@@ -444,10 +444,11 @@ void updateRobotImu() {
   if(result.event!=robot_home::imu::Event::None) {
     t.event=result.event;t.eventAt=now;t.qualifyingAt=result.since;
     robotImuEventPending=true;t.eventFrameMs=0;
+    // A synchronous wake draw can consume this event's pending frame.
+    robotInputDirty=true;
     if(result.event==robot_home::imu::Event::Pickup) {
       ++t.pickups;robotAnimation.cancel();noteActivity();
     } else {++t.settles;robotAnimation.cancel();}
-    robotInputDirty=true;
   }
   if(result.phase==robot_home::imu::Phase::Held)lastActivityMs=now;
   if(!robotImuPosePending&&imuPoseChanged(robotImuPose,robotImuRenderedPose)) {

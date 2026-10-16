@@ -15,11 +15,14 @@ end
 selection_first=source.index('  bool imuFrameDue=false;') or abort 'missing IMU frame selection'
 selection_last=source.index(';',source.index('  const bool robotFrame=',selection_first))+1
 selection=source[selection_first...selection_last]
+draw=extract(source,'void drawScreen() {')
+presentation=extract(draw[draw.index('  lastDrawMs = millis();')..],'if (state.workspaceMode == workspace_mode::Mode::Home) {')
 fixture=<<~CPP
   #include <cassert>
   #include <cmath>
   #include <algorithm>
   #define CODEX_STOPWATCH_HOME_IMU 1
+  #define CODEX_STOPWATCH_USB_MIC 1
   #include "RobotHomeFrame.h"
   #include "RobotHomeImuTelemetry.h"
   #include "RobotHomeInteraction.h"
@@ -31,7 +34,12 @@ fixture=<<~CPP
   struct {workspace_mode::Mode workspaceMode=workspace_mode::Mode::Home;} state;
   dashboard::PowerOverlay powerOverlay=dashboard::PowerOverlay::None;
   bool deskSleeping=false,touchTracking=false,hapticActive=false,powerButtonPressed=false;
-  unsigned char appliedBrightness=128;
+  constexpr unsigned char kActiveBrightness=128;
+  unsigned char appliedBrightness=kActiveBrightness;
+  bool displayRailOff=false,pendingPowerClickWokeDisplay=false;
+  void delay(unsigned duration){now+=duration;}
+  void setPanelRail(bool){}void setPanelReset(bool){}
+  struct {void println(const char*){}} Serial;
   power_button_gesture::Detector powerButtonGesture(500);
   robot_home::imu::Detector robotImu;
   robot_home::imu::Pose robotImuPose,robotImuRenderedPose;
@@ -55,9 +63,25 @@ fixture=<<~CPP
     Data getImuData(){return data;}
   };
   struct Touch {bool pressed=false;Touch& getDetail(){return *this;}bool isPressed(){return pressed;}};
-  struct {Button BtnA,BtnB;Imu Imu;Touch Touch;} M5;
+  struct Display {
+    struct Panel {bool init(bool){return true;}} panel;
+    Panel* getPanel(){return &panel;}
+    void setRotation(int){}void setTextWrap(bool){}void setBrightness(unsigned char){}
+  };
+  struct {Button BtnA,BtnB;Imu Imu;Touch Touch;Display Display;} M5;
   struct {void setImuTelemetry(const robot_home::imu::Telemetry&) {}} codex;
-  unsigned wakes=0;bool noteActivity(){++wakes;deskSleeping=false;lastActivityMs=now;return true;}
+  unsigned presentedFrames=0;
+  void drawScreen(){
+    if(deskSleeping)return;
+    const auto homeFrameStartedMs=now;
+    const bool homeFrameAnimated=robotAnimation.active(now);
+    // Model only raster/transfer cost at the hardware boundary. Presentation
+    // bookkeeping below, noteActivity and wakeDeskSleep are actual main code.
+    now+=65;++presentedFrames;lastDrawMs=millis();
+    #{presentation}
+  }
+  #{extract(source,'void wakeDeskSleep()')}
+  #{extract(source,'bool noteActivity()')}
   #{extract(source,'bool imuPoseChanged(')}
   #{extract(source,'void updateRobotImu()')}
   bool frameDue(unsigned robotNow,bool homeVisible=true) {
@@ -109,16 +133,32 @@ fixture=<<~CPP
     M5.Touch.pressed=false;feed({},200);
     assert(robotImuTelemetry.samples==beforeTouch);
     feed({},1800);
+    drawScreen();const auto framesBeforeAwakePickup=presentedFrames;
     feed({0,0,1.2f,0,0,0},80);
-    assert(robotImuTelemetry.pickups==1&&wakes==1);
+    assert(robotImuTelemetry.pickups==1&&presentedFrames==framesBeforeAwakePickup);
+    assert(robotInputDirty&&frameDue(now)); // awake pickup still needs its frame
+    drawScreen();assert(!robotInputDirty&&!frameDue(now));
     feed({},1800);assert(robotImuTelemetry.settles==1);
     state.workspaceMode=workspace_mode::Mode::Codex;auto previous=robotImuTelemetry.samples;
-    feed({0,0,1.2f,30,0,0},200);assert(robotImuTelemetry.samples==previous&&wakes==1);
+    feed({0,0,1.2f,30,0,0},200);assert(robotImuTelemetry.samples==previous&&robotImuTelemetry.pickups==1);
     state.workspaceMode=workspace_mode::Mode::Home;feed({},1800);
     deskSleeping=true;robotImuWakeAllowed=false;previous=robotImuTelemetry.samples;
     feed({0,0,1.2f,30,0,0},200);assert(robotImuTelemetry.samples==previous&&deskSleeping);
     deskSleeping=false;feed({},1800);deskSleeping=true;robotImuWakeAllowed=true;
-    feed({0,0,1.2f,0,0,0},80);assert(!deskSleeping&&wakes==2);
+    const auto framesBeforeWake=presentedFrames;
+    feed({0,0,1.2f,0,0,0},80);
+    assert(!deskSleeping&&robotImuTelemetry.pickups==2);
+    assert(!robotImuEventPending&&robotImuTelemetry.eventFrameMs==65);
+    if(frameDue(now))drawScreen(); // execute actual outer selection after wake
+    assert(presentedFrames==framesBeforeWake+1&&"pickup wake must present only one frame");
+    assert(!robotInputDirty&&!imuPoseChanged(robotImuPose,robotImuRenderedPose));
+    now+=8; // existing main-loop delay after the one synchronous wake render
+    M5.Imu.data.accel={0,.173648f,.984808f};M5.Imu.data.gyro={25,0,0};
+    const auto wakeSampleGap=now-robotImuSampleAt;
+    updateRobotImu();
+    assert(wakeSampleGap==73&&robotImuTelemetry.phase==robot_home::imu::Phase::Held);
+    assert(robotImuPose.angle>0&&robotImuPose.x>0&&frameDue(now));
+    drawScreen();assert(!frameDue(now)); // continued tilt is presented once
     powerButtonGesture.release(now);previous=robotImuTelemetry.samples;
     feed({0,0,1.2f,30,0,0},100);assert(robotImuTelemetry.samples==previous);
     powerButtonGesture.cancel();powerOverlay=dashboard::PowerOverlay::Hold;
@@ -133,4 +173,4 @@ Dir.mktmpdir('home-imu-main-') do |dir|
   system('clang++','-std=c++17','-I'+File.join(repo,'include'),file,'-o',binary) or abort 'compile failed'
   system(binary) or abort 'actual main IMU policy regression failed'
 end
-puts 'PASS actual IMU adapter: render-start cadence, unchanged/fast/wrapped/hidden frames, priority bypass; staggered A/B chord, swallowed physical touch, quiet interval, workspace/power boundaries and sensor availability'
+puts 'PASS actual IMU adapter: render-start cadence, unchanged/fast/wrapped/hidden frames, priority bypass; one 65ms synchronous pickup-wake frame, Held at next 73ms sample and positive tilt; awake pickup redraw; staggered A/B chord, swallowed physical touch, quiet interval, workspace/power boundaries and sensor availability'
