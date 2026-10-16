@@ -6,7 +6,7 @@
 
 实测指引为三组上滑／下滑并点击、右滑两次回头像、换角色松手后立即左右倾斜及最后放稳；用户反馈“均正常，跟随可以接受”，未另报精确动作分母。只在起止读取诊断，期间新增12723次采样、6次拿起、3次放稳、720帧，传感器读取错误保持0。计数包含测试窗口内全部活动，不能据此推导命中率或误触率；65ms帧提交字段也不是物理起始延迟。本版未做静置复测、物理时延分布或外部功耗实测。原始证据及当前部署状态分别保存在ignored的`artifacts/home-factions/flash-20261016/`和`artifacts/home-factions/selected-candidate.json`；上一版`c83363fcc22e`回滚镜像保留。
 
-2026-10-17清晰度修复版：原仿射BICUBIC采样在约4.5倍缩小时产生细线混叠；改为同一源框及姿态配准的LANCZOS抗锯齿缩放，保留原图、几何、JPEG参数和全部运行时交互。源码`24676b8`，应用2640144字节，SHA-256为`298f1c7b3ef49753644445615327c44e06402b5f4a8e21b1bd5c82616b194dd5`。用户确认准确目标后仅写app0，独立ROM摘要校验及前64KiB逐字节核对通过，已看门狗复位；HID／IMU恢复、读取错误0，USB麦克风3.008秒／144384帧短采集通过，临时录音已删除。用户对照汽车人与多位霸天虎的线条，并试用点击回应和左右倾斜后，反馈“清晰度明显改善，交互正常”；这是主观清晰度与交互验收，未另报精确测试数量，不构成量化延迟、静置误触或功耗结果。上一版`0aaa4606a3c3`保留回滚；当前状态见ignored的`artifacts/home-factions/selected-candidate.json`，原始证据见`artifacts/home-factions/clarity-diagnosis/flash/`。
+2026-10-17清晰度修复版：原仿射BICUBIC采样在约4.5倍缩小时产生细线混叠；改为同一源框及姿态配准的LANCZOS抗锯齿缩放，保留原图、几何、JPEG参数和全部运行时交互。源码`24676b8`，应用2640144字节，SHA-256为`298f1c7b3ef49753644445615327c44e06402b5f4a8e21b1bd5c82616b194dd5`。用户确认准确目标后仅写app0，独立ROM摘要校验及前64KiB逐字节核对通过，已看门狗复位；HID／IMU恢复、读取错误0，USB麦克风3.008秒／144384帧短采集通过，临时录音已删除。用户对照汽车人与多位霸天虎的线条，并试用点击回应和左右倾斜后，反馈“清晰度明显改善，交互正常”；这是主观清晰度与交互验收，未另报精确测试数量，不构成量化延迟、静置误触或功耗结果。上一版`0aaa4606a3c3`镜像已于2026-10-17按用户要求删除，当前已验收应用`298f1c7b3ef4`及出厂Flash备份保留；当前状态见ignored的`artifacts/home-factions/selected-candidate.json`，原始证据见`artifacts/home-factions/clarity-diagnosis/flash/`。
 
 设计日期：2026-10-15；实机记录与连续动作候选更新：2026-10-16。基线：`259f307`。分支：`codex/home-imu-pilot`。
 
@@ -149,3 +149,7 @@ clang++ -std=c++17 -fsanitize=address,undefined -Iinclude simulator/robot_home_i
 - 本轮结论：拿起／倾斜／放稳的体验获用户确认，桌面10分钟静置目标通过；保留已部署首版，未追加烧录。固定轮数命中/漏检率、逐轮计数不一致原因、物理P95延迟和干扰场景误触仍未量化。用户已明确选择本轮先验证交互，耗电标为待仪表实测。
 
 本地原始证据保存在ignored的 `artifacts/imu-pilot/`：动作日志 `manual-30-20261016.jsonl`、`manual-30-recovery-20261016.jsonl` 与汇总 `manual-motion-summary-20261016.json`；静置日志 `static-10min-20261016.jsonl` 与汇总 `static-10min-summary-20261016.json`。动作文件名沿用原计划的30轮标识，**不代表完成30轮**。备份、部署镜像与保护区摘要仍保留在同目录，不提交Git。
+
+## 2026-10-17任务收尾清理
+
+按用户要求删除上一版`0aaa4606a3c3`应用镜像，并清理可重建的`.pio/build`、`usb-mic/.pio/build`、任务测试二进制、Swift／Python编译缓存、重复预览、生成差异包和一次性脚本，共1492个文件／793.02MiB逻辑大小。当前`298f1c7b3ef4`应用、出厂Flash备份、有效素材源图、构建依赖工具链和必要的烧录／验收记录保留，24个保留文件摘要核对一致。清单和删除验证保存在ignored的`artifacts/home-factions/cleanup-20261017/manifest.json`；原冻结manifest中的旧回滚路径属于历史记录，当前可用性以`selected-candidate.json`为准。清理未改动设备固件。
