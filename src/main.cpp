@@ -179,6 +179,7 @@ task_notification::Controller taskNotificationUi;
 task_notification::HapticSequence taskNotificationPulses;
 uint32_t lastNotificationVersion=0,lastNotificationProgressDraw=0;
 bool taskBadgeTouch=false,taskBadgeCanOpen=false;
+bool taskTouchOwned=false,taskLeftButtonOwned=false,taskRightButtonOwned=false;
 int taskBadgeX=0,taskBadgeY=0;
 #endif
 uint32_t lastActivityMs = 0;
@@ -1478,19 +1479,32 @@ void updateTaskNotificationHaptics(uint32_t now){
 
 bool handleTaskNotifications() {
   const uint32_t now=millis();
+  const auto touch=M5.Touch.getDetail();
+  // Capture input ownership before an incoming epoch/empty card can hide the UI.
+  // Once a modal swallowed a press, its held/released frames cannot reach HID.
+  const bool ownedTouch=taskBadgeTouch||taskNotificationUi.visible()||taskTouchOwned;
+  if(ownedTouch&&(touch.wasPressed()||touch.isPressed()))taskTouchOwned=true;
+  if(taskNotificationUi.visible()){
+    taskLeftButtonOwned=taskLeftButtonOwned||M5.BtnA.wasPressed()||M5.BtnA.isPressed();
+    taskRightButtonOwned=taskRightButtonOwned||M5.BtnB.wasPressed()||M5.BtnB.isPressed();
+  }
+  const bool ownedButtons=taskLeftButtonOwned||taskRightButtonOwned;
+  const bool ownedGesture=taskTouchOwned||ownedButtons;
+  if(touch.wasReleased()||!touch.isPressed())taskTouchOwned=false;
+  if(M5.BtnA.wasReleased()||!M5.BtnA.isPressed())taskLeftButtonOwned=false;
+  if(M5.BtnB.wasReleased()||!M5.BtnB.isPressed())taskRightButtonOwned=false;
   const auto latest=codex.notificationSnapshot();
   if(latest.version!=lastNotificationVersion){
     lastNotificationVersion=latest.version;
+    if(latest.ready&&taskNotificationUi.card().g&&latest.card.g!=taskNotificationUi.card().g)taskBadgeCanOpen=false;
     if(latest.ready)taskNotificationUi.receive(latest.card,latest.receivedAt);
     else taskNotificationUi.disconnect();
   }
   if(powerOverlay!=dashboard::PowerOverlay::None||powerButtonPressed){
     if(taskNotificationUi.visible())taskNotificationUi.close(now);
     taskNotificationUi.suspend();taskNotificationPulses.cancel();
-    return false; // physical power gestures always retain priority
+    return ownedGesture; // updatePowerButton already ran; inherited input still cannot reach HID
   }
-  const auto touch=M5.Touch.getDetail();
-  const bool ownedTouch=taskBadgeTouch||taskNotificationUi.visible();
   const bool idle=!touchTracking&&!touch.isPressed()&&!touch.wasReleased()&&!leftPressed&&!rightPressed&&
       !voiceClickReleasePending&&!M5.BtnA.isPressed()&&!M5.BtnB.isPressed()&&!hapticActive;
   if(taskNotificationUi.present(now,idle)){
@@ -1500,7 +1514,7 @@ bool handleTaskNotifications() {
 #endif
   }
   if(!taskNotificationUi.visible()){
-    if(touch.wasPressed()&&taskNotificationUi.badge(touch.x,touch.y)){
+    if(!ownedTouch&&touch.wasPressed()&&taskNotificationUi.badge(touch.x,touch.y)){
       taskBadgeTouch=true;taskBadgeCanOpen=noteActivity();taskBadgeX=touch.x;taskBadgeY=touch.y;
     }
     if(taskBadgeTouch){
@@ -1526,7 +1540,7 @@ bool handleTaskNotifications() {
   if(taskNotificationUi.dirty()||shouldRedraw||progress){
     shouldRedraw=true;lastNotificationProgressDraw=now;drawScreen();
   }
-  return ownedTouch||taskBadgeTouch||taskNotificationUi.visible();
+  return ownedTouch||ownedButtons||taskBadgeTouch||taskNotificationUi.visible();
 }
 #endif
 
@@ -1681,7 +1695,7 @@ void loop() {
                             state.workspaceMode,
                             workspace_input::Control::RightPhysicalButton);
 #else
-    constexpr bool commitRightRelease = true;
+    const bool commitRightRelease = rightPressed;
 #endif
     if (commitRightRelease) {
       const uint32_t heldMs = millis() - rightPressedAtMs;

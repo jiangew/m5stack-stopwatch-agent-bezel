@@ -1,5 +1,7 @@
 """Shared native-adapter publication and OPEN routing. No approval transport."""
 import hashlib
+import fcntl
+from contextlib import contextmanager
 import importlib.util
 import json
 import os
@@ -51,6 +53,22 @@ class RouteStore:
         finally:
             bridge._close(dirs)
 
+    @contextmanager
+    def _locked(self, fd, exclusive):
+        lock = os.open('.inventory.lock', os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW | os.O_NONBLOCK, 0o600, dir_fd=fd)
+        try:
+            bridge._check(lock, False)
+            fcntl.flock(lock, fcntl.LOCK_EX if exclusive else fcntl.LOCK_SH)
+            bridge._check(lock, False)
+            yield
+        finally:
+            os.close(lock)
+
+    @staticmethod
+    def _names(fd):
+        # The persistent lock and in-progress atomic files never consume route capacity.
+        return [name for name in os.listdir(fd) if re.fullmatch(r'[0-9a-f]{64}\.json', name)]
+
     def save(self, event, stored_session=None):
         event = bridge.validate_event(event)
         if stored_session is not None: target(stored_session)
@@ -60,13 +78,14 @@ class RouteStore:
         if len(payload) > bridge.MAX_EVENT: raise ValueError('route record too large')
         fd = self._open(); name = _key(event); temporary = '.' + str(uuid.uuid4())
         try:
-            if name not in os.listdir(fd) and len(os.listdir(fd)) >= 256:
-                raise ValueError('adapter route inventory full')
-            out = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600, dir_fd=fd)
-            with os.fdopen(out, 'wb') as stream:
-                stream.write(payload); stream.flush(); os.fsync(stream.fileno())
-            os.replace(temporary, name, src_dir_fd=fd, dst_dir_fd=fd)
-            os.fsync(fd)
+            with self._locked(fd, True):
+                if name not in self._names(fd) and len(self._names(fd)) >= 256:
+                    raise ValueError('adapter route inventory full')
+                out = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600, dir_fd=fd)
+                with os.fdopen(out, 'wb') as stream:
+                    stream.write(payload); stream.flush(); os.fsync(stream.fileno())
+                os.replace(temporary, name, src_dir_fd=fd, dst_dir_fd=fd)
+                os.fsync(fd)
         finally:
             try: os.unlink(temporary, dir_fd=fd)
             except FileNotFoundError: pass
@@ -75,17 +94,19 @@ class RouteStore:
     def records(self):
         fd = self._open()
         try:
-            names = os.listdir(fd)
-            if len(names) > 256: raise ValueError('adapter route inventory full')
-            for name in sorted(names):
-                if not re.fullmatch(r'[0-9a-f]{64}\.json', name): continue
-                record = bridge._read(fd, name)
-                if set(record) != {'event', 'storedSession'}: raise ValueError('invalid route record')
-                event = bridge.validate_event(record['event'])
-                if _key(event) != name: raise ValueError('route identity mismatch')
-                yield event, record['storedSession']
+            records = []
+            with self._locked(fd, False):
+                names = self._names(fd)
+                if len(names) > 256: raise ValueError('adapter route inventory full')
+                for name in sorted(names):
+                    record = bridge._read(fd, name)
+                    if set(record) != {'event', 'storedSession'}: raise ValueError('invalid route record')
+                    event = bridge.validate_event(record['event'])
+                    if _key(event) != name: raise ValueError('route identity mismatch')
+                    records.append((event, record['storedSession']))
         finally:
             os.close(fd)
+        yield from records
 
     def command(self, event, stored_session=None):
         source = event['source']

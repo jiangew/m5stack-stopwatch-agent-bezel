@@ -7,6 +7,8 @@ final class TaskNotificationTransport: NSObject, CBCentralManagerDelegate, CBPer
     static let service = CBUUID(string: "7F0D4E66-2AC2-4A71-BFBE-4EF61A0E5C11")
     static let cardUUID = CBUUID(string: "7F0D4E66-2AC2-4A71-BFBE-4EF61A0E5C12")
     static let actionUUID = CBUUID(string: "7F0D4E66-2AC2-4A71-BFBE-4EF61A0E5C13")
+    // Existing firmware advertises quota/HID; the notification UUID exists only in GATT.
+    static let advertisedService = CBUUID(string: "7F0D4E66-2AC2-4A71-BFBE-4EF61A0E5C01")
     private let identifier: UUID
     private let receive: (TaskNotificationAction) -> Void
     private let connectionChanged: () -> Void
@@ -37,7 +39,7 @@ final class TaskNotificationTransport: NSObject, CBCentralManagerDelegate, CBPer
         guard active, manager.state == .poweredOn else { return }
         if let found = manager.retrievePeripherals(withIdentifiers: [identifier]).first {
             peripheral = found; found.delegate = self; manager.connect(found)
-        } else { manager.scanForPeripherals(withServices: [Self.service]) }
+        } else { manager.scanForPeripherals(withServices: [Self.advertisedService]) }
     }
     private func retry() {
         reset(); peripheral?.delegate = nil; peripheral = nil

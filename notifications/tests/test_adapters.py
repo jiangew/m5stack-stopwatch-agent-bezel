@@ -1,16 +1,41 @@
 """Synthetic native callbacks only; never inspect user sessions or launch apps."""
 import json
+import multiprocessing
 import os
 import subprocess
 import sys
 from pathlib import Path
 import tempfile
 import unittest
+import time
 
 from notifications.adapters.runtime import Publisher, RouteStore, consume_open
 from notifications.adapters.codex_notify import handle_notify, metadata_root
 from notifications.adapters.hermes_plugin import Observer
 from notifications.adapters.super_collector import decode_event, UnsupportedContract, SuperObserver
+
+
+def route_capacity_writer(directory, event, paused, release, result, hold_snapshot=False):
+    """Pause after the pre-publication capacity snapshot in a real child process."""
+    import notifications.adapters.runtime as runtime
+    original = runtime.os.listdir
+    calls = 0
+    def listdir(fd):
+        nonlocal calls
+        names = original(fd)
+        calls += 1
+        if hold_snapshot and calls == 2:
+            paused.set()
+            if not release.wait(10): raise RuntimeError('capacity test synchronization timed out')
+        return names
+    runtime.os.listdir = listdir
+    try:
+        runtime.RouteStore(directory).save(event)
+        result.put('saved')
+    except ValueError as error:
+        result.put(str(error))
+    finally:
+        runtime.os.listdir = original
 
 
 class AdapterTests(unittest.TestCase):
@@ -183,6 +208,22 @@ for line in sys.stdin:
         path.unlink(); os.symlink('/private/tmp', path)
         self.assertRaises(OSError, list, RouteStore(self.directory).records())
 
+    def test_inventory_lock_is_private_single_link_and_never_follows_symlinks(self):
+        event = self.pub.publish('codex', 'root', 't', 'r', 'done', 'Done', 'Turn completed')
+        lock = self.directory / 'adapter-routes' / '.inventory.lock'
+        self.assertEqual(lock.stat().st_mode & 0o777, 0o600)
+        lock.chmod(0o644)
+        self.assertRaises(ValueError, RouteStore(self.directory).save, event)
+        self.assertRaises(ValueError, list, RouteStore(self.directory).records())
+        lock.chmod(0o600)
+        alias = Path(self.temp.name) / 'lock-hardlink'
+        os.link(lock, alias)
+        self.assertRaises(ValueError, RouteStore(self.directory).save, event)
+        alias.unlink(); lock.unlink()
+        os.symlink('/private/tmp', lock)
+        self.assertRaises(OSError, RouteStore(self.directory).save, event)
+        self.assertRaises(OSError, list, RouteStore(self.directory).records())
+
     def test_native_resolution_timestamp_is_strictly_later(self):
         observer = Observer(self.pub)
         context = dict(session_id='s', turn_id='t', tool_call_id='c')
@@ -228,6 +269,94 @@ else:
                        check=True, capture_output=True)
         self.assertEqual(self.records()[0]['kind'], 'done')
         self.assertFalse(self.records()[0]['canDecide'])
+
+    def test_native_sc_batch_delivers_before_subscription_eof(self):
+        fake = Path(self.temp.name).resolve() / 'synthetic-live-sc'
+        fake.write_text("""#!/usr/bin/env python3
+import json,os,sys,time
+if 'list' in sys.argv:
+ print(json.dumps({'kind':'agents','response':{'agents':[{'stable_target_id':'terminal:root','ui':'terminal'}]}}))
+else:
+ frames=[{'kind':'ready','sequence':1,'targets':['terminal:root']},
+ {'sequence':2,'stable_target_id':'terminal:root','type':'task_complete','timestamp_ms':1000,'worktree_path':'/private/tmp/synthetic'}]
+ os.write(sys.stdout.fileno(), ('\\n'.join(json.dumps(x) for x in frames)+'\\n').encode())
+ time.sleep(30)
+""")
+        fake.chmod(0o700)
+        collector = subprocess.Popen([sys.executable, '-m', 'notifications.adapters.super_collector', '--directory', str(self.directory),
+                                      '--sc', str(fake), '--worktree', '/private/tmp/synthetic', '--target', 'terminal:root'],
+                                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+        try:
+            deadline = time.monotonic() + 2
+            while not self.records() and collector.poll() is None and time.monotonic() < deadline:
+                time.sleep(0.01)
+            self.assertIsNone(collector.poll(), 'subscription must remain open before EOF')
+            self.assertEqual([x['kind'] for x in self.records()], ['done'])
+        finally:
+            import signal
+            os.killpg(collector.pid, signal.SIGTERM)
+            collector.wait(timeout=5)
+
+    def test_route_capacity_is_atomic_across_callback_processes(self):
+        event = self.pub.publish('codex', 'root', 'turn', 'seed', 'done', 'Done', 'Turn completed')
+        routes = RouteStore(self.directory)
+        for number in range(254):
+            routes.save(dict(event, requestId='seed-' + str(number)))
+        ctx = multiprocessing.get_context('fork')
+        paused, release, result = ctx.Event(), ctx.Event(), ctx.Queue()
+        first = ctx.Process(target=route_capacity_writer,
+                            args=(str(self.directory), dict(event, requestId='first'), paused, release, result, True))
+        second = ctx.Process(target=route_capacity_writer,
+                             args=(str(self.directory), dict(event, requestId='second'), paused, release, result))
+        first.start()
+        try:
+            self.assertTrue(paused.wait(5), 'first callback reached its capacity snapshot')
+            second.start()
+            # Without an inventory lock the second callback publishes while the first is paused.
+            # With the lock it cannot reach publication until the first releases ownership.
+            second.join(timeout=0.3)
+        finally:
+            release.set()
+            first.join(timeout=5)
+            if second.pid: second.join(timeout=5)
+            for proc in (first, second):
+                if proc.pid and proc.is_alive(): proc.kill(); proc.join()
+        self.assertEqual(first.exitcode, 0)
+        self.assertEqual(second.exitcode, 0)
+        self.assertEqual(sorted([result.get(timeout=2), result.get(timeout=2)]), ['adapter route inventory full', 'saved'])
+        self.assertEqual(len(list(routes.records())), 256)
+        routes.save(dict(event, detail='Updated terminal metadata'))
+        self.assertEqual(len(list(routes.records())), 256, 'existing identities remain writable at capacity')
+
+    def test_native_sc_partial_frame_does_not_block_another_root(self):
+        fake = Path(self.temp.name).resolve() / 'synthetic-partial-sc'
+        fake.write_text("""#!/usr/bin/env python3
+import json,os,sys,time
+if 'list' in sys.argv:
+ print(json.dumps({'kind':'agents','response':{'agents':[{'stable_target_id':s,'ui':'terminal'} for s in ['terminal:partial','terminal:complete']]}}))
+else:
+ sid=sys.argv[sys.argv.index('--to')+1][3:]
+ if sid=='terminal:partial': os.write(sys.stdout.fileno(), b'{"sequence":')
+ else:
+  packet={'sequence':2,'stable_target_id':sid,'type':'task_complete','timestamp_ms':1000,'worktree_path':'/private/tmp/synthetic'}
+  os.write(sys.stdout.fileno(), (json.dumps(packet)+'\\n').encode())
+ time.sleep(30)
+""")
+        fake.chmod(0o700)
+        collector = subprocess.Popen([sys.executable, '-m', 'notifications.adapters.super_collector', '--directory', str(self.directory),
+                                      '--sc', str(fake), '--worktree', '/private/tmp/synthetic',
+                                      '--target', 'terminal:partial', '--target', 'terminal:complete'],
+                                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+        try:
+            deadline = time.monotonic() + 2
+            while not self.records() and collector.poll() is None and time.monotonic() < deadline:
+                time.sleep(0.01)
+            self.assertIsNone(collector.poll())
+            self.assertEqual([(x['sessionId'], x['kind']) for x in self.records()], [('terminal:complete', 'done')])
+        finally:
+            import signal
+            os.killpg(collector.pid, signal.SIGTERM)
+            collector.wait(timeout=5)
 
     @unittest.skipUnless(os.environ.get('TASK_NOTIFICATION_TEST_BINARY'), 'run notifications/test.sh for Swift bridge')
     def test_codex_callback_through_real_swift_queue(self):

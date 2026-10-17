@@ -42,6 +42,13 @@ int main() {
   Controller ui;assert(ui.receive(c,1000));
   assert(!ui.present(1000,false));assert(!ui.visible());
   assert(ui.present(1050,true));assert(ui.view()==View::Toast);
+  Controller epoch;Card oldEpoch=approval();
+  assert(epoch.receive(oldEpoch,100));assert(!epoch.present(100,false));
+  Card newEpoch=oldEpoch;newEpoch.g++;newEpoch.alert=0;
+  assert(epoch.receive(newEpoch,110));
+  assert(!epoch.present(120,true));assert(epoch.takeAlert()==0); // no queued toast/pulse crosses an epoch
+  newEpoch.id++;newEpoch.alert=1;assert(epoch.receive(newEpoch,130));
+  assert(epoch.present(130,true)&&epoch.takeAlert()==1); // a new native alert still presents
   ui.press(233,233,1060,false);ui.release(233,233,1070);
   assert(ui.view()==View::Toast); // first wake touch cannot open or decide
   ui.press(233,233,1080,true);ui.release(233,233,1090);

@@ -103,7 +103,8 @@ class Controller {
       card_.count=c.count;dirty_=true;return true; // no new arrival may replace decision context
     }
     const bool generationChanged=card_.g&&card_.g!=c.g;
-    if(generationChanged){view_=View::Hidden;held_=false;pressed_=false;busy_=false;hasAction_=false;}
+    if(generationChanged){view_=View::Hidden;held_=false;pressed_=false;busy_=false;hasAction_=false;
+      pendingToast_=false;pendingAlert_=0;}
     if(busy_&&c.ack==action_.seq){busy_=false;hasAction_=false;}
     if(!same){held_=false;pressed_=false;blocked_=true;}
     if(c.alert&&(!same||c.alert!=card_.alert)){pendingToast_=true;pendingAlert_=c.alert;}

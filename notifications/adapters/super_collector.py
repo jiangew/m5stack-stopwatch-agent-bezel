@@ -1,6 +1,7 @@
 """Native content-free sc subscriptions, pinned to the observed flat ac45e7aa envelope."""
 import argparse
 import json
+import os
 from pathlib import Path
 import selectors
 import subprocess
@@ -101,14 +102,27 @@ def main():
     try:
         for stable in roots:
             proc = subprocess.Popen([args.sc, 'agent', 'subscribe', '--to', 'id:' + stable, '--worktree', args.worktree,
-                                     '--live-only', '--output', 'json'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
-            streams.append(proc); selector.register(proc.stdout, selectors.EVENT_READ)
+                                     '--live-only', '--output', 'json'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, bufsize=0)
+            streams.append(proc)
+            os.set_blocking(proc.stdout.fileno(), False)
+            selector.register(proc.stdout, selectors.EVENT_READ, bytearray())
         while selector.get_map():
             for item, _ in selector.select(timeout=1):
-                line = item.fileobj.readline(8194)
-                if not line: selector.unregister(item.fileobj); continue
-                if len(line) > 8193 or not line.endswith(b'\n'): raise UnsupportedContract('native lifecycle frame too large')
-                observer.observe(json.loads(line))
+                try: chunk = os.read(item.fd, 4096)
+                except BlockingIOError: continue
+                pending = item.data
+                if not chunk:
+                    if pending: raise UnsupportedContract('incomplete native lifecycle frame')
+                    selector.unregister(item.fileobj); continue
+                pending.extend(chunk)
+                while True:
+                    end = pending.find(b'\n')
+                    if end < 0:
+                        if len(pending) > 8192: raise UnsupportedContract('native lifecycle frame too large')
+                        break
+                    if end > 8192: raise UnsupportedContract('native lifecycle frame too large')
+                    line = bytes(pending[:end]); del pending[:end + 1]
+                    observer.observe(json.loads(line))
     finally:
         selector.close()
         for proc in streams:
