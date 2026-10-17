@@ -1505,8 +1505,11 @@ bool handleTaskNotifications() {
     taskNotificationUi.suspend();taskNotificationPulses.cancel();
     return ownedGesture; // updatePowerButton already ran; inherited input still cannot reach HID
   }
-  const bool idle=!touchTracking&&!touch.isPressed()&&!touch.wasReleased()&&!leftPressed&&!rightPressed&&
-      !voiceClickReleasePending&&!M5.BtnA.isPressed()&&!M5.BtnB.isPressed()&&!hapticActive;
+  // Manual badge entry obeys the same accepted-input boundary as an automatic toast.
+  // A workspace key-down must reach its workspace key-up before notifications take over.
+  const bool workspaceIdle=!touchTracking&&!leftPressed&&!rightPressed&&
+      !voiceClickReleasePending&&!M5.BtnA.isPressed()&&!M5.BtnB.isPressed();
+  const bool idle=workspaceIdle&&!touch.isPressed()&&!touch.wasReleased()&&!hapticActive;
   if(taskNotificationUi.present(now,idle)){
     noteActivity();taskNotificationPulses.start(taskNotificationUi.takeAlert(),now);
 #if defined(CODEX_STOPWATCH_USB_MIC)
@@ -1514,7 +1517,7 @@ bool handleTaskNotifications() {
 #endif
   }
   if(!taskNotificationUi.visible()){
-    if(!ownedTouch&&touch.wasPressed()&&taskNotificationUi.badge(touch.x,touch.y)){
+    if(!ownedTouch&&workspaceIdle&&touch.wasPressed()&&taskNotificationUi.badge(touch.x,touch.y)){
       taskBadgeTouch=true;taskBadgeCanOpen=noteActivity();taskBadgeX=touch.x;taskBadgeY=touch.y;
     }
     if(taskBadgeTouch){

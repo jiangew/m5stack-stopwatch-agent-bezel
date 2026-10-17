@@ -9,9 +9,12 @@ while depth>0
  depth+=1 if source[last]=='{';depth-=1 if source[last]=='}';last+=1
 end
 gate=source[first...last]
-button_first=source.index('  if (M5.BtnB.wasPressed()) {') or abort 'right button handlers missing'
+button_first=source.index('  if (M5.BtnA.wasPressed()) {') or abort 'physical button handlers missing'
 button_last=source.index("#if !defined(CODEX_STOPWATCH_USB_MIC)\n  CodexMicroState latest",button_first) or abort 'right button boundary missing'
 buttons=source[button_first...button_last]
+mic_first=source.index('void pressMicSwitch(const char* key, bool& pressed) {') or abort 'mic press missing'
+mic_last=source.index("\n}  // namespace",mic_first) or abort 'mic function boundary missing'
+mic=source[mic_first...mic_last]
 fixture=<<~CPP
  #include <cassert>
  #include <cstring>
@@ -41,17 +44,19 @@ fixture=<<~CPP
  unsigned rightPressedAtMs=0,voiceTapBannerUntilMs=0,voiceClicks=0;
  bool voiceTapBannerVisible=false;
  constexpr unsigned kVoiceTapBannerMs=1000,kButtonHapticIntensity=176,kButtonHapticDurationMs=30,kVoiceClickPulseMs=20;
- const char* kVoiceChatCommandKey="synthetic-voice";
+ const char* kVoiceChatCommandKey="synthetic-voice";const char* kLeftMicSwitch="synthetic-mic";
  struct {template<class... Args>void printf(const char*,Args...){}} Serial;
  void beginVoiceChatClick(){++voiceClicks;}void startHaptic(unsigned,unsigned){}void stopRobotReaction(){}
- namespace workspace_input {enum class Control{RightPhysicalButton};bool allowed(int,Control){return true;}}
+ namespace workspace_input {enum class Control{LeftPhysicalButton,RightPhysicalButton};bool allowed(int,Control){return true;}}
  struct{int workspaceMode=0;} state;
- struct {task_notification::Snapshot value;std::vector<task_notification::Action> actions;
+ struct {task_notification::Snapshot value;std::vector<task_notification::Action> actions;std::vector<int> keys;
  auto notificationSnapshot(){return value;}
+ void sendKey(const char*,int value){keys.push_back(value);}
  bool sendNotificationAction(const task_notification::Action& action){actions.push_back(action);return true;}} codex;
  void updateTaskNotificationHaptics(uint32_t){}
+ #{mic}
  #{gate}
- void underlyingRightButton(){#{buttons}}
+ void underlyingButtons(){#{buttons}}
  int main(int argc,char** argv){
  auto& c=codex.value.card;c.g=1;c.id=1;c.r=1;c.count=1;c.ttl=15000;c.alert=2;c.decide=true;
  std::strcpy(c.src,"codex");std::strcpy(c.kind,"approval");std::strcpy(c.state,"pending");
@@ -60,6 +65,32 @@ fixture=<<~CPP
  if(argc>1){
    const std::string scenario=argv[1];
    assert(handleTaskNotifications()); // visible native notification
+   if(scenario=="accepted-left-badge"||scenario=="accepted-right-badge"){
+     now+=task_notification::kToastMs;handleTaskNotifications(); // hidden toast, unread badge remains
+     ++now;assert(!handleTaskNotifications());
+     auto& button=scenario=="accepted-left-badge"?M5.BtnA:M5.BtnB;
+     button.down=true;button.held=true;++now;
+     assert(!handleTaskNotifications());underlyingButtons();
+     assert(scenario=="accepted-left-badge"?leftPressed:rightPressed);
+     button.down=false;
+     touch.down=true;touch.held=true;touch.x=325;touch.y=74;++now;handleTaskNotifications();
+     touch.down=false;touch.held=false;touch.up=true;++now;handleTaskNotifications();
+     touch={};++now;handleTaskNotifications(); // old implementation steals the already accepted hold here
+     c.g=2;c.id=0;c.count=0;c.alert=0;++codex.value.version;++now;handleTaskNotifications();
+     button.held=false;button.up=true;++now;
+     const bool swallowed=handleTaskNotifications();
+     if(!swallowed)underlyingButtons();
+     assert(!swallowed&&!leftPressed&&!rightPressed);
+     if(scenario=="accepted-left-badge")assert((codex.keys==std::vector<int>{1,0}));
+     else assert(voiceClicks==1);
+     button={};
+     // A new idle badge gesture remains reachable after the underlying input ends.
+     c.g=3;c.id=1;c.count=1;++codex.value.version;++now;assert(!handleTaskNotifications());
+     touch.down=true;touch.held=true;touch.x=325;touch.y=74;++now;assert(handleTaskNotifications());
+     touch.down=false;touch.held=false;touch.up=true;++now;assert(handleTaskNotifications());
+     assert(taskNotificationUi.view()==task_notification::View::Inbox);
+     std::puts("PASS accepted underlying button survives attempted badge open; fresh idle badge opens Inbox");return 0;
+   }
    if(scenario=="new-generation-touch"||scenario=="power-touch"){
      touch.down=true;touch.held=true;touch.y=320;
      if(scenario=="power-touch")powerButtonPressed=true;
@@ -80,11 +111,11 @@ fixture=<<~CPP
      ++now;handleTaskNotifications();assert(!taskNotificationUi.visible());
      M5.BtnB.held=false;M5.BtnB.up=true;++now;
      const bool swallowed=handleTaskNotifications();
-     if(!swallowed)underlyingRightButton();
+     if(!swallowed)underlyingButtons();
      assert(swallowed&&voiceClicks==0); // entire swallowed physical gesture remains owned until release
      M5.BtnB={};++now;assert(!handleTaskNotifications());
-     M5.BtnB.down=true;M5.BtnB.held=true;underlyingRightButton();
-     M5.BtnB.down=false;M5.BtnB.held=false;M5.BtnB.up=true;underlyingRightButton();
+     M5.BtnB.down=true;M5.BtnB.held=true;underlyingButtons();
+     M5.BtnB.down=false;M5.BtnB.held=false;M5.BtnB.up=true;underlyingButtons();
      assert(voiceClicks==1); // a fresh ordinary press/release still acts
    }
    std::puts("PASS notification-owned gesture survives timeout/back/generation/power exit");return 0;
@@ -112,12 +143,13 @@ Dir.mktmpdir('notification-main-','/private/tmp') do |dir|
  abort 'compile failed' unless system('clang++','-std=c++17','-fsanitize=address,undefined',"-I#{root}/include",'-isystem',"#{root}/.pio/libdeps/m5stack-stopwatch/ArduinoJson/src",path,'-o',exe)
  abort 'notification main-loop regression failed' unless system(exe)
  passed=true
- %w[right-timeout right-back right-generation new-generation-touch power-touch].each do |scenario|
+ scenarios=%w[right-timeout right-back right-generation new-generation-touch power-touch accepted-left-badge accepted-right-badge]
+ scenarios.each do |scenario|
    passed=system(exe,scenario)&&passed
  end
  usb=File.join(dir,'usb-test')
  abort 'USB fixture compile failed' unless system('clang++','-std=c++17','-DCODEX_STOPWATCH_USB_MIC=1','-fsanitize=address,undefined',"-I#{root}/include",'-isystem',"#{root}/.pio/libdeps/m5stack-stopwatch/ArduinoJson/src",path,'-o',usb)
- %w[right-timeout right-back right-generation new-generation-touch power-touch].each do |scenario|
+ scenarios.each do |scenario|
    passed=system(usb,scenario)&&passed
  end
  abort 'notification main-loop gesture regressions failed' unless passed
