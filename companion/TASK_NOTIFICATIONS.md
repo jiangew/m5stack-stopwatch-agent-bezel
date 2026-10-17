@@ -53,7 +53,7 @@ bounded by the1024-file inbox/processing inventory limits. Adapter callers must
 handle full directories explicitly. Pending approval/input comes first, then
 failures, then completions in original per-revision FIFO order. Read/browsing
 pins selection until `close` or `dismiss`; arrivals cannot steal that selection.
-Only pending approval/input gets at most one reminder at120seconds. Reconnect
+Unannounced cards are presented one at a time in priority/FIFO order, with five seconds per toast; a prior completed card cannot hide later completions. Reading or browsing pauses presentation until close/dismiss. Only pending approval/input gets at most one reminder at120seconds. Reconnect
 suppresses all old alerts.
 
 Inbox emission uses same-directory atomic rename with a UUID destination and one inode link, so a consumer can claim immediately at publication. The companion exclusively

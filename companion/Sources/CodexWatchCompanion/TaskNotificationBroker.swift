@@ -8,8 +8,14 @@ final class TaskNotificationBroker {
     private var selected: UInt32?
     private var pinned = false
     private var alerts: [UInt32: Int] = [:]
+    private var presentationUntil: Int64 = 0
+    private var clock: Int64 = 0
     private(set) var lastActionSequence: UInt32 = 0
     private var generation = UInt32.random(in: 1...UInt32.max)
+    private func advanceClock(_ now: Int64) {
+        if now < clock { presentationUntil = 0 }
+        clock = now
+    }
     var count: Int { snapshot.records.filter { !$0.dismissed }.count }
     init(store: TaskNotificationStore) throws {
         self.store = store; snapshot = try store.load()
@@ -18,12 +24,12 @@ final class TaskNotificationBroker {
         try store.save(snapshot)
         selected = preferredID()
     }
-    private func preferredID() -> UInt32? {
+    private func preferredID(announcementsOnly: Bool = false) -> UInt32? {
         func priority(_ record: TaskNotificationRecord) -> Int {
             if record.state == "pending" && ["approval", "input"].contains(record.event.kind) { return 0 }
             return record.event.kind == "failed" ? 1 : 2
         }
-        return snapshot.records.filter { !$0.dismissed }.sorted {
+        return snapshot.records.filter { !$0.dismissed && (!announcementsOnly || (alerts[$0.id] ?? 0) > 0) }.sorted {
             let a = priority($0), b = priority($1)
             if a != b { return a < b }
             if $0.firstSeen != $1.firstSeen { return $0.firstSeen < $1.firstSeen }
@@ -33,12 +39,17 @@ final class TaskNotificationBroker {
     func reconnect() {
         generation = generation == UInt32.max ? 1 : generation + 1
         alerts.removeAll(); lastActionSequence = 0
-        pinned = false; selected = preferredID()
+        pinned = false; presentationUntil = 0; selected = preferredID()
     }
-    func published() { if let selected { alerts[selected] = nil } }
+    func published() {
+        if let selected, (alerts[selected] ?? 0) > 0 {
+            presentationUntil = clock + 5_000; alerts[selected] = nil
+        }
+    }
     func ingest(_ event: TaskNotificationEvent, now: Int64) throws {
         try event.validate()
         guard event.createdAt <= now + 1_000 else { throw TaskNotificationError.invalid }
+        advanceClock(now)
         var next = snapshot
         let index: Int
         var newRevision = false
@@ -75,14 +86,15 @@ final class TaskNotificationBroker {
         let liveIDs = Set(snapshot.records.map(\.id))
         fresh.formIntersection(liveIDs); alerts = alerts.filter { liveIDs.contains($0.key) }
         fresh.insert(id)
-        if !pinned { selected = preferredID() }
         if newRevision {
             if event.kind == "done" { alerts[id] = 1 }
             else if event.kind == "failed" { alerts[id] = 3 }
             else { alerts[id] = event.state == "pending" ? 2 : 0 }
         }
+        if !pinned, now >= presentationUntil { selected = preferredID(announcementsOnly: true) ?? selected ?? preferredID() }
     }
     func tick(now: Int64) {
+        advanceClock(now)
         var next = snapshot
         var reminder: UInt32?
         var changed = false
@@ -96,11 +108,11 @@ final class TaskNotificationBroker {
                 next.records[i].reminded = true; changed = true; reminder = next.records[i].id
             }
         }
-        guard changed else { return }
-        do {
+        if changed { do {
             try store.save(next); snapshot = next
-            if let reminder, selected == reminder { alerts[reminder] = 2 }
-        } catch { fresh.removeAll() }
+            if let reminder { alerts[reminder] = 2 }
+        } catch { fresh.removeAll() } }
+        if !pinned, now >= presentationUntil, let next = preferredID(announcementsOnly: true) { selected = next }
     }
     func card(now: Int64) throws -> TaskNotificationCard {
         guard let record = snapshot.records.first(where: { $0.id == selected && !$0.dismissed }) else {
@@ -123,6 +135,7 @@ final class TaskNotificationBroker {
         return card
     }
     func handle(_ action: TaskNotificationAction, now: Int64) throws {
+        advanceClock(now)
         guard action.v == 1, action.g == generation else { return }
         if let seq = action.seq {
             guard seq > lastActionSequence else { return }
@@ -137,11 +150,11 @@ final class TaskNotificationBroker {
             guard let current = visible.firstIndex(where: { $0.id == selected }), !visible.isEmpty else { return }
             selected = visible[(current + (action.action == "next" ? 1 : visible.count - 1)) % visible.count].id; pinned = true
         case "read": pinned = true
-        case "close": pinned = false; selected = preferredID()
+        case "close": pinned = false; presentationUntil = 0; selected = preferredID(announcementsOnly: true) ?? preferredID()
         case "dismiss":
             var next = snapshot; next.records[index].dismissed = true
             try store.save(next); snapshot = next
-            selected = preferredID(); pinned = false
+            selected = preferredID(announcementsOnly: true) ?? preferredID(); pinned = false; presentationUntil = 0
         case "open", "allow_once", "decline", "choose0", "choose1", "choose2":
             let event = snapshot.records[index].event
             let open = action.action == "open"

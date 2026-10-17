@@ -47,6 +47,19 @@ private func action(_ card: TaskNotificationCard, _ name: String) -> TaskNotific
         try recovered.handle(action(try recovered.card(now: 100000), "decline"), now: 100001)
         try require(try offlineStore.decisionNames().count == 1, "Expired orphan decisions cannot exhaust mailbox forever")
         try require(try recovered.card(now: 100001).state == "submitting", "Fresh native decision publishes after offline cleanup")
+        let fifoStore = try TaskNotificationStore(directory: root.appendingPathComponent("fifo").path)
+        let fifo = try TaskNotificationBroker(store: fifoStore)
+        var doneA = event("doneA", state: "resolved"); doneA.kind = "done"; doneA.canDecide = false
+        try fifo.ingest(doneA, now: 1000); let firstDone = try fifo.card(now: 1000); fifo.published()
+        var doneB = event("doneB", at: 1001, state: "resolved"); doneB.kind = "done"; doneB.canDecide = false
+        try fifo.ingest(doneB, now: 1001)
+        fifo.tick(now: 5999)
+        try require(try fifo.card(now: 5999).id == firstDone.id, "Do not replace the five-second announcement early")
+        fifo.tick(now: 6000)
+        let secondDone = try fifo.card(now: 6000)
+        try require(secondDone.id != firstDone.id && secondDone.alert == 1, "Second completion must be announced after first toast")
+        fifo.published(); fifo.tick(now: 12000)
+        try require(try fifo.card(now: 12000).alert == 0, "Announcement is delivered once")
         print("PASS reconnect pin release, UNKNOWN open routing and expired mailbox recovery")
     }
 }
