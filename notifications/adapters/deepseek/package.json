@@ -1,0 +1,10 @@
+{
+  "name": "dsh-agentbezel-notifications",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Opt-in Host audit observer for the private Stopwatch notification bridge",
+  "main": "./index.mjs",
+  "exports": { ".": "./index.mjs" },
+  "license": "MIT",
+  "engines": { "node": ">=22" }
+}

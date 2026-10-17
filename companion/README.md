@@ -438,3 +438,11 @@ still reject after toggling, remove the stale row, add the installed app again,
 and restart the Companion. Do not reset unrelated applications' permissions.
 Startup logs report the actual process Accessibility result. HID connection alone
 and local watch haptics do not prove navigation delivery.
+
+## Optional task notification adapters
+
+The [private notification bridge](TASK_NOTIFICATIONS.md) is opt-in via `--notifications-dir` and remains independent of quota/HID/navigation. [Source-native adapters](../notifications/README.md) provide Codex completion callbacks, separate DSH Host audit/projection observers, a strict SUPER native lifecycle collector and Hermes agent hooks. They keep generic display text and opaque native identities in a private Mac directory; they do not copy prompts, commands or transcripts into tracked files or BLE identity fields.
+
+Every current native adapter disables native decisions. The OPEN consumer routes only identity-bound open requests and reports an exact-session request or an explicit application-activation fallback; neither clears nor approves a native request. No hooks, external profiles, apps or providers are changed automatically. Source/fixture tests, SUPER no-model envelope observation, live native installation and C152 physical delivery are distinct validation layers. See the adapter guide before enabling an integration.
+
+After opting into native Codex notify, add `--native-codex-notifications` together with `--watch --notifications-dir ...` to suppress duplicate legacy Codex completion alerts while the dedicated channel is fresh. This defaults off, preserves status LEDs, and restores legacy alerts after 15 seconds of stale/disconnected delivery. Physical duplicate-alert acceptance remains outstanding.

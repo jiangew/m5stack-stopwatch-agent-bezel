@@ -1,0 +1,10 @@
+name: agentbezel-notifications
+version: 0.1.0
+description: Opt-in private Stopwatch completion and approval-observer events; no native decisions.
+requires_env:
+  - STOPWATCH_NOTIFICATIONS_DIR
+provides_hooks:
+  - on_session_end
+  - subagent_start
+  - pre_approval_request
+  - post_approval_response

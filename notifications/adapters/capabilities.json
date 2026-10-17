@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "enabledByDefault": false,
+  "nativeDecisions": false,
+  "sources": {
+    "codex": {
+      "pin": "CLI 0.163.0-alpha.10.2; desktop 26.1013.40934",
+      "events": ["agent-turn-complete"],
+      "rootVerification": "exact metadata-only thread/read; explicit fallback on unknown",
+      "approval": "unsupported",
+      "input": "unsupported",
+      "open": "exact thread route request",
+      "evidence": "installed schema and fixtures; notify installation and live callback unvalidated"
+    },
+    "deepseek": {
+      "pin": "0.2.0-rc.2",
+      "events": ["session/event turn/end", "approval/asked", "approval/decided", "userQuestions projection"],
+      "rootVerification": "native agents.roots exact Session identity",
+      "approval": "audit observation only; native outcome is authoritative",
+      "input": "native projection observation only",
+      "open": "application activation fallback",
+      "evidence": "installed source and fixtures; Host plugin installation unvalidated"
+    },
+    "super": {
+      "pin": "ac45e7aa",
+      "events": ["native sc agent subscribe flat lifecycle"],
+      "rootVerification": "explicit targets checked against native agents list; child targets excluded",
+      "approval": "attention observation only; no native approval request identity",
+      "input": "attention observation only",
+      "open": "verified Chat UI binding or application fallback",
+      "evidence": "actual no-model ready/target_closed; other event variants fixture tested"
+    },
+    "hermes": {
+      "pin": "desktop 0.17.6; source 74f726c17675642c2eff3033632e812f5f0e6614",
+      "events": ["on_session_end", "subagent_start", "pre_approval_request", "post_approval_response"],
+      "rootVerification": "native finalized-turn callback; observed child IDs excluded",
+      "approval": "observer-local identity; unique native session/turn/tool correlation; no accepted verdict",
+      "input": "unsupported",
+      "open": "stored session route request only",
+      "evidence": "source and fixtures; built artifact equivalence and plugin installation unvalidated"
+    }
+  }
+}

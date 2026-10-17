@@ -604,6 +604,12 @@ swift build -c release
   --device-id YOUR_COREBLUETOOTH_UUID --watch --interval 60
 ```
 
+## Optional task notifications
+
+The [native notification adapters](notifications/README.md) add opt-in completion and navigation-only approval/input alerts through the [private companion bridge](companion/TASK_NOTIFICATIONS.md). Codex notify, a separate DeepSeek Host observer, SUPER lifecycle CLI and a Hermes agent plugin have source-backed entry points and deterministic tests. They are not installed automatically; source/fixture coverage is separate from live app and physical C152 acceptance.
+
+All current native adapters set `canDecide:false`. Read, dismiss and OPEN ON MAC never approve or answer a native request. Exact navigation is available only for verified source session routes; other routes request application activation. Keep real events/IDs outside the repository and follow the per-harness opt-in setup and limitations in the adapter guide.
+
 ## Troubleshooting
 
 ### The C152 does not appear as a serial device
