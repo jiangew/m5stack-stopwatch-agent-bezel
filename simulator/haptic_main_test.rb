@@ -83,16 +83,16 @@ fixture = <<~CPP
   void require(bool ok,const char* message){if(!ok)throw std::runtime_error(message);}
   void reset(){now=1000;events.clear();level=0;hapticActive=false;hapticUntilMs=0;}
   void profiles(){
-    struct Profile {const char* name;uint8_t intensity;uint32_t duration;uint32_t wanted;};
+    struct Profile {const char* name;uint8_t intensity;uint32_t duration;uint8_t wantedLevel;uint32_t wanted;};
     const Profile profiles[]{
-      {"touch",kTouchHapticIntensity,kTouchHapticDurationMs,24},
-      {"button",kButtonHapticIntensity,kButtonHapticDurationMs,24},
-      {"swipe",kSwipeHapticIntensity,kSwipeHapticDurationMs,24},
-      {"wake",kButtonHapticIntensity,kWakeHapticDurationMs,20}};
+      {"touch",kTouchHapticIntensity,kTouchHapticDurationMs,76,30},
+      {"button",kButtonHapticIntensity,kButtonHapticDurationMs,176,24},
+      {"swipe",kSwipeHapticIntensity,kSwipeHapticDurationMs,76,30},
+      {"wake",kButtonHapticIntensity,kWakeHapticDurationMs,176,20}};
     bool ok=true;
     for(const auto& p:profiles){reset();startHaptic(p.intensity,p.duration);
-      std::printf("%s: motor=%u requested=%ums expected=176/%ums\\n",p.name,level,hapticUntilMs-now,p.wanted);
-      ok&=level==176&&hapticUntilMs-now==p.wanted;
+      std::printf("%s: motor=%u requested=%ums expected=%u/%ums\\n",p.name,level,hapticUntilMs-now,p.wantedLevel,p.wanted);
+      ok&=level==p.wantedLevel&&hapticUntilMs-now==p.wanted;
       now+=p.wanted-1;updateHaptic();require(hapticActive,"stopped before deadline");
       ++now;updateHaptic();ok&=!hapticActive&&level==0;
     }
@@ -115,7 +115,7 @@ fixture = <<~CPP
       for(const auto& e:events){if(!std::strcmp(e.kind,"motor")){if(e.value){on=e.at;++drives;}else off=e.at;}
         if(!std::strcmp(e.kind,"key")){if(e.value)down=e.at;else up=e.at;}}
       std::printf("%s: motor window=%ums key window=%ums\\n",agent?"agent":"send",off-on,up-down);
-      require(drives==1&&off-on==24,"touch key motor window isn't 24ms");
+      require(drives==1&&off-on==30,"touch key motor window isn't 30ms");
       require(up-down==55&&up==1000+55,"host key pacing changed");
       require(off<up&&!hapticActive&&!touchAgentPressed&&!touchSendPressed,"release order/state changed");
       const auto count=events.size();if(agent)commitTouchAgent();else commitTouchSend();
@@ -129,7 +129,7 @@ fixture = <<~CPP
     require(events.size()==count,"same release emits twice");
     require(events.size()==3&&!std::strcmp(events[0].kind,"draw")&&
         !std::strcmp(events[1].kind,"present")&&!std::strcmp(events[2].kind,"motor"),"Home haptic starts before first frame");
-    require(events[0].value==0&&events[2].at==1105&&hapticUntilMs==1129,"Home pulse isn't 24ms after first frame");
+    require(events[0].value==0&&events[2].at==1105&&hapticUntilMs==1135,"Home pulse isn't 30ms after first frame");
     require(robotAnimation.mood(now)==robot_home::Mood::Skill,"Home response missing");
     std::printf("Home: present=%ums motor-on=%ums deadline=%ums; one accepted release\\n",events[1].at,events[2].at,hapticUntilMs);
     // A second accepted release can arrive before the old short pulse expires.
@@ -138,11 +138,11 @@ fixture = <<~CPP
     require(events.size()==4&&!std::strcmp(events[0].kind,"motor")&&events[0].value==0&&
         !std::strcmp(events[1].kind,"draw")&&events[1].value==0&&
         !std::strcmp(events[2].kind,"present")&&!std::strcmp(events[3].kind,"motor")&&
-        events[3].value==176,"overlapping Home release must stop old pulse before first frame");
-    require(events[3].at==1175&&hapticUntilMs==1199,"new Home pulse starts before its own first frame");
+        events[3].value==76,"overlapping Home release must stop old pulse before first frame");
+    require(events[3].at==1175&&hapticUntilMs==1205,"new Home pulse starts before its own first frame");
     const auto repeatedCount=events.size();finishTouchGesture(200,200);
     require(events.size()==repeatedCount,"overlapping release repeats feedback");
-    std::printf("Home overlap: old-stop=1110ms present=1175ms motor-on=1175ms deadline=1199ms\\n");
+    std::printf("Home overlap: old-stop=1110ms present=1175ms motor-on=1175ms deadline=1205ms\\n");
   #endif
   }
   void shutdown(){reset();startHaptic(kSwipeHapticIntensity,200);events.clear();
@@ -181,4 +181,4 @@ Dir.mktmpdir('haptic-main-', '/private/tmp') do |dir|
   end
   abort "haptic regressions: #{failed.join(', ')}" unless failed.empty?
 end
-puts 'PASS actual haptic boundaries: profiles, expiry/restart/wrap, 24ms motor + 55ms key, Home frame-before-single-pulse, shutdown 24ms/550ms'
+puts 'PASS actual haptic boundaries: profiles, expiry/restart/wrap, 30ms touch motor + 55ms key, Home frame-before-single-pulse, shutdown 24ms/550ms'
