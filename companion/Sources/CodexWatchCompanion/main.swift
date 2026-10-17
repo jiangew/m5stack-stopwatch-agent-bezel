@@ -508,6 +508,7 @@ struct Options {
     var verbose = false
     var deviceIdentifier: UUID?
     var enterBootloader = false
+    var notificationsDirectory: String?
 
     var startsHIDShortcutListener: Bool {
         watch && !demo && !jsonOnly && !enterBootloader
@@ -554,6 +555,10 @@ func parseOptions(_ arguments: [String] = CommandLine.arguments) throws -> Optio
     var index = 1
     while index < arguments.count {
         switch arguments[index] {
+        case "--notifications-dir":
+            index += 1
+            guard index < arguments.count, arguments[index].hasPrefix("/") else { throw CompanionError.usage("--notifications-dir 需要绝对路径") }
+            options.notificationsDirectory = arguments[index]
         case "--codex-path":
             index += 1
             guard index < arguments.count else { throw CompanionError.usage("--codex-path 需要路径") }
@@ -585,6 +590,8 @@ func parseOptions(_ arguments: [String] = CommandLine.arguments) throws -> Optio
             用法: codex-watch-companion --device-id UUID [--watch] [--interval 60] [-v]
 
               --watch          持续刷新；默认只写入一次
+              --notifications-dir P
+                              启用私有通知桥（仅真实 watch；绝对路径）
               --interval N     额度刷新间隔，至少 10 秒，默认 60
               --demo           使用合成额度，不启动 Codex App Server
               --json-only      只打印 JSON，不连接蓝牙
@@ -599,6 +606,11 @@ func parseOptions(_ arguments: [String] = CommandLine.arguments) throws -> Optio
             throw CompanionError.usage("未知参数：\(arguments[index])；使用 --help 查看用法")
         }
         index += 1
+    }
+    if options.notificationsDirectory != nil {
+        guard options.watch, !options.demo, !options.jsonOnly, !options.enterBootloader, options.deviceIdentifier != nil else {
+            throw CompanionError.usage("--notifications-dir 仅支持真实 --watch --device-id 模式")
+        }
     }
     return options
 }
@@ -645,6 +657,15 @@ private func run() throws {
     if !options.demo, !options.jsonOnly, options.deviceIdentifier == nil {
         throw CompanionError.usage("写入真实额度必须提供 --device-id；先运行 --demo --verbose 查看 StopWatch UUID")
     }
+
+    // Start independently of quota/App Server availability, before the first quota read.
+    var notificationRuntime: TaskNotificationRuntime?
+    if let directory = options.notificationsDirectory, let identifier = options.deviceIdentifier {
+        let runtime = try TaskNotificationRuntime(directory: directory, identifier: identifier, log: { fputs("\($0)\n", stderr) })
+        runtime.start()
+        notificationRuntime = runtime
+    }
+    defer { notificationRuntime?.stop() }
 
     var workspaceCycleController: WorkspaceCycleController?
     var shortcutRouter: WorkspaceCommandRouter?
@@ -707,6 +728,7 @@ private func run() throws {
             shortcutListener = listener
             workspaceModeCoordinator = coordinator
             let termination = WatchTerminationSignal {
+                notificationRuntime?.stop()
                 keyLifecycle.stop()
                 diagnosticSignal.stop()
                 toggler.stop()
