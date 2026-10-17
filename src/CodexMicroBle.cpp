@@ -180,6 +180,23 @@ class CodexMicroBle::QuotaCallbacks final : public BLECharacteristicCallbacks {
   CodexMicroBle& owner_;
 };
 
+#if defined(CODEX_STOPWATCH_TASK_NOTIFICATIONS)
+class CodexMicroBle::NotificationCallbacks final : public BLECharacteristicCallbacks {
+ public:
+  explicit NotificationCallbacks(CodexMicroBle& owner):owner_(owner){}
+  void onWrite(BLECharacteristic* characteristic,esp_ble_gatts_cb_param_t* param) override {
+    if(!param||!owner_.notificationQueue_)return;
+    const auto value=characteristic->getValue();
+    PendingNotificationWrite write;
+    if(value.length()==0||value.length()>write.data.size()) {owner_.notificationWriteLost_.store(true);return;}
+    write.length=value.length();write.connectionId=param->write.conn_id;
+    std::memcpy(write.data.data(),value.c_str(),write.length);
+    if(xQueueSend(owner_.notificationQueue_,&write,0)!=pdTRUE)owner_.notificationWriteLost_.store(true);
+  }
+ private:CodexMicroBle& owner_;
+};
+#endif
+
 void CodexMicroBle::begin() {
   stateMutex_ = xSemaphoreCreateMutex();
   outputQueue_ = xQueueCreate(16, sizeof(PendingOutputReport));
@@ -191,6 +208,10 @@ void CodexMicroBle::begin() {
     Serial.println("BLE connection event queue allocation failed");
   }
   quotaWriteQueue_ = xQueueCreate(4, sizeof(PendingQuotaWrite));
+#if defined(CODEX_STOPWATCH_TASK_NOTIFICATIONS)
+  notificationQueue_=xQueueCreate(4,sizeof(PendingNotificationWrite));
+  if(!notificationQueue_)Serial.println("Notification queue allocation failed; decisions disabled");
+#endif
   if (quotaWriteQueue_ == nullptr) {
     Serial.println("BLE quota write queue allocation failed");
   }
@@ -349,6 +370,21 @@ void CodexMicroBle::begin() {
   quotaService->start();
 #endif
 
+#if defined(CODEX_STOPWATCH_TASK_NOTIFICATIONS)
+  // Separate encrypted project-owned channel: never reuse vendor HID or quota payloads.
+  auto* notificationService=server->createService(BLEUUID("7f0d4e66-2ac2-4a71-bfbe-4ef61a0e5c11"),8);
+  auto* cardWrite=notificationService->createCharacteristic("7f0d4e66-2ac2-4a71-bfbe-4ef61a0e5c12",BLECharacteristic::PROPERTY_WRITE);
+  cardWrite->setAccessPermissions(ESP_GATT_PERM_WRITE_ENCRYPTED);
+  cardWrite->setCallbacks(new NotificationCallbacks(*this));
+  notificationActions_=notificationService->createCharacteristic("7f0d4e66-2ac2-4a71-bfbe-4ef61a0e5c13",BLECharacteristic::PROPERTY_READ|BLECharacteristic::PROPERTY_NOTIFY);
+  notificationActions_->setAccessPermissions(ESP_GATT_PERM_READ_ENCRYPTED);
+  auto* actionCccd=new BLE2902();
+  actionCccd->setAccessPermissions(ESP_GATT_PERM_READ_ENCRYPTED|ESP_GATT_PERM_WRITE_ENCRYPTED);
+  notificationActions_->addDescriptor(actionCccd);
+  notificationActions_->setValue("");
+  notificationService->start();
+#endif
+
   BLEAdvertising* advertising = BLEDevice::getAdvertising();
   advertising->setAppearance(GENERIC_HID);
   advertising->addServiceUUID(hidService_->getUUID());
@@ -372,6 +408,9 @@ void CodexMicroBle::poll() {
   expireWorkspaceLease();
 #endif
   processQuotaWrites();
+#if defined(CODEX_STOPWATCH_TASK_NOTIFICATIONS)
+  processNotificationWrites();
+#endif
 #if defined(CODEX_STOPWATCH_USB_MIC)
   processPendingBootloaderRestart();
 #endif
@@ -388,6 +427,50 @@ void CodexMicroBle::poll() {
                   report.peerAddress);
   }
 }
+
+#if defined(CODEX_STOPWATCH_TASK_NOTIFICATIONS)
+void CodexMicroBle::invalidateNotifications(){
+  if(stateMutex_){xSemaphoreTake(stateMutex_,portMAX_DELAY);notifications_.ready=false;++notifications_.version;xSemaphoreGive(stateMutex_);}
+  notificationConnectionValid_=false;
+  if(notificationActions_)notificationActions_->setValue("");
+}
+
+void CodexMicroBle::processNotificationWrites(){
+  if(notificationWriteLost_.exchange(false)){invalidateNotifications();if(notificationQueue_)xQueueReset(notificationQueue_);return;}
+  if(!notificationQueue_||!stateMutex_)return;
+  PendingNotificationWrite write;
+  while(xQueueReceive(notificationQueue_,&write,0)==pdTRUE){
+    if(!connections_.contains(write.connectionId))continue;
+    if(notificationConnectionValid_&&notificationConnectionId_!=write.connectionId)continue;
+    StaticJsonDocument<2048> doc;
+    task_notification::Card card;
+    if(deserializeJson(doc,write.data.data(),write.length)||!doc.is<JsonObject>()||
+       !task_notification::parse(doc.as<JsonObjectConst>(),card)){invalidateNotifications();continue;}
+    notificationConnectionId_=write.connectionId;notificationConnectionValid_=true;
+    xSemaphoreTake(stateMutex_,portMAX_DELAY);
+    notifications_.card=card;notifications_.receivedAt=millis();notifications_.ready=true;++notifications_.version;
+    xSemaphoreGive(stateMutex_);
+  }
+}
+
+task_notification::Snapshot CodexMicroBle::notificationSnapshot(){
+  if(!stateMutex_)return {};
+  xSemaphoreTake(stateMutex_,portMAX_DELAY);const auto copy=notifications_;xSemaphoreGive(stateMutex_);return copy;
+}
+
+bool CodexMicroBle::sendNotificationAction(const task_notification::Action& action){
+  const auto current=notificationSnapshot();
+  if(!notificationActions_||!notificationConnectionValid_||!current.ready||
+      uint32_t(millis()-current.receivedAt)>=task_notification::kLeaseMs||
+      current.card.g!=action.g||current.card.id!=action.id||current.card.r!=action.r)return false;
+  StaticJsonDocument<256> doc;task_notification::writeAction(doc.to<JsonObject>(),action);
+  String payload;serializeJson(doc,payload);
+  notificationActions_->setValue(reinterpret_cast<uint8_t*>(const_cast<char*>(payload.c_str())),payload.length());
+  // Notification is only a hint. The Mac reads the complete characteristic,
+  // whose value survives a missed/truncated ATT notification until acked.
+  notificationActions_->notify();return true;
+}
+#endif
 
 void CodexMicroBle::setBattery(uint8_t percentage, bool charging) {
   batteryPercentage_ = constrain(percentage, 0, 100);
@@ -482,6 +565,9 @@ void CodexMicroBle::onConnectionEvent(bool connected, uint16_t id) {
 }
 
 void CodexMicroBle::applyConnectionEvent(const PendingConnectionEvent& event) {
+#if defined(CODEX_STOPWATCH_TASK_NOTIFICATIONS)
+  if(!event.connected&&notificationConnectionValid_&&notificationConnectionId_==event.id)invalidateNotifications();
+#endif
   const connection_health::ConnectionSet::Transition transition =
       connections_.apply(event.connected, event.id);
   if (transition.overflow) {
@@ -540,6 +626,9 @@ void CodexMicroBle::reconcileConnectionSet() {
   const bool eventLost =
       connectionEventLost_.exchange(false, std::memory_order_acq_rel);
   if (!eventLost) return;
+#if defined(CODEX_STOPWATCH_TASK_NOTIFICATIONS)
+  invalidateNotifications();
+#endif
   connection_health::ConnectionSet observed;
   bool overflow = false;
   const auto peers = server_->getPeerDevices(false);

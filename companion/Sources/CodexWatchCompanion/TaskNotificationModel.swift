@@ -76,6 +76,7 @@ struct TaskNotificationCard: Codable, Equatable {
     var options: [String]?
     var ack: UInt32 = 0
     var outcome: String?
+    var muteLegacyCodex: Bool? = nil
 }
 struct TaskNotificationAction: Codable {
     var v: Int

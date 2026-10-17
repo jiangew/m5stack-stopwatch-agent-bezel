@@ -509,6 +509,7 @@ struct Options {
     var deviceIdentifier: UUID?
     var enterBootloader = false
     var notificationsDirectory: String?
+    var nativeCodexNotifications = false
 
     var startsHIDShortcutListener: Bool {
         watch && !demo && !jsonOnly && !enterBootloader
@@ -555,6 +556,8 @@ func parseOptions(_ arguments: [String] = CommandLine.arguments) throws -> Optio
     var index = 1
     while index < arguments.count {
         switch arguments[index] {
+        case "--native-codex-notifications":
+            options.nativeCodexNotifications = true
         case "--notifications-dir":
             index += 1
             guard index < arguments.count, arguments[index].hasPrefix("/") else { throw CompanionError.usage("--notifications-dir 需要绝对路径") }
@@ -592,6 +595,8 @@ func parseOptions(_ arguments: [String] = CommandLine.arguments) throws -> Optio
               --watch          持续刷新；默认只写入一次
               --notifications-dir P
                               启用私有通知桥（仅真实 watch；绝对路径）
+              --native-codex-notifications
+                              由原生 Codex 适配器负责完成提醒；抑制旧 HID 完成提示
               --interval N     额度刷新间隔，至少 10 秒，默认 60
               --demo           使用合成额度，不启动 Codex App Server
               --json-only      只打印 JSON，不连接蓝牙
@@ -611,6 +616,9 @@ func parseOptions(_ arguments: [String] = CommandLine.arguments) throws -> Optio
         guard options.watch, !options.demo, !options.jsonOnly, !options.enterBootloader, options.deviceIdentifier != nil else {
             throw CompanionError.usage("--notifications-dir 仅支持真实 --watch --device-id 模式")
         }
+    }
+    if options.nativeCodexNotifications && options.notificationsDirectory == nil {
+        throw CompanionError.usage("--native-codex-notifications 需要 --notifications-dir 和真实 watch 模式")
     }
     return options
 }
@@ -661,7 +669,7 @@ private func run() throws {
     // Start independently of quota/App Server availability, before the first quota read.
     var notificationRuntime: TaskNotificationRuntime?
     if let directory = options.notificationsDirectory, let identifier = options.deviceIdentifier {
-        let runtime = try TaskNotificationRuntime(directory: directory, identifier: identifier, log: { fputs("\($0)\n", stderr) })
+        let runtime = try TaskNotificationRuntime(directory: directory, identifier: identifier, muteLegacyCodex: options.nativeCodexNotifications, log: { fputs("\($0)\n", stderr) })
         runtime.start()
         notificationRuntime = runtime
     }

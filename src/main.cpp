@@ -15,6 +15,9 @@
 #include "DashboardUi.h"
 #include "PowerButtonGesture.h"
 #include "TouchGesture.h"
+#if defined(CODEX_STOPWATCH_TASK_NOTIFICATIONS)
+#include "TaskNotificationUi.h"
+#endif
 #if defined(CODEX_STOPWATCH_USB_MIC)
 #include "SuperWorkspaceUi.h"
 #include <esp_system.h>
@@ -171,6 +174,13 @@ std::array<int16_t, kCompletionChimeSamples> completionChimePcm = {};
 #endif
 bool hapticActive = false;
 uint32_t hapticUntilMs = 0;
+#if defined(CODEX_STOPWATCH_TASK_NOTIFICATIONS)
+task_notification::Controller taskNotificationUi;
+task_notification::HapticSequence taskNotificationPulses;
+uint32_t lastNotificationVersion=0,lastNotificationProgressDraw=0;
+bool taskBadgeTouch=false,taskBadgeCanOpen=false;
+int taskBadgeX=0,taskBadgeY=0;
+#endif
 uint32_t lastActivityMs = 0;
 uint8_t appliedBrightness = kActiveBrightness;
 int8_t batteryPercent = -1;
@@ -398,7 +408,11 @@ void updateRobotImu() {
   const uint32_t now=millis();
   auto& t=robotImuTelemetry;
   const bool home=state.workspaceMode==workspace_mode::Mode::Home;
-  const bool overlay=powerOverlay!=dashboard::PowerOverlay::None;
+  const bool overlay=powerOverlay!=dashboard::PowerOverlay::None
+#if defined(CODEX_STOPWATCH_TASK_NOTIFICATIONS)
+      ||taskNotificationUi.visible()
+#endif
+      ;
   // Home's side keys are otherwise inert. One two-second chord toggles the
   // polling/rendering experiment for same-binary A/B measurement.
   const bool chord=home&&!deskSleeping&&!overlay&&M5.BtnA.isPressed()&&M5.BtnB.isPressed();
@@ -669,6 +683,12 @@ void drawScreen() {
     return;
   }
   shouldRedraw = false;
+#if defined(CODEX_STOPWATCH_TASK_NOTIFICATIONS)
+  if(taskNotificationUi.visible()&&powerOverlay==dashboard::PowerOverlay::None){
+    task_notification::render(canvas,taskNotificationUi,millis());
+    canvas.pushSprite(0,0);lastDrawMs=millis();return;
+  }
+#endif
 #if defined(CODEX_STOPWATCH_USB_MIC)
   bool homeFrameAnimated = false;
   uint32_t homeFrameStartedMs = 0;
@@ -713,6 +733,9 @@ void drawScreen() {
 #endif
   renderedBatteryPercent = batteryPercent;
   renderedCharging = charging;
+#if defined(CODEX_STOPWATCH_TASK_NOTIFICATIONS)
+  if(powerOverlay==dashboard::PowerOverlay::None)task_notification::badge(canvas,taskNotificationUi);
+#endif
   canvas.pushSprite(0, 0);
   lastDrawMs = millis();
 #if defined(CODEX_STOPWATCH_USB_MIC)
@@ -1088,7 +1111,12 @@ void detectAgentTransitions(const CodexMicroState& latest) {
     if (agentStatusObserved[i] &&
         previousAgentStatuses[i] != dashboard::AgentStatus::Complete &&
         next == dashboard::AgentStatus::Complete) {
-      startCompletionChime(static_cast<int8_t>(i));
+#if defined(CODEX_STOPWATCH_TASK_NOTIFICATIONS)
+      // Explicit adapter ownership only, with a short channel lease. Status
+      // baselines and LEDs continue updating; disconnect restores legacy alerts.
+      if (!task_notification::ownsLegacyCodexCompletion(codex.notificationSnapshot(), millis()))
+#endif
+        startCompletionChime(static_cast<int8_t>(i));
     }
     // Requires-input also wakes the screen; routine status refreshes must not,
     // or host polling would keep the panel lit around the clock.
@@ -1439,6 +1467,69 @@ void setup() {
   Serial.println("CODEX_MICRO_STOPWATCH_READY");
 }
 
+#if defined(CODEX_STOPWATCH_TASK_NOTIFICATIONS)
+void updateTaskNotificationHaptics(uint32_t now){
+  switch(taskNotificationPulses.tick(now)){
+    case task_notification::Pulse::Start:startHaptic(176,30);break;
+    case task_notification::Pulse::Stop:stopHaptic();break;
+    default:break;
+  }
+}
+
+bool handleTaskNotifications() {
+  const uint32_t now=millis();
+  const auto latest=codex.notificationSnapshot();
+  if(latest.version!=lastNotificationVersion){
+    lastNotificationVersion=latest.version;
+    if(latest.ready)taskNotificationUi.receive(latest.card,latest.receivedAt);
+    else taskNotificationUi.disconnect();
+  }
+  if(powerOverlay!=dashboard::PowerOverlay::None||powerButtonPressed){
+    if(taskNotificationUi.visible())taskNotificationUi.close(now);
+    taskNotificationUi.suspend();taskNotificationPulses.cancel();
+    return false; // physical power gestures always retain priority
+  }
+  const auto touch=M5.Touch.getDetail();
+  const bool ownedTouch=taskBadgeTouch||taskNotificationUi.visible();
+  const bool idle=!touchTracking&&!touch.isPressed()&&!touch.wasReleased()&&!leftPressed&&!rightPressed&&
+      !voiceClickReleasePending&&!M5.BtnA.isPressed()&&!M5.BtnB.isPressed()&&!hapticActive;
+  if(taskNotificationUi.present(now,idle)){
+    noteActivity();taskNotificationPulses.start(taskNotificationUi.takeAlert(),now);
+#if defined(CODEX_STOPWATCH_USB_MIC)
+    stopRobotReaction();
+#endif
+  }
+  if(!taskNotificationUi.visible()){
+    if(touch.wasPressed()&&taskNotificationUi.badge(touch.x,touch.y)){
+      taskBadgeTouch=true;taskBadgeCanOpen=noteActivity();taskBadgeX=touch.x;taskBadgeY=touch.y;
+    }
+    if(taskBadgeTouch){
+      if(touch.isPressed()&&(std::abs(touch.x-taskBadgeX)>=20||std::abs(touch.y-taskBadgeY)>=20))taskBadgeCanOpen=false;
+      if(touch.wasReleased()){
+        if(taskBadgeCanOpen){taskNotificationUi.openInbox(now);taskNotificationUi.release(touch.x,touch.y,now);}
+        taskBadgeTouch=false;taskBadgeCanOpen=false;
+      }
+    }
+  }else{
+    if(touch.wasPressed())taskNotificationUi.press(touch.x,touch.y,now,noteActivity());
+    if(touch.isPressed()){
+      auto point=M5.Touch.getTouchPointRaw();M5.Display.convertRawXY(&point,1);
+      taskNotificationUi.move(point.x,point.y,now);
+    }
+    if(touch.wasReleased())taskNotificationUi.release(touch.x,touch.y,now);
+  }
+  taskNotificationUi.tick(now);
+  task_notification::Action action;
+  if(taskNotificationUi.takeAction(action)&&!codex.sendNotificationAction(action))taskNotificationUi.disconnect();
+  updateTaskNotificationHaptics(now);
+  const bool progress=taskNotificationUi.view()==task_notification::View::Confirm&&uint32_t(now-lastNotificationProgressDraw)>=80;
+  if(taskNotificationUi.dirty()||shouldRedraw||progress){
+    shouldRedraw=true;lastNotificationProgressDraw=now;drawScreen();
+  }
+  return ownedTouch||taskBadgeTouch||taskNotificationUi.visible();
+}
+#endif
+
 void loop() {
   M5.update();
   codex.poll();
@@ -1467,6 +1558,16 @@ void loop() {
   }
 #endif
   updatePowerButton();
+
+#if defined(CODEX_STOPWATCH_TASK_NOTIFICATIONS)
+  if(handleTaskNotifications()){
+#if defined(CODEX_STOPWATCH_HOME_IMU)
+    updateRobotImu();
+#endif
+    updatePowerTelemetry();updateIdleDimming();updateHaptic();updateVoiceTapBanner();updateVoiceChatClick();
+    delay(8);return;
+  }
+#endif
 
   const auto touch = M5.Touch.getDetail();
   // Serial captures proved the CST816S reports full-resolution framebuffer

@@ -11,6 +11,13 @@ private func action(_ card: TaskNotificationCard, _ name: String) -> TaskNotific
 }
 @main struct TaskNotificationReviewRegression {
     static func main() throws {
+        let ownershipStore = try TaskNotificationStore(directory: "/private/tmp/notification-mute-" + UUID().uuidString)
+        let ownership = try TaskNotificationBroker(store: ownershipStore, muteLegacyCodex: true)
+        try require(ownership.card(now: 1000).muteLegacyCodex == true, "empty heartbeat owns explicitly enabled legacy completion")
+        try ownership.ingest(event("mute"), now: 1000)
+        let owned = try ownership.card(now: 1000)
+        try require(owned.muteLegacyCodex == true && JSONEncoder().encode(owned).count <= 512, "ownership included before wire size check")
+
         var delivery = TaskNotificationWriteSchedule()
         let payload = Data("synthetic".utf8)
         try require(delivery.shouldWrite(payload, now: 1000), "First card must be sent")

@@ -139,3 +139,12 @@ Swift harness, Python unit tests, and a Python→Swift→Python private filesyst
 roundtrip including restart UNKNOWN and authoritative resolution. XCTest sources
 also live in the normal package tests; a full Xcode XCTest SDK is required.
 Synthetic tests/builds establish no physical C152 acceptance.
+
+### Codex completion ownership
+
+When the native Codex notify adapter has been installed, add
+`--native-codex-notifications` alongside `--notifications-dir` in real watch mode.
+This explicit flag mutes only the old vendor-HID completion chime/banner while
+private-channel heartbeats are fresh (15 seconds). Status LEDs keep updating;
+stale/disconnected private channels restore legacy completion alerts. Default is
+o suppression. Installing an adapter alone does not change the running Companion.

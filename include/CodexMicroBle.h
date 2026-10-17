@@ -16,6 +16,9 @@
 
 #include "ConnectionHealth.h"
 #include "HostRpcRequest.h"
+#if defined(CODEX_STOPWATCH_TASK_NOTIFICATIONS)
+#include "TaskNotification.h"
+#endif
 #if defined(CODEX_STOPWATCH_HOME_IMU)
 #include "RobotHomeImuTelemetry.h"
 #endif
@@ -73,11 +76,27 @@ class CodexMicroBle {
   void sendOpenHermes();
   bool connected();
   CodexMicroState snapshot();
+#if defined(CODEX_STOPWATCH_TASK_NOTIFICATIONS)
+  task_notification::Snapshot notificationSnapshot();
+  bool sendNotificationAction(const task_notification::Action& action);
+#endif
 
  private:
   class ServerCallbacks;
   class OutputCallbacks;
   class QuotaCallbacks;
+#if defined(CODEX_STOPWATCH_TASK_NOTIFICATIONS)
+  class NotificationCallbacks;
+  struct PendingNotificationWrite {uint16_t length=0,connectionId=0;std::array<uint8_t,512> data={};};
+  void processNotificationWrites();
+  void invalidateNotifications();
+  QueueHandle_t notificationQueue_=nullptr;
+  BLECharacteristic* notificationActions_=nullptr;
+  task_notification::Snapshot notifications_;
+  uint16_t notificationConnectionId_=0;
+  bool notificationConnectionValid_=false;
+  std::atomic<bool> notificationWriteLost_{false};
+#endif
 
   using PeerAddress = std::array<uint8_t, 6>;
 

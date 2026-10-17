@@ -3,6 +3,7 @@ import Foundation
 /// Serialized by the owning main-runloop runtime; native adapters never call this concurrently.
 final class TaskNotificationBroker {
     private let store: TaskNotificationStore
+    private let muteLegacyCodex: Bool
     private var snapshot: TaskNotificationSnapshot
     private var fresh: Set<UInt32> = []
     private var selected: UInt32?
@@ -17,7 +18,8 @@ final class TaskNotificationBroker {
         clock = now
     }
     var count: Int { snapshot.records.filter { !$0.dismissed }.count }
-    init(store: TaskNotificationStore) throws {
+    init(store: TaskNotificationStore, muteLegacyCodex: Bool = false) throws {
+        self.muteLegacyCodex = muteLegacyCodex
         self.store = store; snapshot = try store.load()
         // Persisted dispatch is never retried, even if publication crashed. Native resolution must reconcile it.
         for i in snapshot.records.indices where snapshot.records[i].state == "submitting" { snapshot.records[i].state = "unknown" }
@@ -116,7 +118,7 @@ final class TaskNotificationBroker {
     }
     func card(now: Int64) throws -> TaskNotificationCard {
         guard let record = snapshot.records.first(where: { $0.id == selected && !$0.dismissed }) else {
-            return TaskNotificationCard(g: generation, id: 0, r: 0, src: "codex", kind: "done", title: "Inbox empty", model: "", detail: "", state: "resolved", count: count, ttl: 0, alert: 0, decide: false, ack: lastActionSequence)
+            return TaskNotificationCard(g: generation, id: 0, r: 0, src: "codex", kind: "done", title: "Inbox empty", model: "", detail: "", state: "resolved", count: count, ttl: 0, alert: 0, decide: false, ack: lastActionSequence, muteLegacyCodex: muteLegacyCodex ? true : nil)
         }
         let event = record.event
         let remaining = max(Int64(0), min(Int64(15_000), event.leaseDeadline - now))
@@ -127,7 +129,7 @@ final class TaskNotificationBroker {
             state: record.state == "pending" && remaining == 0 && capable ? "expired" : record.state,
             count: count, ttl: Int(remaining), alert: alerts[record.id] ?? 0,
             decide: displayable && fresh.contains(record.id) && capable && record.state == "pending" && record.dispatchId == nil && remaining > 0 && event.createdAt <= now && now - event.createdAt <= 15_000 && event.leaseDeadline <= event.createdAt + 15_000,
-            options: event.options, ack: lastActionSequence, outcome: record.state == "resolved" ? event.outcome : nil)
+            options: event.options, ack: lastActionSequence, outcome: record.state == "resolved" ? event.outcome : nil, muteLegacyCodex: muteLegacyCodex ? true : nil)
         if try !displayable || JSONEncoder().encode(card).count > 512 {
             card.title = "Open on Mac"; card.model = ""; card.detail = "Full scope available on Mac"; card.decide = false; card.options = nil
         }

@@ -12,6 +12,7 @@
 #include "SuperWorkspaceUi.h"
 #include "RobotHomeUi.h"
 #include "RobotHomePortraitCanvas.h"
+#include "TaskNotificationUi.h"
 
 namespace {
 
@@ -116,6 +117,7 @@ super_workspace::State superPreviewState(const char* scenario) {
 }
 
 bool validScenario(const char* scenario) {
+  if(std::strncmp(scenario,"notification-",13)==0)return true;
   for (const char* base : {"home","home-bumblebee","home-bumblebeefullbody",
                            "home-optimus","home-jazz","home-hotrod","home-wheeljack","home-hound",
                            "home-ironhide","home-ratchet","home-megatron","home-starscream",
@@ -252,7 +254,29 @@ int main(int argc, char** argv) {
     return 1;
   }
   framebuffer.setTextWrap(false);
-  if (std::strncmp(scenario,"home",4)==0) {
+  if(std::strncmp(scenario,"notification",12)==0){
+    task_notification::Card c;c.g=1;c.id=1;c.r=1;c.count=3;c.ttl=15000;c.alert=2;c.decide=true;
+    std::strcpy(c.src,"deepseek");std::strcpy(c.kind,"approval");std::strcpy(c.state,"pending");
+    std::strcpy(c.title,"Synthetic workspace check");std::strcpy(c.model,"Model A");
+    std::strcpy(c.detail,"Run echo check in the selected workspace. Network: none. Permission: allow once for this exact request.");
+    if(std::strstr(scenario,"input")){
+      std::strcpy(c.kind,"input");c.optionCount=3;
+      std::strcpy(c.detail,"Choose one delivery format for the current synthetic task.");
+      std::strcpy(c.options[0],"Markdown");std::strcpy(c.options[1],"HTML");std::strcpy(c.options[2],"Both");
+    }
+    if(std::strstr(scenario,"done")){std::strcpy(c.src,"super");std::strcpy(c.kind,"done");std::strcpy(c.state,"resolved");c.decide=false;c.alert=1;}
+    task_notification::Controller ui;ui.receive(c,1000);ui.present(1000,true);
+    if(!std::strstr(scenario,"toast")){
+      ui.press(233,233,1010,true);ui.release(233,233,1020);
+      task_notification::Action a;ui.takeAction(a);c.ack=a.seq;c.alert=0;ui.receive(c,1030);
+    }
+    if(std::strstr(scenario,"confirm")||std::strstr(scenario,"submitting")){
+      ui.press(140,305,1040,true);ui.release(140,305,1050);ui.press(233,320,1100,true);ui.tick(1500);
+      if(std::strstr(scenario,"submitting"))ui.tick(1900);
+    }
+    if(std::strstr(scenario,"offline"))ui.disconnect();
+    task_notification::render(framebuffer,ui,std::strstr(scenario,"submitting")?1900:1500);
+  } else if (std::strncmp(scenario,"home",4)==0) {
     robot_home::State state;state.batteryPercent=82;state.connected=true;
     if(std::strncmp(scenario,"home-bumblebeefullbody",22)==0)state.character=robot_home::Character::BumblebeeFullbody;
     if(std::strncmp(scenario,"home-optimus",12)==0)state.character=robot_home::Character::Optimus;
