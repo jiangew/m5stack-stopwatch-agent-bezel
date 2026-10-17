@@ -1,5 +1,5 @@
 # Actual firmware constants and functions; clock, motor/panel and host I/O are boundaries.
-# Catches excessive drive, late stop, deadline restart/wrap, duplicate Home release,
+# Checks requested drive, late stop, deadline restart/wrap, duplicate Home release,
 # changed 55ms host-key pacing, and shutdown drawing with an old motor pulse active.
 require 'tmpdir'
 repo = File.expand_path('..', __dir__)
@@ -85,9 +85,9 @@ fixture = <<~CPP
   void profiles(){
     struct Profile {const char* name;uint8_t intensity;uint32_t duration;uint8_t wantedLevel;uint32_t wanted;};
     const Profile profiles[]{
-      {"touch",kTouchHapticIntensity,kTouchHapticDurationMs,76,30},
+      {"touch",kTouchHapticIntensity,kTouchHapticDurationMs,176,30},
       {"button",kButtonHapticIntensity,kButtonHapticDurationMs,176,24},
-      {"swipe",kSwipeHapticIntensity,kSwipeHapticDurationMs,76,30},
+      {"swipe",kSwipeHapticIntensity,kSwipeHapticDurationMs,176,30},
       {"wake",kButtonHapticIntensity,kWakeHapticDurationMs,176,20}};
     bool ok=true;
     for(const auto& p:profiles){reset();startHaptic(p.intensity,p.duration);
@@ -96,7 +96,7 @@ fixture = <<~CPP
       now+=p.wanted-1;updateHaptic();require(hapticActive,"stopped before deadline");
       ++now;updateHaptic();ok&=!hapticActive&&level==0;
     }
-    require(ok,"actual haptic drive/deadline exceeds quiet profile");
+    require(ok,"actual haptic drive/deadline does not match selected profile");
   }
   void deadlines(){reset();startHaptic(kTouchHapticIntensity,kTouchHapticDurationMs);
     now=hapticUntilMs-1;updateHaptic();require(hapticActive,"early stop");
@@ -138,7 +138,7 @@ fixture = <<~CPP
     require(events.size()==4&&!std::strcmp(events[0].kind,"motor")&&events[0].value==0&&
         !std::strcmp(events[1].kind,"draw")&&events[1].value==0&&
         !std::strcmp(events[2].kind,"present")&&!std::strcmp(events[3].kind,"motor")&&
-        events[3].value==76,"overlapping Home release must stop old pulse before first frame");
+        events[3].value==176,"overlapping Home release must stop old pulse before first frame");
     require(events[3].at==1175&&hapticUntilMs==1205,"new Home pulse starts before its own first frame");
     const auto repeatedCount=events.size();finishTouchGesture(200,200);
     require(events.size()==repeatedCount,"overlapping release repeats feedback");

@@ -38,11 +38,11 @@ constexpr uint32_t kVoiceTapBannerMs = 900;
 constexpr uint32_t kVoiceClickPulseMs = 70;
 constexpr uint32_t kTouchKeyPulseMs = 55;
 constexpr int kSwipeThresholdPx = 52;
-// User-requested touch/swipe trial; this low drive needs physical validation.
+// User-requested 176/30ms touch/swipe trial; needs physical validation.
 // Physical-button, wake and shutdown feedback retain the prior profile.
 constexpr uint8_t kButtonHapticIntensity = 176;
-constexpr uint8_t kTouchHapticIntensity = 76;
-constexpr uint8_t kSwipeHapticIntensity = 76;
+constexpr uint8_t kTouchHapticIntensity = 176;
+constexpr uint8_t kSwipeHapticIntensity = 176;
 constexpr uint32_t kWakeHapticDurationMs = 20;
 constexpr uint32_t kButtonHapticDurationMs = 24;
 constexpr uint32_t kTouchHapticDurationMs = 30;

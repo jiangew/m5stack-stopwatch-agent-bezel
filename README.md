@@ -77,10 +77,12 @@ See the
 - Quiet-haptics tuning: the first image `d30708d3b27d` was flashed and verified,
   but the user reported weak, intermittently imperceptible feedback. The new
   adjusted image `c2a6549ac574` was then flashed; feel and sound were accepted,
-  while the user reported absent IMU interaction. Static diagnostics remain
-  Calibrating with about 6.5dps gyro output, above the 4dps stillness limit.
+  while the user reported absent IMU interaction. Static-start testing then
+  reduced gyro output from about 6.5dps to 0.32dps and completed calibration;
+  the user confirmed restored actions, with three pickups and three settles.
+  The flashed 76/30ms image `0b6c31aadbde` had imperceptible haptic feedback.
   The next unflashed candidate follows the user's request: Home/ordinary touch
-  and swipe use 76/255 for 30ms. Buttons retain 176/255 for 24ms, wake 20ms and
+  and swipe use 176/255 for 30ms. Buttons retain 176/255 for 24ms, wake 20ms and
   travel-off 24ms. Pending frames wait for motor stop before rendering;
   Home's first response frame precedes its pulse, including overlapping taps.
   Ordinary touch keeps the 55ms host-key pulse, stopping the motor after 30ms.
