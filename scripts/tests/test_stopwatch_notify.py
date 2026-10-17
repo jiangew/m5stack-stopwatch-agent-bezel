@@ -5,6 +5,7 @@ from pathlib import Path
 import tempfile
 import subprocess
 import unittest
+from unittest.mock import patch
 
 spec = importlib.util.spec_from_file_location('stopwatch_notify', Path(__file__).parents[1] / 'stopwatch_notify.py')
 notify = importlib.util.module_from_spec(spec)
@@ -24,6 +25,22 @@ class NotifyTests(unittest.TestCase):
             bad = self.fixture(); bad['detail'] = 'x' * 9000
             with self.assertRaises(ValueError): notify.emit(directory, bad)
             self.assertEqual(len(list((directory / 'inbox').glob('*.json'))), 1)
+    @unittest.skipUnless(os.environ.get('TASK_NOTIFICATION_TEST_BINARY'), 'standalone Swift bridge binary required')
+    def test_consumer_can_claim_immediately_at_publication(self):
+        with tempfile.TemporaryDirectory(dir='/private/tmp') as root:
+            directory = Path(root) / 'notifications'
+            original_link, original_rename = os.link, os.rename
+            def concurrent_publish(operation):
+                def publish(*args, **kwargs):
+                    result = operation(*args, **kwargs)
+                    # Run the real consumer before the publisher can do any further cleanup.
+                    subprocess.run([os.environ['TASK_NOTIFICATION_TEST_BINARY'], '--bridge', str(directory)], check=True, capture_output=True)
+                    return result
+                return publish
+            with patch.object(notify.os, 'link', concurrent_publish(original_link)), patch.object(notify.os, 'rename', concurrent_publish(original_rename)):
+                notify.emit(directory, self.fixture())
+            self.assertEqual(list((directory / 'inbox').glob('*.json')), [])
+            self.assertEqual(len(notify.decisions(directory, self.fixture(), now=1002)), 1)
     def test_decision_exact_identity_and_consume_once(self):
         with tempfile.TemporaryDirectory(dir='/private/tmp') as root:
             directory = Path(root) / 'notifications'
@@ -74,8 +91,8 @@ class NotifyTests(unittest.TestCase):
             self.assertEqual(notify.decisions(directory, event, now=1001), [])
             record['optionId'] = 'native-b'; target.write_text(json.dumps(record))
             self.assertEqual(notify.decisions(directory, event, now=16000), [])
-            self.assertTrue(target.exists())
-            self.assertEqual(notify.decisions(directory, event, now=1001), [record])
+            self.assertFalse(target.exists())
+            self.assertEqual(notify.decisions(directory, event, now=1001), [])
 
     def test_outcome_requires_authoritative_resolution(self):
         event = self.fixture(); event['outcome'] = 'allowed'

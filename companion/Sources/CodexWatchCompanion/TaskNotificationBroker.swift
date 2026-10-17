@@ -30,7 +30,11 @@ final class TaskNotificationBroker {
             return $0.id < $1.id
         }.first?.id
     }
-    func reconnect() { generation = generation == UInt32.max ? 1 : generation + 1; alerts.removeAll(); lastActionSequence = 0 }
+    func reconnect() {
+        generation = generation == UInt32.max ? 1 : generation + 1
+        alerts.removeAll(); lastActionSequence = 0
+        pinned = false; selected = preferredID()
+    }
     func published() { if let selected { alerts[selected] = nil } }
     func ingest(_ event: TaskNotificationEvent, now: Int64) throws {
         try event.validate()
@@ -147,7 +151,7 @@ final class TaskNotificationBroker {
                 guard event.kind == "input", let choice = Int(action.action.suffix(1)), let ids = event.optionIds, choice < ids.count else { return }
                 optionId = ids[choice]
             } else if !open { guard event.kind == "approval" else { return } }
-            guard snapshot.records[index].dispatchId == nil else { return }
+            guard open || snapshot.records[index].dispatchId == nil else { return }
             let decisionID = UUID().uuidString
             let decision = TaskNotificationDecision(decisionId: decisionID, source: event.source, sessionId: event.sessionId, runId: event.runId, requestId: event.requestId, revision: event.revision, action: optionId != nil ? "choose" : action.action, createdAt: now, leaseDeadline: event.leaseDeadline, optionId: optionId)
             if open {

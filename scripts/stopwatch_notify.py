@@ -111,8 +111,10 @@ def emit(directory, event):
         try:
             with os.fdopen(record, 'wb') as output:
                 output.write(payload); output.flush(); os.fsync(output.fileno())
-            os.link(temporary, name + '.json', src_dir_fd=fd, dst_dir_fd=fd, follow_symlinks=False)
-            os.unlink(temporary, dir_fd=fd); os.fsync(fd)
+            # UUID final names are private to this publisher. Rename exposes a
+            # complete single-link inode: a consumer may claim it immediately.
+            os.rename(temporary, name + '.json', src_dir_fd=fd, dst_dir_fd=fd)
+            os.fsync(fd)
         finally:
             try: os.unlink(temporary, dir_fd=fd)
             except FileNotFoundError: pass
@@ -146,6 +148,16 @@ def decisions(directory, pending, now=None):
             if not name.endswith('.json'): continue
             try: record = _read(dirs['decisions'], name)
             except (ValueError, OSError, json.JSONDecodeError): continue
+            if not isinstance(record, dict): continue
+            # Expiry only removes delivery files, never fabricates a native
+            # result or retries a persisted approval. Opens have a 60s lifetime.
+            created, deadline = record.get('createdAt'), record.get('leaseDeadline')
+            if _integer(created) and _integer(deadline):
+                expired = now >= (created + 60000 if record.get('action') == 'open' else deadline)
+                if expired:
+                    try: os.unlink(name, dir_fd=dirs['decisions']); os.fsync(dirs['decisions'])
+                    except FileNotFoundError: pass
+                    continue
             if (record.get('v') != 1 or any(record.get(k) != pending[k] for k in IDENTITY)
                     or not _string(record.get('decisionId'), 256, True)
                     or record.get('action') not in {'open', 'allow_once', 'decline', 'choose'}): continue

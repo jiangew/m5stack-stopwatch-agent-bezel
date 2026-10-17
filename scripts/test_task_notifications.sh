@@ -12,4 +12,10 @@ swiftc -parse-as-library \
   companion/Sources/CodexWatchCompanion/TaskNotificationBroker.swift \
   companion/StandaloneTests/TaskNotificationRegression.swift -o "$output/regression"
 "$output/regression"
+swiftc -parse-as-library \
+  companion/Sources/CodexWatchCompanion/TaskNotificationModel.swift \
+  companion/Sources/CodexWatchCompanion/TaskNotificationStore.swift \
+  companion/Sources/CodexWatchCompanion/TaskNotificationBroker.swift \
+  companion/StandaloneTests/TaskNotificationReviewRegression.swift -o "$output/review-regression"
+"$output/review-regression"
 TASK_NOTIFICATION_TEST_BINARY="$output/regression" python3 -m unittest discover -s scripts/tests -p test_stopwatch_notify.py -v

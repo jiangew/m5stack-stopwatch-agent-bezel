@@ -114,6 +114,7 @@ final class TaskNotificationStore {
         try write(JSONEncoder().encode(snapshot), name: "queue.json", to: root, replace: true)
     }
     func publish(_ decision: TaskNotificationDecision) throws {
+        try pruneDecisions(now: decision.createdAt)
         guard try decisionNames().count < 128 else { throw TaskNotificationError.invalid }
         try write(JSONEncoder().encode(decision), name: decision.decisionId + ".json", to: directories["decisions"]!, replace: false)
     }
@@ -121,6 +122,20 @@ final class TaskNotificationStore {
     func readDecision(_ name: String) throws -> TaskNotificationDecision {
         guard let data = try read(name, from: directories["decisions"]!, max: 8192) else { throw TaskNotificationError.io }
         return try JSONDecoder().decode(TaskNotificationDecision.self, from: data)
+    }
+    private func pruneDecisions(now: Int64) throws {
+        let directory = directories["decisions"]!
+        for name in try decisionNames() {
+            guard let decision = try? readDecision(name) else { continue }
+            // Same clock as publication and native leases; deleting a delivery
+            // file never clears its durable dispatch ID or authorizes a retry.
+            let expired: Bool
+            if decision.action == "open" {
+                expired = decision.createdAt <= Int64.max - 60_000 && now >= decision.createdAt + 60_000
+            } else { expired = now >= decision.leaseDeadline }
+            if expired, unlinkat(directory, name, 0) != 0, errno != ENOENT { throw TaskNotificationError.io }
+        }
+        guard fsync(directory) == 0 else { throw TaskNotificationError.io }
     }
     func consumeEvents(_ ingest: (TaskNotificationEvent) throws -> Void, rejected: () -> Void) throws {
         let inbox = directories["inbox"]!, processing = directories["processing"]!

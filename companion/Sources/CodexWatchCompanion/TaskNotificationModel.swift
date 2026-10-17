@@ -2,6 +2,19 @@ import Foundation
 
 enum TaskNotificationError: Error { case invalid, unsafe, io, full }
 
+/// Native request TTL is independent of the BLE channel lease. Even a terminal
+/// card with ttl=0 needs a heartbeat so Read/Open/Dismiss continue to work.
+struct TaskNotificationWriteSchedule {
+    private var payload: Data?
+    private var sentAt: Int64?
+    func shouldWrite(_ next: Data, now: Int64) -> Bool {
+        guard let sentAt else { return true }
+        return payload != next || now < sentAt || now - sentAt >= 5_000
+    }
+    mutating func sent(_ next: Data, now: Int64) { payload = next; sentAt = now }
+    mutating func reset() { payload = nil; sentAt = nil }
+}
+
 struct TaskNotificationEvent: Codable, Equatable {
     var v = 1
     var eventId: String

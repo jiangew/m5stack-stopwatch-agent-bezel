@@ -56,7 +56,7 @@ pins selection until `close` or `dismiss`; arrivals cannot steal that selection.
 Only pending approval/input gets at most one reminder at120seconds. Reconnect
 suppresses all old alerts.
 
-Inbox emission uses same-directory atomic publication. The companion exclusively
+Inbox emission uses same-directory atomic rename with a UUID destination and one inode link, so a consumer can claim immediately at publication. The companion exclusively
 claims each file, persists queue changes before removal and recovers processing
 files after restart. Unsafe/malformed records are removed with a content-free
 error log. Every path component is opened with no symlink following; objects
@@ -74,6 +74,8 @@ For approval/choice the broker persists `submitting` plus its decisionId BEFORE
 publishing a0600 decision file atomically. It never retries a persisted dispatch.
 An adapter exclusively claims an exact matching decision and consumes it once.
 Crash before/after consumption can lose delivery; it must never cause replay.
+Expired decision delivery files are pruned before publication and by adapter reads; nondeciding open requests expire after60seconds. The durable dispatch ID is retained and no approval is replayed.
+
 On restart submitting becomes UNKNOWN and all approval capabilities remain
 disabled until a fresh native heartbeat. Already dispatched requests stay
 disabled even after heartbeat. After15seconds without authoritative resolution,
@@ -120,7 +122,7 @@ Action names: next/previous/read/close/dismiss/open/allow_once/decline/choose0/
 choose1/choose2. `seq` is optional for older producers but firmware should always
 send a strictly increasing positive seq per connection; duplicates do not repeat
 actions. Keep at most one firmware action pending until card.ack acknowledges
-its seq. New connection generations reject old action records. Read/notify can
+its seq. New connection generations reject old action records and release the old reading pin. Stable cards are resent every5seconds to refresh the channel without extending native authority. Read/notify can
 both deliver an action; notify is a hint when MTU truncates JSON, and a complete
 read at most once per second recovers it. Unknown or stale actions fail closed.
 
