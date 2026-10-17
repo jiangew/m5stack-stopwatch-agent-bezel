@@ -22,8 +22,10 @@ touch_start = source.index('  if (touch.wasPressed()) {') or abort 'missing touc
 touch_end = source.index('  if (touchTracking && touch.isPressed())', touch_start)
 physical_start = source.index('  if (M5.BtnA.wasPressed()) {') or abort 'missing buttons'
 physical_end = source.index('#if !defined(CODEX_STOPWATCH_USB_MIC)', physical_start)
+home_haptic = source.lines.find { |line| line.start_with?('constexpr uint32_t kHomeTapHapticDurationMs =') } or abort 'missing Home haptic duration'
 fixture = <<~CPP
   #include <cassert>
+  #include <cstdint>
   #include <string>
   #include <vector>
   #include "WorkspaceInputPolicy.h"
@@ -58,6 +60,7 @@ fixture = <<~CPP
   int activeTouchAgent=-1, touchStartX=0,touchStartY=0,workspaceTouchEndX=0,workspaceTouchEndY=0;
   Direction activeSwipe=Direction::None;
   constexpr int kSwipeThresholdPx=52,kTouchHapticIntensity=1,kTouchHapticDurationMs=1;
+  #{home_haptic}
   constexpr int kButtonHapticIntensity=2,kWakeHapticDurationMs=2,kButtonHapticDurationMs=2,kVoiceTapBannerMs=500,kVoiceClickPulseMs=30;
   int agentCommits=0,sendCommits=0,haptics=0,physicalEvents=0;
   std::vector<std::string> messages;
@@ -74,7 +77,10 @@ fixture = <<~CPP
   struct {template<class... A>void printf(const char*,A...){}} Serial;
   bool noteActivity(){bool awake=!deskSleeping;deskSleeping=false;return awake;}
   int draws=0,lastHapticMs=0;unsigned drawCost=0,hapticStartedAt=0;
-  void drawScreen(){++draws;now+=drawCost;} void startHaptic(int,int duration){++haptics;lastHapticMs=duration;hapticStartedAt=now;}
+  bool hapticActive=false;
+  void drawScreen(){++draws;now+=drawCost;}
+  void startHaptic(int,int duration){++haptics;lastHapticMs=duration;hapticStartedAt=now;hapticActive=true;}
+  void stopHaptic(){hapticActive=false;}
   int8_t agentAtPoint(int x,int){return x<100?0:-1;}
   void beginTouchAgent(int8_t a){touchAgentPressed=true;activeTouchAgent=a;}
   void beginTouchSend(){touchSendPressed=true;}
@@ -98,14 +104,14 @@ fixture = <<~CPP
   void reset(Mode mode){state.workspaceMode=mode;state.workspaceHostReady=true;deskSleeping=false;
     clearTouchCandidate();touchTracking=false;touchPowerHoldConsumed=false;activeSwipe=Direction::None;
     navigationGesture.reset();messages.clear();agentCommits=sendCommits=haptics=physicalEvents=0;
-    leftPressed=rightPressed=false;M5.BtnA={};M5.BtnB={};now+=1000;robotAnimation.cancel();draws=0;}
+    leftPressed=rightPressed=hapticActive=false;M5.BtnA={};M5.BtnB={};now+=1000;robotAnimation.cancel();draws=0;}
   void tap(int x=233,int y=233){touchDown(x,y);now+=100;finishTouchGesture(x,y);}
   int main(){
     reset(Mode::Home);touchDown(233,233);
     assert(robotAnimation.mood(now)==robot_home::Mood::Press&&draws==1&&haptics==0);
     assert(messages.empty());now+=100;finishTouchGesture(233,233);
     assert(robotAnimation.mood(now)==robot_home::Mood::Skill&&draws==2);
-    assert(haptics==1&&lastHapticMs==25&&messages.empty());
+    assert(haptics==1&&lastHapticMs==kHomeTapHapticDurationMs&&messages.empty());
     now+=30;touchDown(233,233);assert(robotAnimation.mood(now)==robot_home::Mood::Press);
     now+=30;finishTouchGesture(233,233);assert(robotAnimation.elapsed(now)==0&&haptics==2);
     reset(Mode::Home);touchDown(233,233);now+=100;drawCost=60;finishTouchGesture(233,233);
