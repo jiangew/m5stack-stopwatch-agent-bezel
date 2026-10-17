@@ -38,7 +38,7 @@ constexpr uint32_t kVoiceTapBannerMs = 900;
 constexpr uint32_t kVoiceClickPulseMs = 70;
 constexpr uint32_t kTouchKeyPulseMs = 55;
 constexpr int kSwipeThresholdPx = 52;
-// User-requested 176/30ms touch/swipe trial; needs physical validation.
+// User-selected 176/30ms touch/swipe profile, qualitatively accepted on C152.
 // Physical-button, wake and shutdown feedback retain the prior profile.
 constexpr uint8_t kButtonHapticIntensity = 176;
 constexpr uint8_t kTouchHapticIntensity = 176;
