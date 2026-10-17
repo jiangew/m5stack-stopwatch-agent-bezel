@@ -74,22 +74,20 @@ See the
   improved clarity and normal interaction. The earlier Home acceptance below
   belongs to the prior image. Quantitative latency, static false-trigger rate
   and power remain unmeasured for this revision.
-- Quiet-haptics tuning: the first image `d30708d3b27d` was flashed and verified,
-  but the user reported weak, intermittently imperceptible feedback. The new
-  adjusted image `c2a6549ac574` was then flashed; feel and sound were accepted,
-  while the user reported absent IMU interaction. Static-start testing then
-  reduced gyro output from about 6.5dps to 0.32dps and completed calibration;
-  the user confirmed restored actions, with three pickups and three settles.
-  The flashed 76/30ms image `0b6c31aadbde` had imperceptible haptic feedback.
-  The next unflashed candidate follows the user's request: Home/ordinary touch
-  and swipe use 176/255 for 30ms. Buttons retain 176/255 for 24ms, wake 20ms and
-  travel-off 24ms. Pending frames wait for motor stop before rendering;
-  Home's first response frame precedes its pulse, including overlapping taps.
-  Ordinary touch keeps the 55ms host-key pulse, stopping the motor after 30ms.
-  Travel-off retains the 550ms prompt wait. The accepted image `298f1c7b3ef4`
-  remains the accepted rollback. The tuned candidate's startup reliability,
-  physical pulse width, feel and noise have not been measured;
-  simulated boundaries do not establish quieter physical operation.
+- Quiet haptics accepted on C152 on 2026-10-17: source `874bae1`, application
+  hash prefix `a33496b9da9b`. Home/ordinary touch and swipe use 176/255 for 30ms;
+  buttons use 176/255 for 24ms, wake 20ms and travel-off 24ms. Pending frames
+  wait for motor stop; Home's first response frame precedes its pulse, including
+  overlapping taps. Ordinary touch retains the 55ms host-key pulse and travel-off
+  retains the 550ms prompt wait.
+  App-only write, independent ROM verification, protected-area comparison,
+  HID/RPC, IMU and USB-audio enumeration passed. The user accepted feel, sound
+  and normal action feedback. Static startup completed IMU calibration with
+  about 0.35dps gyro output, following an earlier 6.5dps calibration block;
+  this is not an automatic bias-recovery firmware change. Noise level, physical
+  pulse width, quantified latency and power remain unmeasured. Accepted image
+  `298f1c7b3ef4` is preserved for rollback. Earlier trials are recorded in the
+  quiet-haptics design document.
 - Home: 17 pages (Bumblebee portrait, eight Autobots, eight Decepticons).
   Up selects an Autobot; down selects a Decepticon; right returns to the portrait.
   Same-faction random selection excludes the current role; cross-faction selection
@@ -134,14 +132,14 @@ Jazz, Hot Rod, Wheeljack, Hound, Ironhide, Ratchet); and eight Decepticons (Mega
 Starscream, Soundwave, Shockwave, Thundercracker, Skywarp, Blitzwing, Astrotrain). Touch down inside
 x=64..402/y=64..398 for immediate 3% compression; release within
 500ms without a swipe to play a silent 600ms character response and one 30ms haptic
-in the unflashed candidate (25ms in the accepted rollback). New taps
+in the accepted quiet-haptics build (25ms in the earlier rollback). New taps
 interrupt the current reaction instead of being ignored. Moving outside the
 portrait area or reaching the 52px swipe threshold cancels the tap.
 Swipe up to select uniformly among the eight Autobots, or down among the eight
 Decepticons. Within the same faction the current role is excluded; from the
 portrait or opposite faction all eight are eligible. Right selects the Bumblebee
 portrait with no random draw. Each valid selection retains the 320ms transition
-and one 30ms candidate haptic (40ms in the accepted rollback), even
+and one 30ms haptic (40ms in the earlier rollback), even
 offline. Held motion cannot repeat. Left retains the workspace cycle. The first
 sleeping-screen touch only wakes the display. Leaving Home, sleep or power
 confirmation cancels the reaction; existing long-hold power controls remain.
