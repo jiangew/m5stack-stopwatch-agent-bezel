@@ -1,7 +1,7 @@
 # Private task notification bridge (v1)
 
-This opt-in bridge has no native approval integrations yet. Source adapters must
-be explicitly connected in a later step. `canDecide` defaults to false. Display,
+This opt-in bridge has no native approval integrations yet. The supplied [native adapters](../notifications/README.md) must
+be explicitly installed/connected before live events reach this bridge. `canDecide` defaults to false. Display,
 read, dismiss, open and transport acknowledgments never approve a native request.
 
 Start the source-built companion with `--watch --device-id UUID
@@ -110,6 +110,9 @@ unknown/expired. `ttl` is conservative remaining milliseconds<=15000;
 `alert`0none/1done/2pending approval or input/3failure. Optional `options`
 contains only display labels. `ack:uint32` is the highest action sequence
 processed in the current generation (default0), **only a transport acknowledgment**.
+Optional `muteLegacyCodex:boolean` defaultsfalse; Companion sets it only for
+explicit native Codex completion ownership, including empty heartbeat cards.
+Firmware honors it only while the private channel is fresh (less than15000ms).
 
 Display limits are title48, model32, detail192 ASCII bytes, options3×24bytes.
 If full scope cannot fit those limits or512-byte JSON, card becomes
