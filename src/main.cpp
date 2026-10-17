@@ -38,15 +38,17 @@ constexpr uint32_t kVoiceTapBannerMs = 900;
 constexpr uint32_t kVoiceClickPulseMs = 70;
 constexpr uint32_t kTouchKeyPulseMs = 55;
 constexpr int kSwipeThresholdPx = 52;
-// Quiet candidate; physical startup reliability and noise are not yet measured.
-constexpr uint8_t kButtonHapticIntensity = 160;
-constexpr uint8_t kTouchHapticIntensity = 160;
-constexpr uint8_t kSwipeHapticIntensity = 160;
-constexpr uint32_t kWakeHapticDurationMs = 12;
-constexpr uint32_t kButtonHapticDurationMs = 20;
-constexpr uint32_t kTouchHapticDurationMs = 16;
-constexpr uint32_t kSwipeHapticDurationMs = 20;
-constexpr uint32_t kHomeTapHapticDurationMs = 16;
+// 160 with very short pulses was intermittently imperceptible on C152.
+// Restore the previous button/touch drive, retaining scheduled short pulses.
+// This tuned profile still needs physical acceptance for feel and noise.
+constexpr uint8_t kButtonHapticIntensity = 176;
+constexpr uint8_t kTouchHapticIntensity = 176;
+constexpr uint8_t kSwipeHapticIntensity = 176;
+constexpr uint32_t kWakeHapticDurationMs = 20;
+constexpr uint32_t kButtonHapticDurationMs = 24;
+constexpr uint32_t kTouchHapticDurationMs = 24;
+constexpr uint32_t kSwipeHapticDurationMs = 24;
+constexpr uint32_t kHomeTapHapticDurationMs = 24;
 constexpr uint32_t kPowerOffHapticDurationMs = 24;
 constexpr uint32_t kBatteryDimAfterMs = 120000;
 constexpr uint32_t kBatteryDeskSleepAfterMs = 300000;
