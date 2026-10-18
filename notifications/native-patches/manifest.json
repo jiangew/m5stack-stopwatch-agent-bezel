@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "upstream": {
+    "repository": "https://github.com/deepseek-ai/deepseek-harness",
+    "version": "0.2.0-rc.2",
+    "license": "MIT"
+  },
+  "protocol": {
+    "name": "stopwatch.dsh.native-approval.v1",
+    "requestId": "ApprovalService callback requestId; service-minted UUID, identical to approval/asked and approval/decided id",
+    "scopeField": "nativeApprovalScope",
+    "scopeFields": {
+      "protocol": "exact protocol name",
+      "implementation": "dsh-tool-bash@0.2.0-rc.2",
+      "arguments": "complete deeply immutable detached body input snapshot",
+      "standingPolicy": "complete captured effective policy before approval",
+      "execution": "complete resolved foreground shell spec excluding dshEnv and signal; includes command, absolute workdir, timeoutMs, onExpiry, stdoutMaxBytes and requested sandboxPolicy"
+    },
+    "authority": "trusted pinned ordinary Bash composition; no attestation against malicious in-process plugins",
+    "eligibility": "ordinary foreground Bash, no job registry/promotion, complete resolved absolute workdir/positive timeout/stdout budget/kill expiry; adapter must independently require fully displayable exact scope; unknown resolved executor fields (including explicit env/stdin) omit descriptor",
+    "environment": "dshEnv captured/reused privately before approval and excluded from public descriptor; ambient process environment is outside command-scope protocol",
+    "outcomes": "only committed matching approval/decided is authoritative; allowed-once and rejected only actionable choices"
+  },
+  "files": [
+    {
+      "package": "dsh-user-approval",
+      "path": "@deepseek-ai/dsh-user-approval/lib/index.js",
+      "inputSha256": "6a5ad1ba3c3dc3abbbae52e6c8c4463970ee0c1c8988cebb0d5cf2acd17ee90b",
+      "outputSha256": "ec21d9b89d3807783c84a201345b2a3630ab31a5c965b8c8051a727f84037c35",
+      "patched": true
+    },
+    {
+      "package": "dsh-sandbox",
+      "path": "@deepseek-ai/dsh-sandbox/lib/index.js",
+      "inputSha256": "b56373befbfcfe281c17c8892e9a4b2cdcb96851290b3ed0ff56b08915e2f743",
+      "outputSha256": "7b81ea9fb1ca1d463669c9ad4a7c0ea8a7415f6baaec8f04c77e5d489b42834e",
+      "patched": true
+    },
+    {
+      "package": "dsh-tool-bash",
+      "path": "@deepseek-ai/dsh-tool-bash/lib/index.js",
+      "inputSha256": "0c63a09e4b80ec22db256eac4ecab6f7de3a342e16ec590348a40c5f356eff1a",
+      "outputSha256": "22eca3f3f48bc88448d9a0ba37f900999440b1e027a25bf4103cdb7aee3fa8b9",
+      "patched": true
+    },
+    {
+      "package": "cordis",
+      "path": "@deepseek-ai/cordis/lib/index.js",
+      "inputSha256": "6a9394c0877ff45218818c6e815edd038f8057e1a1deb390a8d43ec81c57691e",
+      "patched": false
+    },
+    {
+      "package": "dsh-session",
+      "path": "@deepseek-ai/dsh-session/lib/index.js",
+      "inputSha256": "87ea85e2fb5318bf1f826db9a1c88c1b26d3ea328027a7f32b211880c4d62b9d",
+      "patched": false
+    },
+    {
+      "package": "dsh-tools",
+      "path": "@deepseek-ai/dsh-tools/lib/index.js",
+      "inputSha256": "40f47709337c3c205d4e09e647f8588f4977e66f6d52f019b3cc7ef81159d84f",
+      "patched": false
+    },
+    {
+      "package": "dsh-bash-local",
+      "path": "@deepseek-ai/dsh-bash-local/lib/index.js",
+      "inputSha256": "6d9b4426b8455198b79de398f57c0f5693e7292411059b66d5ac5eba608b59cb",
+      "patched": false
+    }
+  ],
+  "patchSha256": "90779da8fbc0a01d593fd649237e229bfc2aec4df2d9011e0f6d9b54156349ee",
+  "dependencyTree": {
+    "algorithm": "sha256(sorted(relative POSIX path + NUL + lowercase file SHA256 + LF)); regular files only; no symlinks",
+    "fileCount": 1558,
+    "inputSha256": "eb3364a145dbc36a02588b3df60e2a05fb300358260fa42011bb050809b5bfad",
+    "outputSha256": "fa6012b0191661dabc3ccf13ce12ec1b3e25c81878fa79890805f55dd7742571"
+  }
+}

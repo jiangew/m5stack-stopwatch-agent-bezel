@@ -1,0 +1,80 @@
+--- a/@deepseek-ai/dsh-user-approval/lib/index.js
++++ b/@deepseek-ai/dsh-user-approval/lib/index.js
+@@ -138 +138 @@
+-		const outcome = await this.decide(req, session);
++		const outcome = await this.decide(Object.freeze({ ...req, requestId: id }), session);
+--- a/@deepseek-ai/dsh-sandbox/lib/index.js
++++ b/@deepseek-ai/dsh-sandbox/lib/index.js
+@@ -114 +114,2 @@
+-		...approval.signal ? { signal: approval.signal } : {}
++		...approval.signal ? { signal: approval.signal } : {},
++		...approval.nativeApprovalScope !== void 0 ? { nativeApprovalScope: approval.nativeApprovalScope } : {}
+--- a/@deepseek-ai/dsh-tool-bash/lib/index.js
++++ b/@deepseek-ai/dsh-tool-bash/lib/index.js
+@@ -340,0 +341,12 @@
++/** Project extension: detach body-owned JSON data before the first approval await. */
++function approvalSnapshot(value) {
++	const copied = structuredClone(value);
++	const freeze = (data) => {
++		if (data !== null && typeof data === "object") {
++			for (const child of Object.values(data)) freeze(child);
++			Object.freeze(data);
++		}
++		return data;
++	};
++	return freeze(copied);
++}
+@@ -361 +373 @@
+-	const approveBashEscalation = (mode, justification, exec, standingPolicy) => {
++	const approveBashEscalation = (mode, justification, exec, standingPolicy, nativeApprovalScope) => {
+@@ -374 +386,2 @@
+-			signal: exec.signal
++			signal: exec.signal,
++			nativeApprovalScope
+@@ -642 +655,2 @@
+-				const standingPolicy = resolveSandboxPolicy(exec);
++				args = approvalSnapshot(args);
++				const standingPolicy = approvalSnapshot(resolveSandboxPolicy(exec));
+@@ -644 +658,30 @@
+-				const approvedMode = args.sandbox_permissions !== void 0 && args.justification !== void 0 ? await approveBashEscalation(args.sandbox_permissions, args.justification, exec, standingPolicy) : void 0;
++				const workdir = resolveWorkdir(args.workdir, exec, standingPolicy?.workspaceRoot);
++				const escalating = args.sandbox_permissions !== void 0 && args.justification !== void 0;
++				const requestedPolicy = !escalating || standingPolicy === void 0 ? standingPolicy : approvalSnapshot({
++					...standingPolicy,
++					mode: args.sandbox_permissions
++				});
++				let prepared;
++				let nativeApprovalScope;
++				// Jobs/promotion retain their native path and do not advertise this protocol.
++				if (escalating && standingPolicy !== void 0 && jobs === void 0 && args.run_in_background !== true) {
++					const resolved = ctx.shell.resolve({
++						command: args.command,
++						...workdir !== void 0 ? { workdir } : {},
++						...args.timeoutMs !== void 0 ? { timeoutMs: args.timeoutMs } : {},
++						dshEnv: approvalSnapshot(ctx.shellEnv.collect(exec)),
++						sandboxPolicy: requestedPolicy
++					});
++					if (Object.keys(resolved).every((key) => ["command", "workdir", "timeoutMs", "onExpiry", "stdoutMaxBytes", "dshEnv", "sandboxPolicy"].includes(key)) && typeof resolved.workdir === "string" && isAbsolute(resolved.workdir) && Number.isFinite(resolved.timeoutMs) && resolved.timeoutMs > 0 && resolved.onExpiry === "kill" && Number.isFinite(resolved.stdoutMaxBytes) && resolved.stdoutMaxBytes > 0) {
++						prepared = approvalSnapshot(resolved);
++						const { dshEnv: _dshEnv, signal: _signal, ...execution } = prepared;
++						nativeApprovalScope = Object.freeze({
++							protocol: "stopwatch.dsh.native-approval.v1",
++							implementation: "dsh-tool-bash@0.2.0-rc.2",
++							arguments: args,
++							standingPolicy,
++							execution: Object.freeze(execution)
++						});
++					}
++				}
++				const approvedMode = escalating ? await approveBashEscalation(args.sandbox_permissions, args.justification, exec, standingPolicy, nativeApprovalScope) : void 0;
+@@ -649,2 +692 @@
+-				const workdir = resolveWorkdir(args.workdir, exec, standingPolicy?.workspaceRoot);
+-				const dshEnv = ctx.shellEnv.collect(exec);
++				const dshEnv = prepared?.dshEnv ?? ctx.shellEnv.collect(exec);
+@@ -683 +725,2 @@
+-				const result = await (await ctx.shell.execute(ctx.shell.resolve({
++				if (exec.signal.aborted) throw toolAborted();
++				const result = await (await ctx.shell.execute(prepared === void 0 ? ctx.shell.resolve({
+@@ -686 +729 @@
+-				}))).result();
++				}) : { ...prepared, signal: exec.signal })).result();
