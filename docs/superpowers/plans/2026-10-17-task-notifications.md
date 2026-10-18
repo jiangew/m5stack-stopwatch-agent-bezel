@@ -63,7 +63,16 @@
 
 **Files:** Update docs/superpowers/plans/2026-10-17-task-notifications.md and docs/TASK_NOTIFICATIONS.md; adjust implementation only for review findings.
 
-- [ ] Review complete diff against spec and Global Constraints with an independent reviewer; resolve actionable findings with reproducing tests.
+- [x] Review complete diff against spec and Global Constraints with an independent reviewer; resolve actionable findings with reproducing tests.
 - [x] Run standalone Swift regressions/debug/release, Python/Node adapter tests, native notification/main-loop regressions, current navigation/IMU/haptic regressions and relevant firmware builds. Run git diff --check. Full XCTest SDK is unavailable.
-- [ ] Record exact branch/SHA, build outputs and source/native/hardware capability matrix. Preserve known-good installed app and firmware. Freeze candidate only if build checks pass.
+- [x] Record exact branch/SHA, build outputs and source/native/hardware capability matrix. Preserve known-good installed app and firmware. Freeze candidate only if build checks pass.
 - [x] If native support or physical acceptance is blocked, describe exact blocker and continue all independent work; do not call entire feature complete. Prepare concrete candidate for user hardware review; flashing needs exact-port confirmation under AGENTS.md.
+
+## Source-phase completion — 2026-10-18
+
+Reviewed implementation `24ebf44`; final scoped review Spec PASS / Quality PASS.
+All source/build/package steps above are complete. This does not complete native
+approval-owner integration, hook installation or C152 physical acceptance. See
+`docs/TASK_NOTIFICATIONS.md` and the ignored local candidate manifest for exact
+build provenance and remaining gates. The implementation baseline remains on
+main at `33bbbe9`; no push, merge, installed-app replacement or flash was performed.

@@ -1,4 +1,4 @@
-# Task notifications candidate — 2026-10-17
+# Task notifications candidate — 2026-10-18
 
 This is an opt-in source candidate for C152. The Mac owns the queue; the watch
 shows opaque cards over a separate encrypted GATT service. Existing HID, quota,
@@ -25,6 +25,12 @@ OPEN ON MAC; reading, dismissing and opening never grant permission.
 - Read/dismiss/open plus generic allow-once/decline and finite choices. A fresh
   stationary 800ms hold is required for a supported, fully displayable request.
   Expired, disconnected or partially displayable scope cannot be approved.
+- A superseded open revision keeps its displayed scope and disables its old
+  operations; BACK sends a current, acknowledged Close. Reopen the inbox to
+  inspect the updated revision. Both browsing directions use the same priority/FIFO
+  order as automatic selection.
+- Concurrent inbox admission is locked; already overfull inboxes drain in bounded
+  batches. Live pending requests are retained when processing is full.
 - Action acknowledgement is separate from native result. Lost result becomes
   UNKNOWN; the durable dispatch is never automatically sent again.
 - Native callback/plugin/collector entry points and explicit capability limits;
@@ -38,7 +44,7 @@ OPEN ON MAC; reading, dismissing and opening never grant permission.
 
 | Layer | Evidence | Limit |
 | --- | --- | --- |
-| Mac broker and private file bridge | Three standalone Swift suites (core, review regressions, production BLE transport against a test double); 8 Python tests, including real Python/Swift filesystem roundtrip | XCTest unavailable in the installed command-line SDK; standalone suites exercise production core sources |
+| Mac broker and private file bridge | Three standalone Swift suites (core, review regressions, production BLE transport against a test double); 13 Python tests, including real filesystem roundtrip, coupled production Broker/Controller/BLE-send scenarios and concurrent admission/recovery | XCTest unavailable in the installed command-line SDK; standalone suites exercise production core sources |
 | Native adapters | 23 Python and 7 Node tests; real Swift bridge tests | Source/schema + fixtures; hooks/plugins have not been installed in user profiles |
 | Native SUPER envelope | Real ready and target_closed on an isolated synthetic terminal | No model completion or approval/input event observed live |
 | Firmware parser/controller/UI | ASAN/UBSAN core and full-scope render tests, actual main-loop input/legacy-transition fixtures | Host execution cannot prove touch, encryption or haptics on C152 |
@@ -78,6 +84,19 @@ Native previews use `.pio/build/native-preview/program OUTPUT.ppm
 notification-SCENARIO`, where SCENARIO is toast, detail, confirm, submitting,
 offline, input or done. These are synthetic framebuffer captures, not photographs
 or evidence of native harness approval.
+
+## Source candidate review
+
+The reviewed implementation is `24ebf44ae6993405e41e9807ff542d1ece19ef0f`.
+The final scoped review passed Spec and Quality after reproducing and correcting
+revision-close reconciliation, bidirectional browsing order and concurrent inbox
+admission/recovery. Subsequent acceptance/plan bookkeeping changes no runtime code.
+
+The private local candidate directory is `artifacts/task-notifications/`.
+Its `manifest.json` records the exact clean packaging commit, reviewed code commit,
+SHA-256/size of each output, source-only validation evidence and explicit false
+native-approval/physical-acceptance flags. The ad-hoc signed Companion App, default
+firmware and selected USB+IMU firmware are candidates, not installed releases.
 
 ## Remaining acceptance
 
