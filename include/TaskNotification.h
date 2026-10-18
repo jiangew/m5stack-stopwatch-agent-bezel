@@ -91,21 +91,23 @@ class Controller {
   bool dirty(){const bool d=dirty_;dirty_=false;return d;}
   bool linked()const{return linked_;}
   bool canDecide(uint32_t now)const {
-    return linked_&&card_.decide&&card_.id&&!std::strcmp(card_.state,"pending")&&
+    return linked_&&currentContext()&&card_.decide&&card_.id&&!std::strcmp(card_.state,"pending")&&
         uint32_t(now-receivedAt_)<card_.ttl&&!busy_;
   }
   bool receive(const Card& c,uint32_t now){
     const bool same=sameRequest(card_,c);
-    if(linked_&&card_.g==c.g&&card_.id==c.id&&c.r<card_.r)return false;
+    if(linked_&&latest_.g==c.g&&latest_.id==c.id&&c.r<latest_.r)return false;
     if(same&&!sameContext(card_,c)) {disconnect();return false;}
     const bool browsed=busy_&&c.ack==action_.seq&&(action_.action==ActionKind::Next||action_.action==ActionKind::Previous||action_.action==ActionKind::Dismiss);
+    latest_.g=c.g;latest_.id=c.id;latest_.r=c.r;
+    if(busy_&&c.ack==action_.seq){busy_=false;hasAction_=false;}
     if(visible()&&view_!=View::Toast&&!same&&card_.g==c.g&&!browsed) {
-      card_.count=c.count;dirty_=true;return true; // no new arrival may replace decision context
+      card_.count=c.count;held_=false;pressed_=false;blocked_=true;dirty_=true;
+      return true; // preserve displayed scope; only Close may use the latest wire identity
     }
     const bool generationChanged=card_.g&&card_.g!=c.g;
     if(generationChanged){view_=View::Hidden;held_=false;pressed_=false;busy_=false;hasAction_=false;
       pendingToast_=false;pendingAlert_=0;}
-    if(busy_&&c.ack==action_.seq){busy_=false;hasAction_=false;}
     if(!same){held_=false;pressed_=false;blocked_=true;}
     if(c.alert&&(!same||c.alert!=card_.alert)){pendingToast_=true;pendingAlert_=c.alert;}
     if(same&&view_==View::Submitting&&std::strcmp(c.state,"submitting"))view_=View::Detail;
@@ -174,10 +176,14 @@ class Controller {
   void close(uint32_t now){if(busy_)return;if(card_.id)issue(ActionKind::Close,now);view_=View::Hidden;held_=false;pressed_=false;dirty_=true;}
   void suspend(){view_=View::Hidden;held_=false;pressed_=false;blocked_=true;dirty_=true;}
  private:
+  bool currentContext()const{return card_.g==latest_.g&&card_.id==latest_.id&&card_.r==latest_.r;}
   bool issue(ActionKind kind,uint32_t now){
-    if(busy_||!linked_||!card_.id)return false;
+    if(busy_||!linked_||!card_.id||(!currentContext()&&kind!=ActionKind::Close))return false;
+    if(kind==ActionKind::Close&&!latest_.id)return false;
     if(++seq_==0)++seq_;
-    action_.g=card_.g;action_.id=card_.id;action_.r=card_.r;action_.seq=seq_;action_.action=kind;
+    action_.g=kind==ActionKind::Close?latest_.g:card_.g;
+    action_.id=kind==ActionKind::Close?latest_.id:card_.id;
+    action_.r=kind==ActionKind::Close?latest_.r:card_.r;action_.seq=seq_;action_.action=kind;
     actionAt_=now;hasAction_=true;busy_=true;dirty_=true;return true;
   }
   Card card_;
@@ -188,6 +194,7 @@ class Controller {
   int startX_=0,startY_=0,endX_=0,endY_=0;
   ActionKind selected_=ActionKind::None;
   Action action_;
+  Action latest_; // transport identity only; never replaces displayed/deciding context
 };
 
 enum class Pulse:uint8_t{None,Start,Stop};

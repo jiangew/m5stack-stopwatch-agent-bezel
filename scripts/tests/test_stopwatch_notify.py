@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import multiprocessing
 import os
 from pathlib import Path
 import tempfile
@@ -10,6 +11,23 @@ from unittest.mock import patch
 spec = importlib.util.spec_from_file_location('stopwatch_notify', Path(__file__).parents[1] / 'stopwatch_notify.py')
 notify = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(notify)
+
+def inbox_publisher(directory, event, paused, release, results, hold=False):
+    original = notify.os.listdir
+    def snapshot(fd):
+        names = original(fd)
+        if hold:
+            paused.set()
+            if not release.wait(10): raise RuntimeError('publication test timed out')
+        return names
+    notify.os.listdir = snapshot
+    try:
+        notify.emit(directory, event)
+        results.put('published')
+    except ValueError as error:
+        results.put(str(error))
+    finally:
+        notify.os.listdir = original
 
 class NotifyTests(unittest.TestCase):
     def fixture(self):
@@ -103,5 +121,136 @@ class NotifyTests(unittest.TestCase):
     def test_missing_capability_defaults_false(self):
         data = self.fixture(); del data['canDecide']
         self.assertFalse(notify.validate_event(data)['canDecide'])
+
+    @unittest.skipUnless(os.environ.get('TASK_NOTIFICATION_PROBE_BINARY'), 'production Swift Store probe required')
+    def test_multiprocess_inbox_admission_and_production_consumer(self):
+        with tempfile.TemporaryDirectory(dir='/private/tmp') as root:
+            directory = Path(root) / 'notifications'
+            for index in range(1023):
+                notify.emit(directory, dict(self.fixture(), eventId='seed-' + str(index)))
+            temporary = directory / 'inbox' / '.synthetic-incomplete-write'
+            temporary.write_bytes(b'not a published record'); temporary.chmod(0o600)
+            ctx = multiprocessing.get_context('fork')
+            paused, release, results = ctx.Event(), ctx.Event(), ctx.Queue()
+            first = ctx.Process(target=inbox_publisher, args=(directory, dict(self.fixture(), eventId='first'), paused, release, results, True))
+            second = ctx.Process(target=inbox_publisher, args=(directory, dict(self.fixture(), eventId='second'), paused, release, results))
+            first.start()
+            try:
+                self.assertTrue(paused.wait(5), 'first callback reached actual capacity snapshot')
+                second.start(); second.join(timeout=0.3)
+            finally:
+                release.set(); first.join(timeout=5)
+                if second.pid: second.join(timeout=5)
+                for child in (first, second):
+                    if child.pid and child.is_alive(): child.kill(); child.join()
+            self.assertEqual((first.exitcode, second.exitcode), (0, 0))
+            self.assertEqual(sorted([results.get(timeout=2), results.get(timeout=2)]), ['inbox full', 'published'])
+            self.assertEqual(len(list((directory / 'inbox').glob('*.json'))), 1024)
+            probe = subprocess.run([os.environ['TASK_NOTIFICATION_PROBE_BINARY'], '--consume', str(directory)], check=True, capture_output=True, text=True)
+            self.assertEqual([json.loads(line)['consumed'] for line in probe.stdout.splitlines()], [1024, 1024])
+            self.assertEqual(list((directory / 'inbox').glob('*.json')), [])
+            self.assertTrue(temporary.exists(), 'unknown temporary files are neither capacity nor cleanup targets')
+
+    @unittest.skipUnless(os.environ.get('TASK_NOTIFICATION_PROBE_BINARY'), 'production Swift Store probe required')
+    def test_preexisting_overfull_inbox_drains_in_bounded_batches(self):
+        with tempfile.TemporaryDirectory(dir='/private/tmp') as root:
+            directory = Path(root) / 'notifications'
+            notify.emit(directory, dict(self.fixture(), eventId='seed'))
+            for index in range(1024):
+                path = directory / 'inbox' / ('existing-' + str(index) + '.json')
+                path.write_text(json.dumps(dict(self.fixture(), eventId='existing-' + str(index))))
+                path.chmod(0o600)
+            self.assertRaises(ValueError, notify.emit, directory, dict(self.fixture(), eventId='must-not-publish'))
+            self.assertEqual(len(list((directory / 'inbox').glob('*.json'))), 1025)
+            probe = subprocess.run([os.environ['TASK_NOTIFICATION_PROBE_BINARY'], '--consume', str(directory)], check=True, capture_output=True, text=True)
+            observations = [json.loads(line) for line in probe.stdout.splitlines()]
+            self.assertEqual([x['consumed'] for x in observations], [1024, 1025])
+            self.assertTrue(all(x['rejected'] == 0 for x in observations))
+            self.assertTrue(all('error' not in x for x in observations))
+            self.assertEqual(list((directory / 'inbox').glob('*.json')), [])
+            self.assertEqual(list((directory / 'processing').glob('*.json')), [])
+
+    @unittest.skipUnless(os.environ.get('TASK_NOTIFICATION_PROBE_BINARY'), 'production Swift Store probe required')
+    def test_full_processing_retains_inbox_without_blocking_poll(self):
+        with tempfile.TemporaryDirectory(dir='/private/tmp') as root:
+            directory = Path(root) / 'notifications'
+            notify.emit(directory, dict(self.fixture(), eventId='waiting-inbox'))
+            for index in range(1024):
+                path = directory / 'processing' / ('pending-' + str(index) + '.json')
+                path.write_text(json.dumps(dict(self.fixture(), eventId='pending-' + str(index))))
+                path.chmod(0o600)
+            probe = subprocess.run([os.environ['TASK_NOTIFICATION_PROBE_BINARY'], '--backpressured', str(directory)], check=True, capture_output=True, text=True)
+            observations = [json.loads(line) for line in probe.stdout.splitlines()]
+            self.assertTrue(all('error' not in x and x['consumed'] == 0 for x in observations))
+            self.assertEqual([x['rejected'] for x in observations], [1024, 2048])
+            self.assertEqual(len(list((directory / 'inbox').glob('*.json'))), 1)
+            self.assertEqual(len(list((directory / 'processing').glob('*.json'))), 1024)
+            recovered = subprocess.run([os.environ['TASK_NOTIFICATION_PROBE_BINARY'], '--consume', str(directory)], check=True, capture_output=True, text=True)
+            self.assertEqual([json.loads(line)['consumed'] for line in recovered.stdout.splitlines()], [1024, 1025])
+
+    def test_inbox_publication_lock_rejects_unsafe_objects(self):
+        with tempfile.TemporaryDirectory(dir='/private/tmp') as root:
+            directory = Path(root) / 'notifications'
+            notify.emit(directory, self.fixture())
+            lock = directory / 'inbox' / '.publish.lock'
+            self.assertEqual(lock.stat().st_mode & 0o777, 0o600)
+            lock.chmod(0o644)
+            self.assertRaises(ValueError, notify.emit, directory, self.fixture())
+            lock.chmod(0o600)
+            alias = Path(root) / 'lock-hardlink'; os.link(lock, alias)
+            self.assertRaises(ValueError, notify.emit, directory, self.fixture())
+            alias.unlink(); lock.unlink(); lock.symlink_to('/private/tmp')
+            self.assertRaises(OSError, notify.emit, directory, self.fixture())
+            self.assertEqual(len(list((directory / 'inbox').glob('*.json'))), 1)
+
+    @unittest.skipUnless(os.environ.get('TASK_NOTIFICATION_CONTROLLER_BINARY') and os.environ.get('TASK_NOTIFICATION_PROBE_BINARY'), 'coupled production broker/controller required')
+    def test_superseded_confirmation_close_unpins_host_and_announces_next(self):
+        def exchange(proc, **command):
+            proc.stdin.write(json.dumps(command) + '\n'); proc.stdin.flush()
+            line = proc.stdout.readline()
+            self.assertTrue(line, 'synthetic production process stopped unexpectedly')
+            return json.loads(line)
+        for screen in ('confirm', 'hold', 'inbox'):
+            with self.subTest(superseded_screen=screen), tempfile.TemporaryDirectory(dir='/private/tmp') as root:
+                host = subprocess.Popen([os.environ['TASK_NOTIFICATION_PROBE_BINARY'], '--broker', str(Path(root) / 'bridge')], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+                watch = subprocess.Popen([os.environ['TASK_NOTIFICATION_CONTROLLER_BINARY']], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+                try:
+                    def host_op(op, now, **data): return exchange(host, op=op, now=now, **data)
+                    def watch_op(op, now, **data): return exchange(watch, op=op, now=now, **data)
+                    def deliver(card, now): return watch_op('receive', now, card=card)
+                    card = host_op('ingest', 1000, request='A')
+                    deliver(card, 1000)
+                    read = watch_op('open', 1001)['action']
+                    deliver(host_op('action', 1001, action=read), 1001)
+                    if screen != 'inbox':
+                        read = watch_op('detail', 1002)['action']
+                        deliver(host_op('action', 1002, action=read), 1002)
+                        self.assertEqual(watch_op('confirm', 1003)['view'], 4)
+                    revised = host_op('ingest', 1100, request='A', revision=2)
+                    preserved = deliver(revised, 1100)
+                    host_op('published', 1100)
+                    deliver(host_op('ingest', 1101, request='B', kind='done'), 1101)
+                    stale = dict(read, action='allow_once'); stale.pop('seq', None)
+                    host_op('action', 1102, action=stale)
+                    if screen == 'hold': stale_hold = watch_op('hold', 1200)
+                    obsolete = watch_op('next' if screen == 'inbox' else 'open-on-mac', 2050)
+                    self.assertNotIn('issued', obsolete, 'obsolete nondeciding operations must not cause a send failure')
+                    self.assertTrue(obsolete['linked'], 'safe Close must remain reachable after attempted OPEN/Next')
+                    close = watch_op('close', 2100)
+                    self.assertTrue(close['accepted'], 'Close of superseded display must pass the actual BLE send guard')
+                    self.assertEqual((preserved['r'], preserved['detail'], preserved['canDecide']), (1, 'Scope r1', False))
+                    if screen == 'hold': self.assertNotIn('issued', stale_hold, 'superseded hold must never issue a native action')
+                    self.assertEqual((close['action']['g'], close['action']['id'], close['action']['r']), (revised['g'], revised['id'], 2))
+                    next_card = host_op('action', 2100, action=close['action'])
+                    self.assertEqual((next_card['title'], next_card['alert'], next_card['ack']), ('B', 1, close['action']['seq']))
+                    deliver(next_card, 2100)
+                    self.assertEqual(host_op('decisions', 2100)['decisions'], 0)
+                    self.assertTrue(watch_op('open', 2101)['accepted'], 'acknowledged Close permits a fresh Read')
+                finally:
+                    for proc in (host, watch):
+                        proc.stdin.close()
+                        try: proc.wait(timeout=5)
+                        except subprocess.TimeoutExpired: proc.kill(); proc.wait()
+                        proc.stdout.close()
 
 if __name__ == '__main__': unittest.main()

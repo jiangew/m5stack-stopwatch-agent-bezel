@@ -28,4 +28,11 @@ swiftc -parse-as-library -I "$output" -L "$output" -lCoreBluetooth -Xlinker -rpa
   companion/Sources/CodexWatchCompanion/TaskNotificationTransport.swift \
   companion/StandaloneTests/TaskNotificationTransportRegression.swift -o "$output/transport-regression"
 "$output/transport-regression"
-TASK_NOTIFICATION_TEST_BINARY="$output/regression" python3 -m unittest discover -s scripts/tests -p test_stopwatch_notify.py -v
+swiftc -parse-as-library \
+  companion/Sources/CodexWatchCompanion/TaskNotificationModel.swift \
+  companion/Sources/CodexWatchCompanion/TaskNotificationStore.swift \
+  companion/Sources/CodexWatchCompanion/TaskNotificationBroker.swift \
+  companion/StandaloneTests/TaskNotificationCoupledProbe.swift -o "$output/probe"
+ruby simulator/task_notification_coupled_driver.rb "$output/controller"
+TASK_NOTIFICATION_TEST_BINARY="$output/regression" TASK_NOTIFICATION_PROBE_BINARY="$output/probe" \
+  TASK_NOTIFICATION_CONTROLLER_BINARY="$output/controller" python3 -m unittest discover -s scripts/tests -p test_stopwatch_notify.py -v

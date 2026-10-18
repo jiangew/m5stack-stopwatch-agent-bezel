@@ -6,6 +6,8 @@ and recheck its scope/capability before acting on a consumed decision. Only emit
 state=resolved after an authoritative native response, never after file/ATT ACK.
 """
 import argparse
+from contextlib import contextmanager
+import fcntl
 import json
 import os
 from pathlib import Path
@@ -99,6 +101,18 @@ def _close(directories):
     for fd in directories.values(): os.close(fd)
 
 
+@contextmanager
+def _inbox_publication(fd):
+    lock = os.open('.publish.lock', os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW | os.O_NONBLOCK, 0o600, dir_fd=fd)
+    try:
+        _check(lock, False)
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        _check(lock, False)
+        yield
+    finally:
+        os.close(lock)
+
+
 def emit(directory, event):
     payload = _encode(validate_event(event))
     dirs = _directories(directory)
@@ -106,18 +120,19 @@ def emit(directory, event):
     name = str(uuid.uuid4())
     temporary = '.' + name
     try:
-        if len(os.listdir(fd)) >= 1024: raise ValueError('inbox full')
-        record = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600, dir_fd=fd)
-        try:
-            with os.fdopen(record, 'wb') as output:
-                output.write(payload); output.flush(); os.fsync(output.fileno())
-            # UUID final names are private to this publisher. Rename exposes a
-            # complete single-link inode: a consumer may claim it immediately.
-            os.rename(temporary, name + '.json', src_dir_fd=fd, dst_dir_fd=fd)
-            os.fsync(fd)
-        finally:
-            try: os.unlink(temporary, dir_fd=fd)
-            except FileNotFoundError: pass
+        with _inbox_publication(fd):
+            if sum(item.endswith('.json') for item in os.listdir(fd)) >= 1024: raise ValueError('inbox full')
+            record = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600, dir_fd=fd)
+            try:
+                with os.fdopen(record, 'wb') as output:
+                    output.write(payload); output.flush(); os.fsync(output.fileno())
+                # UUID final names are private to this publisher. Rename exposes a
+                # complete single-link inode: a consumer may claim it immediately.
+                os.rename(temporary, name + '.json', src_dir_fd=fd, dst_dir_fd=fd)
+                os.fsync(fd)
+            finally:
+                try: os.unlink(temporary, dir_fd=fd)
+                except FileNotFoundError: pass
     finally: _close(dirs)
 
 

@@ -67,6 +67,27 @@ private func action(_ card: TaskNotificationCard, _ name: String) -> TaskNotific
         try require(secondDone.id != firstDone.id && secondDone.alert == 1, "Second completion must be announced after first toast")
         fifo.published(); fifo.tick(now: 12000)
         try require(try fifo.card(now: 12000).alert == 0, "Announcement is delivered once")
+        let orderStore = try TaskNotificationStore(directory: root.appendingPathComponent("priority-browse").path)
+        let ordered = try TaskNotificationBroker(store: orderStore)
+        var first = event("done-A"); first.kind = "done"; first.canDecide = false; first.title = "done-A"
+        try ordered.ingest(first, now: 1000)
+        let pinnedDone = try ordered.card(now: 1000)
+        try ordered.handle(action(pinnedDone, "read"), now: 1000)
+        for (offset, item) in [("approval-B", "approval"), ("done-C", "done"), ("input-D", "input"), ("failed-E", "failed"), ("failed-F", "failed")].enumerated() {
+            var next = event(item.0, at: 1001 + Int64(offset)); next.kind = item.1; next.canDecide = false; next.title = item.0
+            try ordered.ingest(next, now: 1001 + Int64(offset))
+            try require(try ordered.card(now: 1005).id == pinnedDone.id, "Interleaved priority arrivals cannot replace an explicitly opened card")
+        }
+        try ordered.handle(action(try ordered.card(now: 1005), "close"), now: 1005)
+        try require(try ordered.card(now: 1005).title == "approval-B", "Preferred selection starts at the highest-priority FIFO request")
+        for expected in ["input-D", "failed-E", "failed-F", "done-A", "done-C", "approval-B"] {
+            try ordered.handle(action(try ordered.card(now: 1005), "next"), now: 1005)
+            try require(try ordered.card(now: 1005).title == expected, "NEXT follows priority/FIFO including wraparound: \(expected)")
+        }
+        for expected in ["done-C", "done-A", "failed-F", "failed-E", "input-D", "approval-B"] {
+            try ordered.handle(action(try ordered.card(now: 1005), "previous"), now: 1005)
+            try require(try ordered.card(now: 1005).title == expected, "PREVIOUS reverses priority/FIFO including wraparound: \(expected)")
+        }
         print("PASS reconnect pin release, UNKNOWN open routing and expired mailbox recovery")
     }
 }

@@ -26,7 +26,7 @@ final class TaskNotificationBroker {
         try store.save(snapshot)
         selected = preferredID()
     }
-    private func preferredID(announcementsOnly: Bool = false) -> UInt32? {
+    private func orderedVisibleRecords(announcementsOnly: Bool = false) -> [TaskNotificationRecord] {
         func priority(_ record: TaskNotificationRecord) -> Int {
             if record.state == "pending" && ["approval", "input"].contains(record.event.kind) { return 0 }
             return record.event.kind == "failed" ? 1 : 2
@@ -36,8 +36,9 @@ final class TaskNotificationBroker {
             if a != b { return a < b }
             if $0.firstSeen != $1.firstSeen { return $0.firstSeen < $1.firstSeen }
             return $0.id < $1.id
-        }.first?.id
+        }
     }
+    private func preferredID(announcementsOnly: Bool = false) -> UInt32? { orderedVisibleRecords(announcementsOnly: announcementsOnly).first?.id }
     func reconnect() {
         generation = generation == UInt32.max ? 1 : generation + 1
         alerts.removeAll(); lastActionSequence = 0
@@ -148,7 +149,7 @@ final class TaskNotificationBroker {
               let index = snapshot.records.firstIndex(where: { $0.id == action.id }) else { return }
         switch action.action {
         case "next", "previous":
-            let visible = snapshot.records.filter { !$0.dismissed }
+            let visible = orderedVisibleRecords()
             guard let current = visible.firstIndex(where: { $0.id == selected }), !visible.isEmpty else { return }
             selected = visible[(current + (action.action == "next" ? 1 : visible.count - 1)) % visible.count].id; pinned = true
         case "read": pinned = true

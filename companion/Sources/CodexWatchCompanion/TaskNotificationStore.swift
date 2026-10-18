@@ -50,7 +50,7 @@ final class TaskNotificationStore {
               info.st_mode & S_IFMT == (directory ? S_IFDIR : S_IFREG),
               directory || info.st_nlink == 1 else { throw TaskNotificationError.unsafe }
     }
-    private func names(_ fd: Int32) throws -> [String] {
+    private func names(_ fd: Int32, boundedBatch: Bool = false) throws -> [String] {
         let copy = openat(fd, ".", O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC)
         guard copy >= 0, let stream = fdopendir(copy) else { if copy >= 0 { close(copy) }; throw TaskNotificationError.io }
         defer { closedir(stream) }
@@ -60,6 +60,7 @@ final class TaskNotificationStore {
                 $0.withMemoryRebound(to: CChar.self, capacity: Int(MAXNAMLEN) + 1) { String(cString: $0) }
             }
             if name.hasSuffix(".json"), !name.contains("/"), name.utf8.count <= 255 { result.append(name) }
+            if boundedBatch, result.count == 1024 { break }
             if result.count > 1024 { throw TaskNotificationError.invalid }
         }
         return result.sorted()
@@ -139,14 +140,14 @@ final class TaskNotificationStore {
     }
     func consumeEvents(_ ingest: (TaskNotificationEvent) throws -> Void, rejected: () -> Void) throws {
         let inbox = directories["inbox"]!, processing = directories["processing"]!
-        var occupied = Set(try names(processing))
-        for name in try names(inbox) {
+        var occupied = Set(try names(processing, boundedBatch: true))
+        for name in try names(inbox, boundedBatch: true) {
             guard occupied.count < 1024 || occupied.contains(name) else { break }
             // Exclusive claim: link then unlink. Crash may leave both names; broker dedup is durable.
             if linkat(inbox, name, processing, name, 0) == 0 { unlinkat(inbox, name, 0); occupied.insert(name) }
             else if errno == EEXIST { unlinkat(inbox, name, 0) }
         }
-        for name in try names(processing) {
+        for name in try names(processing, boundedBatch: true) {
             do {
                 guard let data = try read(name, from: processing, max: 8192) else { continue }
                 try ingest(JSONDecoder().decode(TaskNotificationEvent.self, from: data))

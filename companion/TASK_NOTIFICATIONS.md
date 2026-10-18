@@ -49,10 +49,10 @@ Malformed events do not alter queue state.
 The durable queue holds64 records. No live pending approval is evicted. At
 capacity only a dismissed resolved record, or dismissed done/failed record, can
 be removed. Other overflow records remain in private processing for retry,
-bounded by the1024-file inbox/processing inventory limits. Adapter callers must
-handle full directories explicitly. Pending approval/input comes first, then
+bounded by the1024-record inbox admission/processing batch limits. Publishers serialize capacity admission and atomic publication across processes using a private0600 owner-checked, single-link, no-follow lock. Lock and temporary files do not consume record capacity. Adapter callers must
+handle full directories explicitly. A pre-existing overfull inbox is drained in batches of at most1024 records; processing backpressure retains inbox and pending records for retry without invalidating the entire poll. No overflow recovery deletes a live pending request. Pending approval/input comes first, then
 failures, then completions in original per-revision FIFO order. Read/browsing
-pins selection until `close` or `dismiss`; arrivals cannot steal that selection.
+pins selection until `close` or `dismiss`; arrivals cannot steal that selection. Next/Previous use that same priority/FIFO order in both directions, with wraparound.
 Unannounced cards are presented one at a time in priority/FIFO order, with five seconds per toast; a prior completed card cannot hide later completions. Reading or browsing pauses presentation until close/dismiss. Only pending approval/input gets at most one reminder at120seconds. Reconnect
 suppresses all old alerts.
 
@@ -128,6 +128,8 @@ actions. Keep at most one firmware action pending until card.ack acknowledges
 its seq. New connection generations reject old action records and release the old reading pin. Stable cards are resent every5seconds to refresh the channel without extending native authority. Read/notify can
 both deliver an action; notify is a hint when MTU truncates JSON, and a complete
 read at most once per second recovers it. Unknown or stale actions fail closed.
+
+If a new wire revision arrives while an older detail/confirmation is open, the displayed scope stays fixed and all old-scope operations are disabled. The controller separately tracks the latest wire identity solely for `close`, which cancels the presentation pin using the current exact g/id/r and normal seq/ack. An attempted obsolete OPEN or browse emits no action and cannot disconnect this Close path. This never rebinds an approval or relaxes the Mac/firmware revision guards; closing a view is not native resolution. After Close is acknowledged, the next unannounced card can be presented normally.
 
 A card needs a single negotiated ATT write capable of its full length; the
 client does not fragment or truncate frames if the link cannot accept them.
