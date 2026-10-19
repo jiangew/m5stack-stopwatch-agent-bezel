@@ -14,13 +14,18 @@ the content of the inbox opened from that badge downward into the unused space.
   at the previous location must no longer open the inbox.
 - Move the source/count heading, model, title, state and body together by 30 px
   in Inbox and Toast views. Their existing spacing and full text remain intact.
-  On a 466 px screen, body lines move from y=165–240 to y=195–270, above the
-  existing outcome label at y=290.
-- Preserve the established lower controls and gesture coordinates, including
-  BACK. Detail, confirmation and submitting layouts stay outside this adjustment.
+  On a 466 px screen, body text starts at y=195. The compact-footer refinement
+  below extends its available area through y=315, above the outcome at y=350.
+- Following the user's preview feedback, replace the large tap prompt and two
+  direction hints with two small footer lines at y=382/398, size 1.25. Move the
+  outcome caption to y=350, size 1.5. Give Inbox/Toast body text size 2, 32 columns
+  and up to seven 20 px-spaced rows at y=195–315. The existing 192-byte limit
+  stays intact; the gain is readable content space rather than a protocol change.
+- Preserve gesture coordinates and BACK. Detail, confirmation and submitting
+  layouts stay outside this adjustment.
 
-An alternative is to redistribute the lower controls and body independently;
-that introduces more interaction changes than the two requested placement fixes.
+The fixed footer is explanatory text, not a set of touch buttons. Its smaller
+appearance does not change browsing, dismiss, detail or close behavior.
 
 ## Verification and delivery
 

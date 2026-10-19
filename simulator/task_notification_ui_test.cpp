@@ -4,17 +4,18 @@
 #include <vector>
 #include "TaskNotificationUi.h"
 struct Canvas {
-  struct Text {std::string value;int x,y;};
+  struct Text {std::string value;int x,y;float size;};
   struct Rect {int x,y,w,h;};
   std::vector<std::string> strings;
   std::vector<Text> texts;
   std::vector<Rect> rectangles;
-  void fillScreen(unsigned){} void setTextFont(int){} void setTextSize(float){}
+  float textSize=1;
+  void fillScreen(unsigned){} void setTextFont(int){} void setTextSize(float size){textSize=size;}
   void setTextDatum(textdatum_t){} void setTextColor(unsigned){}
   void fillRoundRect(int x,int y,int w,int h,int,unsigned){rectangles.push_back({x,y,w,h});}
   void drawRoundRect(int,int,int,int,int,unsigned){}
   void fillRect(int,int,int,int,unsigned){}
-  void drawString(const char* s,int x,int y){strings.emplace_back(s);texts.push_back({s,x,y});}
+  void drawString(const char* s,int x,int y){strings.emplace_back(s);texts.push_back({s,x,y,textSize});}
 };
 int main(){
   using namespace task_notification;
@@ -34,14 +35,17 @@ int main(){
     Controller layout;layout.receive(c,100);
     if(toast)layout.present(100,true);else layout.openInbox(100);
     Canvas frame;task_notification::render(frame,layout,110);
-    bool lowerTitle=false,lowerBody=false,back=false;std::string full;
+    bool lowerTitle=false,lowerBody=false,back=false;unsigned compactHints=0;std::string full;
     for(const auto& text:frame.texts){
       full+=text.value;
       if(text.value==c.title)lowerTitle=text.y>=120;
-      if(text.value==std::string(c.detail,36))lowerBody=text.y>=195&&text.y+5*15+7<290;
+      if(text.value==std::string(c.detail,32))lowerBody=text.y>=195&&text.y+6*20+8<350&&text.size>=2;
+      if(text.value.find("UP/DOWN")!=std::string::npos||text.value.find("LEFT:")!=std::string::npos){
+        assert(text.y>=375&&text.y<=405&&text.size<=1.25f);++compactHints;
+      }
       if(text.value=="BACK")back=text.y==430;
     }
-    assert(lowerTitle&&lowerBody&&back&&full.find(c.detail)!=std::string::npos);
+    assert(lowerTitle&&lowerBody&&back&&compactHints==2&&full.find(c.detail)!=std::string::npos);
   }
   Controller ui;ui.receive(c,100);ui.present(100,true);
   ui.press(233,233,110,true);ui.release(233,233,120);

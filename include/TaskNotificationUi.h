@@ -37,15 +37,16 @@ template<class Surface> void render(Surface& s,const Controller& ui,uint32_t now
   const uint16_t color=!std::strcmp(c.kind,"failed")?kRed:
       (!std::strcmp(c.kind,"done")?kGreen:kAmber);
   char heading[30];std::snprintf(heading,sizeof(heading),"%s   %u NOTICES",c.src,c.count);
-  const int offset=ui.view()==View::Inbox||ui.view()==View::Toast?30:0;
+  const bool browsing=ui.view()==View::Inbox||ui.view()==View::Toast;
+  const int offset=browsing?30:0;
   label(s,heading,233,45+offset,color);label(s,c.model,233,67+offset,kDim,1.5f);
   wrapped(s,c.title,94+offset,24,2,2);
   const char* state=!ui.linked()?"OFFLINE":c.state;
   if(ui.linked()&&!std::strcmp(c.state,"resolved")&&c.outcome[0])state=c.outcome;
   if(!std::strcmp(c.state,"pending")&&c.decide&&!ui.canDecide(now)&&!ui.holdElapsed(now))state="WAITING / EXPIRED";
   label(s,state,233,139+offset,color,1.5f);
-  // Full bounded context (192 ASCII bytes) fits six 36-column lines. Never ellipsize an approval.
-  wrapped(s,c.detail,165+offset,36,1.5f);
+  // Keep all 192 ASCII bytes visible; browsing uses the space freed by compact hints.
+  wrapped(s,c.detail,165+offset,browsing?32:36,browsing?2:1.5f,browsing?7:6);
   if(ui.view()==View::Confirm){
     const char* selected=ui.selection();
     if(!std::strcmp(selected,"allow_once"))selected="ALLOW ONCE";
@@ -64,9 +65,9 @@ template<class Surface> void render(Surface& s,const Controller& ui,uint32_t now
     }else label(s,!std::strcmp(c.state,"unknown")?"RESULT UNKNOWN":"Review on Mac",233,301,kDim);
     button(s,"OPEN ON MAC",100,376,266,kDim);
   }else{
-    label(s,!std::strcmp(c.kind,"done")?"EXECUTION ENDED":!std::strcmp(c.kind,"failed")?"EXECUTION FAILED":"NEEDS YOU",233,290,color);
-    label(s,"TAP FOR DETAILS",233,329,kInk);label(s,"Swipe up/down to browse",233,366,kDim,1.5f);
-    label(s,"Left: dismiss  Right: back",233,392,kDim,1.5f);
+    label(s,!std::strcmp(c.kind,"done")?"EXECUTION ENDED":!std::strcmp(c.kind,"failed")?"EXECUTION FAILED":"NEEDS YOU",233,350,color,1.5f);
+    label(s,"UP/DOWN: BROWSE   TAP: DETAILS",233,382,kDim,1.25f);
+    label(s,"LEFT: DISMISS   RIGHT: BACK",233,398,kDim,1.25f);
   }
   label(s,ui.view()==View::Confirm?"CANCEL":"BACK",233,430,kDim);
 }

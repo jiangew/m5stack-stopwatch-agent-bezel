@@ -36,3 +36,13 @@ Files: `include/TaskNotification.h`, `include/TaskNotificationUi.h`,
 - [x] Render the scenarios to ignored local artifacts, convert framebuffer PPM
   files to PNG with `sips`, inspect them and deliver clickable inline previews.
 - [x] Run `git diff --check`, commit the scoped source/tests and mark steps complete.
+
+## Follow-up: Compact fixed hints after preview feedback
+
+- [x] Extend the existing render check to require complete, larger body text and
+  two small hints below the content. Observe failure before changing the renderer.
+- [x] Keep Inbox/Toast upper offset at +30 px. Render body at size 2, 32 columns,
+  max seven rows. Put the smaller outcome at y=350 and fixed hints at y=382/398.
+  Preserve BACK and all controller hit regions/gesture behavior.
+- [x] Run the firmware host regressions and native-preview build. Regenerate and
+  inspect normal/max-length Inbox PNGs, then commit the scoped change.
