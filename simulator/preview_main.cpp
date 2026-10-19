@@ -265,8 +265,21 @@ int main(int argc, char** argv) {
       std::strcpy(c.options[0],"Markdown");std::strcpy(c.options[1],"HTML");std::strcpy(c.options[2],"Both");
     }
     if(std::strstr(scenario,"done")){std::strcpy(c.src,"super");std::strcpy(c.kind,"done");std::strcpy(c.state,"resolved");c.decide=false;c.alert=1;}
+    const bool inbox=std::strstr(scenario,"inbox")!=nullptr;
+    const bool badge=std::strcmp(scenario,"notification-badge")==0;
+    if(inbox||badge){
+      std::strcpy(c.src,"codex");std::strcpy(c.kind,"done");std::strcpy(c.state,"resolved");c.decide=false;
+      std::strcpy(c.title,"Build finished");
+      std::strcpy(c.detail,"The task has finished. Open it on your Mac to review the result.");
+      if(std::strstr(scenario,"long")){
+        const std::string words="Full notification context remains readable while browsing. ";
+        for(unsigned i=0;i<192;++i)c.detail[i]=words[i%words.size()];
+        c.detail[192]=0;
+      }
+    }
     task_notification::Controller ui;ui.receive(c,1000);ui.present(1000,true);
-    if(!std::strstr(scenario,"toast")){
+    if(inbox)ui.openInbox(1010);
+    if(!inbox&&!badge&&!std::strstr(scenario,"toast")){
       ui.press(233,233,1010,true);ui.release(233,233,1020);
       task_notification::Action a;ui.takeAction(a);c.ack=a.seq;c.alert=0;ui.receive(c,1030);
     }
@@ -275,7 +288,11 @@ int main(int argc, char** argv) {
       if(std::strstr(scenario,"submitting"))ui.tick(1900);
     }
     if(std::strstr(scenario,"offline"))ui.disconnect();
-    task_notification::render(framebuffer,ui,std::strstr(scenario,"submitting")?1900:1500);
+    if(badge){
+      robot_home::State state;state.batteryPercent=82;state.connected=true;
+      framebuffer.preparePortraits(state.character);
+      robot_home::render(framebuffer,state);task_notification::badge(framebuffer,ui);
+    }else task_notification::render(framebuffer,ui,std::strstr(scenario,"submitting")?1900:1500);
   } else if (std::strncmp(scenario,"home",4)==0) {
     robot_home::State state;state.batteryPercent=82;state.connected=true;
     if(std::strncmp(scenario,"home-bumblebeefullbody",22)==0)state.character=robot_home::Character::BumblebeeFullbody;

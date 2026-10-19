@@ -10,6 +10,7 @@
 namespace task_notification {
 constexpr uint32_t kLeaseMs=15000, kToastMs=5000, kConfirmMs=800;
 constexpr std::size_t kMaximumBytes=512;
+constexpr int kBadgeX=397,kBadgeY=211,kBadgeWidth=46,kBadgeHeight=44,kBadgeHitMargin=4;
 
 struct Card {
   uint32_t g=0,id=0,r=0,ttl=0,ack=0;
@@ -122,7 +123,9 @@ class Controller {
     pendingToast_=false;view_=View::Toast;toastAt_=now;blocked_=false;dirty_=true;return true;
   }
   unsigned takeAlert(){const unsigned n=pendingAlert_;pendingAlert_=0;return n;}
-  bool badge(int x,int y)const{return card_.count&&x>=300&&x<=350&&y>=48&&y<=101;}
+  bool badge(int x,int y)const{return card_.count&&
+      x>=kBadgeX-kBadgeHitMargin&&x<=kBadgeX+kBadgeWidth+kBadgeHitMargin&&
+      y>=kBadgeY-kBadgeHitMargin&&y<=kBadgeY+kBadgeHeight+kBadgeHitMargin;}
   bool openInbox(uint32_t now){
     if(!card_.id)return false;view_=View::Inbox;pendingToast_=false;pressed_=false;held_=false;blocked_=true;dirty_=true;
     issue(ActionKind::Read,now);return true;

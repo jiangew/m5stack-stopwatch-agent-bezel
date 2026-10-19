@@ -28,21 +28,24 @@ template<class Surface> void button(Surface& s,const char* text,int x,int y,int 
 template<class Surface> void badge(Surface& s,const Controller& ui){
   if(!ui.card().count)return;
   char text[8];std::snprintf(text,sizeof(text),"N%u",ui.card().count);
-  s.fillRoundRect(302,52,46,44,18,kPanel);s.drawRoundRect(302,52,46,44,18,kAmber);label(s,text,325,74,kAmber);
+  s.fillRoundRect(kBadgeX,kBadgeY,kBadgeWidth,kBadgeHeight,18,kPanel);
+  s.drawRoundRect(kBadgeX,kBadgeY,kBadgeWidth,kBadgeHeight,18,kAmber);
+  label(s,text,kBadgeX+kBadgeWidth/2,kBadgeY+kBadgeHeight/2,kAmber);
 }
 template<class Surface> void render(Surface& s,const Controller& ui,uint32_t now){
   const auto& c=ui.card();s.fillScreen(0x0000);
   const uint16_t color=!std::strcmp(c.kind,"failed")?kRed:
       (!std::strcmp(c.kind,"done")?kGreen:kAmber);
   char heading[30];std::snprintf(heading,sizeof(heading),"%s   %u NOTICES",c.src,c.count);
-  label(s,heading,233,45,color);label(s,c.model,233,67,kDim,1.5f);
-  wrapped(s,c.title,94,24,2,2);
+  const int offset=ui.view()==View::Inbox||ui.view()==View::Toast?30:0;
+  label(s,heading,233,45+offset,color);label(s,c.model,233,67+offset,kDim,1.5f);
+  wrapped(s,c.title,94+offset,24,2,2);
   const char* state=!ui.linked()?"OFFLINE":c.state;
   if(ui.linked()&&!std::strcmp(c.state,"resolved")&&c.outcome[0])state=c.outcome;
   if(!std::strcmp(c.state,"pending")&&c.decide&&!ui.canDecide(now)&&!ui.holdElapsed(now))state="WAITING / EXPIRED";
-  label(s,state,233,139,color,1.5f);
+  label(s,state,233,139+offset,color,1.5f);
   // Full bounded context (192 ASCII bytes) fits six 36-column lines. Never ellipsize an approval.
-  wrapped(s,c.detail,165,36,1.5f);
+  wrapped(s,c.detail,165+offset,36,1.5f);
   if(ui.view()==View::Confirm){
     const char* selected=ui.selection();
     if(!std::strcmp(selected,"allow_once"))selected="ALLOW ONCE";
