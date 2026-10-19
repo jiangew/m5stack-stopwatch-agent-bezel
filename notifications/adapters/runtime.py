@@ -146,7 +146,7 @@ class Publisher:
 
     def forward(self, event, *, stored_session=None):
         event = bridge.validate_event(event)
-        # No adapter in this package implements native decisions, even if an upstream record claims it.
+        # Generic ingress cannot assert native decision support.
         if event['canDecide']: raise ValueError('native decisions unsupported')
         self.routes.save(event, stored_session)
         bridge.emit(self.directory, event)
@@ -169,7 +169,11 @@ def consume_open(directory, runner=None, now=None):
     store = RouteStore(directory)
     runner = runner or _run_open
     result = []
+    current = int(time.time() * 1000) if now is None else now
     for event, stored in store.records():
+        # The live duplex owner alone consumes fresh owned routes. A dead owner
+        # cannot strand OPEN forever: after its lease only OPEN can remain valid.
+        if event['canDecide'] and current < event['leaseDeadline']: continue
         for decision in bridge.decisions(directory, event, now=now):
             if decision['action'] != 'open': raise ValueError('native decisions unsupported')
             command, status = store.command(event, stored)

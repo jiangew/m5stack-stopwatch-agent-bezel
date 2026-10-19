@@ -15,7 +15,11 @@ def main():
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument('--open-once', action='store_true')
     mode.add_argument('--watch-open', action='store_true')
+    mode.add_argument('--native', action='store_true')
     args = parser.parse_args()
+    if args.native:
+        from notifications.adapters.deepseek.native_relay import serve
+        return serve(args.directory)
     if args.open_once or args.watch_open:
         while True:
             for result in consume_open(args.directory): print(json.dumps(result), flush=True)

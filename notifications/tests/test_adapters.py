@@ -393,3 +393,108 @@ observer.observe(session,{type:'approval/decided',seq:3,data:{id:'native',outcom
 
 if __name__ == '__main__':
     unittest.main()
+
+class NativeRelayTests(unittest.TestCase):
+    """Exercise the actual subprocess protocol/private bridge, with inert OS activation."""
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix='stopwatch-native-relay-')
+        self.addCleanup(self.temp.cleanup)
+        self.directory = Path(self.temp.name).resolve() / 'bridge'
+        self.event = dict(v=1, eventId='synthetic-event', source='deepseek',sessionId='s',runId='t',requestId='r',revision=2,
+                          createdAt=int(time.time()*1000),leaseDeadline=int(time.time()*1000)+15000,
+                          kind='approval',title='DeepSeek approval',model='',detail='complete synthetic scope',canDecide=True,state='pending')
+
+    def launch(self, env=None):
+        child = subprocess.Popen([sys.executable,'notifications/adapters/relay.py','--directory',str(self.directory),'--native'],
+                                 stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,env=env)
+        def cleanup():
+            if child.poll() is None: child.kill()
+            child.wait(timeout=5)
+            for stream in (child.stdin,child.stdout,child.stderr): stream.close()
+        self.addCleanup(cleanup)
+        return child
+
+    def send(self, child, message):
+        child.stdin.write(json.dumps(message)+'\n');child.stdin.flush()
+
+    def decision(self, action='allow_once'):
+        record = dict(self.event, decisionId='synthetic-decision', action=action)
+        record = {k:record[k] for k in ('v','decisionId','source','sessionId','runId','requestId','revision','action','createdAt','leaseDeadline')}
+        path=self.directory/'decisions'/'synthetic.json';path.write_text(json.dumps(record));path.chmod(0o600)
+        return record
+
+    def test_ready_exact_decision_once_and_fresh_open_consumer_cannot_steal(self):
+        child=self.launch()
+        self.assertEqual(json.loads(child.stdout.readline()),{'type':'ready','protocol':'stopwatch.dsh.native-approval.v1'})
+        self.send(child,{'type':'event','event':self.event})
+        # published means private route exists before the decision can be read.
+        self.assertEqual(json.loads(child.stdout.readline())['type'],'published')
+        decision=self.decision()
+        self.assertEqual(consume_open(self.directory,runner=lambda _:self.fail('stole owned decision')),[])
+        received=json.loads(child.stdout.readline())
+        self.assertEqual(received,{'type':'decision','decision':decision})
+        child.stdin.close();child.wait(timeout=5)
+        records=list(RouteStore(self.directory).records())
+        self.assertFalse(records[0][0]['canDecide'])
+        self.assertEqual(child.returncode,0)
+
+    def test_generic_publisher_rejects_native_but_aged_owned_open_remains_usable(self):
+        pub=Publisher(self.directory)
+        with self.assertRaisesRegex(ValueError,'unsupported'):pub.forward(self.event)
+        RouteStore(self.directory).save(self.event)
+        self.decision('open')
+        self.assertEqual(consume_open(self.directory,runner=lambda _:self.fail('fresh route stolen'),now=self.event['createdAt']),[])
+        calls=[]
+        result=consume_open(self.directory,runner=calls.append,now=self.event['leaseDeadline']+1)
+        self.assertEqual(result[0]['status'],'application-activation-requested')
+        self.assertEqual(calls,[['open','-b','com.deepseek.dsh']])
+
+    def test_unsafe_storage_and_unknown_frame_terminate_without_capability(self):
+        self.directory.mkdir(mode=0o755)
+        child=self.launch();child.wait(timeout=5)
+        self.assertEqual(child.returncode,1);self.assertEqual(child.stdout.read(),'')
+        self.directory.chmod(0o700)
+        child=self.launch();self.assertEqual(json.loads(child.stdout.readline())['type'],'ready')
+        self.send(child,{'type':'invented'})
+        child.wait(timeout=5);self.assertEqual(child.returncode,1)
+
+    def test_owned_open_is_released_before_actual_relay_activates_inert_os_runner(self):
+        runner=Path(self.temp.name)/'open';capture=Path(self.temp.name)/'activation'
+        runner.write_text('#!'+sys.executable+'\nimport sys\nfrom pathlib import Path\nPath('+repr(str(capture))+').write_text("\\n".join(sys.argv[1:]))\n')
+        runner.chmod(0o700)
+        child=self.launch(dict(os.environ,PATH=self.temp.name+os.pathsep+os.environ.get('PATH','')))
+        self.assertEqual(json.loads(child.stdout.readline())['type'],'ready')
+        self.send(child,{'type':'event','event':self.event});self.assertEqual(json.loads(child.stdout.readline())['type'],'published')
+        self.decision('open');self.assertEqual(json.loads(child.stdout.readline())['decision']['action'],'open')
+        self.assertFalse(capture.exists(),'relay cannot activate before parent releases owner')
+        withdrawn=dict(self.event,canDecide=False,createdAt=self.event['createdAt']+1)
+        self.send(child,{'type':'event','event':withdrawn});self.assertEqual(json.loads(child.stdout.readline())['type'],'published')
+        self.send(child,{'type':'open','event':withdrawn})
+        child.stdin.close();child.wait(timeout=5)
+        self.assertEqual(child.returncode,0);self.assertEqual(capture.read_text(),'-b\ncom.deepseek.dsh')
+
+    def test_restart_does_not_restore_owned_approval_from_disk(self):
+        RouteStore(self.directory).save(self.event)
+        self.decision()
+        child=self.launch();self.assertEqual(json.loads(child.stdout.readline())['type'],'ready')
+        time.sleep(0.1)
+        child.stdin.close();child.wait(timeout=5)
+        self.assertEqual(child.returncode,0)
+        self.assertTrue((self.directory/'decisions'/'synthetic.json').exists(),'restart must not claim old approval')
+
+    def test_65th_owned_request_fails_closed_and_withdraws_live_routes(self):
+        child=self.launch();self.assertEqual(json.loads(child.stdout.readline())['type'],'ready')
+        for i in range(64):
+            self.send(child,{'type':'event','event':dict(self.event,requestId='r-'+str(i))})
+            self.assertEqual(json.loads(child.stdout.readline())['type'],'published')
+        self.send(child,{'type':'event','event':dict(self.event,requestId='overflow')})
+        child.wait(timeout=5);self.assertEqual(child.returncode,1)
+        routes=list(RouteStore(self.directory).records())
+        self.assertEqual(len(routes),64);self.assertTrue(all(not event['canDecide'] for event,_ in routes))
+
+    def test_oversize_partial_frame_disables_and_withdraws_live_route(self):
+        child=self.launch();self.assertEqual(json.loads(child.stdout.readline())['type'],'ready')
+        self.send(child,{'type':'event','event':self.event});self.assertEqual(json.loads(child.stdout.readline())['type'],'published')
+        child.stdin.write('x'*8193);child.stdin.flush()
+        child.wait(timeout=5);self.assertEqual(child.returncode,1)
+        self.assertFalse(list(RouteStore(self.directory).records())[0][0]['canDecide'])

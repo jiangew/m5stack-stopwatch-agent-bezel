@@ -8,9 +8,9 @@ Native cards currently use generic task labels and only verified available model
 metadata; full task titles are not inferred from transcripts. Use exact OPEN
 routing where supported to identify the native conversation.
 
-The requested native allow/decline capability is **not yet delivered**. The broker
+Installed native allow/decline capability is **not yet delivered**. The broker
 and watch implement a request-bound confirmation protocol, but all four supplied
-native adapters set `canDecide:false`. A synthetic decision roundtrip does not
+stock native adapters set `canDecide:false`. The source-only opt-in DSH patched owner has actual native-module/duplex acceptance for a complete printable-ASCII Bash subset; installed app/profile and physical acceptance remain unvalidated. A synthetic decision roundtrip does not
 prove that a real harness accepted a watch response. Unsupported cards offer
 OPEN ON MAC; reading, dismissing and opening never grant permission.
 
@@ -51,7 +51,7 @@ OPEN ON MAC; reading, dismissing and opening never grant permission.
 | Existing behavior | Actual main draw, haptic, workspace launch, IMU and swipe regressions | Physical regression acceptance pending |
 | Compilation | Mac debug/release; default ESP32; native preview; existing USB+IMU source variant | Build success is not device acceptance |
 | Release/install | Candidate packaging after source review | Installed application and known-good firmware are preserved |
-| Native approvals | Generic synthetic identity/lease/confirmation/outcome tests only | Codex same-owner control; DSH audit-to-answerer binding; SUPER request/response API; Hermes native queue identity/control remain missing |
+| Native approvals | Generic broker tests plus actual patched DSH native owner/duplex tests with inert shell | Stock support false; patched DSH deployment/hardware unvalidated; Codex final binding, SUPER approval API (explicitly forbidden), Hermes exact queue UUID/ABA/final outcome remain missing |
 | Physical end-to-end | Not performed | No flash, pairing, encrypted GATT, watch action, duplicate-alert or haptic acceptance claim |
 
 ## Reproduce checks

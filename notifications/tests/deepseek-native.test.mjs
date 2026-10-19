@@ -28,7 +28,7 @@ class Prompt extends Service {
 const tick = () => new Promise(r => setImmediate(r));
 const args = extra => Object.fromEntries(Object.entries({command:'pwd', description:'x', workdir:'sub', timeoutMs:7,
   sandbox_permissions:'danger-full-access', justification:'x', ...extra}).filter(([,v])=>v!==undefined));
-async function fixture(t, {policy='ask', background=false, jobs, noCwd=false, realResolver=false} = {}) {
+async function fixture(t, {policy='ask', background=false, jobs, noCwd=false, realResolver=false, roots, livePolicy=false} = {}) {
   const ctx = new Context();
   ctx.plugin(Prompt); ctx.plugin(SessionStore); ctx.plugin(ApprovalService, {policy});
   ctx.plugin(ToolRuntime, {mode:'native'}); await tick();
@@ -45,7 +45,7 @@ async function fixture(t, {policy='ask', background=false, jobs, noCwd=false, re
     async execute(r) { executions.push(r); return {result:async()=>({exitCode:0,signal:null,timedOut:false,
       aborted:false, timeoutMs:r.timeoutMs, stdout:{text:'synthetic',truncated:false}, stderr:{text:'',truncated:false}})}; }};
   bash({shell, shellEnv:{collect:()=>env}, systemPrompt:ctx.systemPrompt, tools:ctx.tools,
-    get(name) { return name==='approval'?ctx.approval:name==='sandboxPolicy'?{resolve:()=>standing}:name==='jobs'?jobs:undefined; },
+    get(name) { return name==='approval'?ctx.approval:name==='sandboxPolicy'?{resolve:({session})=>livePolicy?{...standing,sessionId:session.id}:standing}:name==='jobs'?jobs:undefined; },
     inject(_keys,callback) {if(jobs) callback({jobs,tools:ctx.tools,effect(){}});}, logger:{warn() {}}}, {enableRunInBackground:background});
   ctx.on('session/event', (session,event)=>audits.push({session,event}));
   ctx.on('tools/execute', (exec,next)=>als.run(exec,()=>next()), {prepend:true});
@@ -53,9 +53,10 @@ async function fixture(t, {policy='ask', background=false, jobs, noCwd=false, re
   let serial=0;
   function start(input=args(), controller=new AbortController()) {
     const session=ctx.sessions.create('synthetic-'+(++serial), noCwd?{}:{meta:{cwd:'/synthetic/header'}});
+    const agent={id:session.id,session,ctx};
+    roots?.push(agent);
     session.append('turn/start',{turn:1});
     session.append('tool/call',{turn:1,step:1,callId:'same-call',name:'bash',arguments:JSON.stringify(input)});
-    const agent={id:session.id,session,ctx};
     return {session,agent,controller,promise:ctx.tools.execute({agent,name:'bash',callId:'same-call',arguments:input,signal:controller.signal})};
   }
   return {ctx,requests,executions,audits,als,start,env,liveConfig,
@@ -248,4 +249,98 @@ test('unknown executor spec fields or explicit environment never enter public de
   const call=f.start(); await tick();
   const {req,gate}=f.requests[0]; gate.resolve('rejected'); await call.promise;
   assert.equal(req.nativeApprovalScope,undefined);
+});
+
+// Actual Cordis/Registry/Bash/ApprovalService compose with the production owner.
+// Removing current-root admission or resolving optimistically breaks these assertions.
+import { AuditObserver, ApprovalOwner, apply as stopwatchPlugin } from '../adapters/deepseek/index.mjs';
+async function ownedFixture(t) {
+  const roots=[];const f=await fixture(t,{roots,livePolicy:true});f.ctx.agents={roots:()=>roots};
+  const records=[];const observer=new AuditObserver(f.ctx,record=>records.push(record));
+  const transport={ready:true,send:record=>records.push(record),open:()=>{}};
+  const owner=new ApprovalOwner(observer,transport);
+  f.ctx.on('session/event',(session,event)=>observer.observe(session,event));
+  f.ctx.on('approval/request',(req,next)=>owner.request(req,next),{prepend:true});
+  f.setDefaults({workdir:'/',timeoutMs:1,stdoutMaxBytes:1});
+  let count=0;
+  function start(){
+    const id='synthetic-'+(++count);
+    f.setStanding({mode:'read-only',workspaceRoot:'/',sessionId:id});
+    const call=f.start(args({workdir:'/',timeoutMs:1}));
+    return call;
+  }
+  return {...f,start,owner,observer,records,roots};
+}
+test('production owner binds real body scope and audit UUID; native cancellation overrides submitted allow',async t=>{
+  const f=await ownedFixture(t);const call=f.start();await tick();
+  assert.equal(f.requests.length,0,'eligible owner must precede native UI');
+  const owned=f.records.find(x=>x.canDecide);
+  assert.ok(owned,'patched body must enable complete representable scope');
+  assert.equal(owned.revision,2);assert.equal(owned.detail,'["bash",{"cmd":"pwd","desc":"x","cwd":"/","ms":1,"mode":"danger-full-access","why":"x"},{"from":"read-only","root":"/","expiry":"kill","out":1}]');
+  assert.ok(!owned.detail.includes(call.session.id),'native routing IDs stay private');
+  await new Promise(r=>setTimeout(r,3));
+  assert.equal(f.owner.decide({...owned,action:'allow_once',decisionId:'synthetic-once',createdAt:Date.now(),leaseDeadline:Date.now()+15000}),true);
+  assert.equal(f.records.some(x=>x.state==='resolved'),false);
+  call.controller.abort();await call.promise;
+  assert.equal(f.executions.length,0);
+  assert.equal(f.records.at(-1).outcome,'cancelled');assert.equal(f.records.at(-1).revision,2);
+  assert.equal(f.records.at(-1).requestId,auditPair(f,call.session)[1].data.id);
+});
+test('production owner isolates concurrent real native UUIDs and waits for committed decline/allow',async t=>{
+  const f=await ownedFixture(t), a=f.start(), b=f.start();await tick();
+  const owned=f.records.filter(x=>x.canDecide);
+  assert.equal(owned.length,2);assert.notEqual(owned[0].requestId,owned[1].requestId);
+  await new Promise(r=>setTimeout(r,3));
+  for (const [i,record] of owned.entries()) f.owner.decide({...record,action:i?'allow_once':'decline',decisionId:'choice-'+i,createdAt:Date.now(),leaseDeadline:Date.now()+15000});
+  await Promise.all([a.promise,b.promise]);
+  assert.equal(f.executions.length,1);assert.equal(f.records.filter(x=>x.state==='resolved').length,2);
+  assert.deepEqual(f.records.filter(x=>x.state==='resolved').map(x=>x.outcome).sort(),['allowed','declined']);
+});
+
+test('actual plugin opt-in uses private duplex ready handshake and releases to native UI on unload',async t=>{
+  const {mkdtemp,rm,readdir}=await import('node:fs/promises');const {tmpdir}=await import('node:os');
+  const dir=await mkdtemp('/private/tmp/synthetic-dsh-plugin-');t.after(()=>rm(dir,{recursive:true,force:true}));
+  const roots=[];const f=await fixture(t,{roots});f.ctx.agents={roots:()=>roots};
+  stopwatchPlugin(f.ctx,{directory:resolve(dir,'bridge'),relayScript:resolve('notifications/adapters/relay.py'),nativeApprovals:true});
+  // The protocol handshake is emitted only after the private route directory exists.
+  for(let i=0;i<100;i++){try {await readdir(resolve(dir,'bridge','adapter-routes'));break;}catch{await new Promise(r=>setTimeout(r,10));}}
+  await new Promise(r=>setTimeout(r,30));
+  f.setDefaults({workdir:'/',timeoutMs:1,stdoutMaxBytes:1});
+  f.setStanding({mode:'read-only',workspaceRoot:'/',sessionId:'synthetic-1'});
+  const call=f.start(args({workdir:'/',timeoutMs:1}));await tick();
+  assert.equal(f.requests.length,0,'explicit native owner must hold actual waterfall');
+  let published=[];
+  for(let i=0;i<100;i++){
+    const names=await readdir(resolve(dir,'bridge','inbox'));
+    published=await Promise.all(names.filter(n=>n.endsWith('.json')).map(n=>readFile(resolve(dir,'bridge','inbox',n),'utf8').then(JSON.parse)));
+    if(published.some(x=>x.canDecide))break;
+    await new Promise(r=>setTimeout(r,10));
+  }
+  assert.ok(published.some(x=>x.canDecide),'actual duplex relay must publish capability');
+  await f.ctx.fiber.dispose();await tick();
+  assert.equal(f.requests.length,1,'unload must delegate exactly once to native answerer');
+  f.requests[0].gate.resolve('rejected');await call.promise;
+  assert.equal(f.executions.length,0);
+});
+
+test('actual plugin consumes private watch allow and emits only the real committed native outcome',async t=>{
+  const {mkdtemp,rm,readdir,writeFile,chmod}=await import('node:fs/promises');
+  const dir=await mkdtemp('/private/tmp/synthetic-dsh-duplex-');t.after(()=>rm(dir,{recursive:true,force:true}));
+  const roots=[], f=await fixture(t,{roots});f.ctx.agents={roots:()=>roots};
+  stopwatchPlugin(f.ctx,{directory:resolve(dir,'bridge'),relayScript:resolve('notifications/adapters/relay.py'),nativeApprovals:true});
+  for(let i=0;i<100;i++){try{await readdir(resolve(dir,'bridge','adapter-routes'));break;}catch{await new Promise(r=>setTimeout(r,10));}}
+  await new Promise(r=>setTimeout(r,30));
+  f.setDefaults({workdir:'/',timeoutMs:1,stdoutMaxBytes:1});f.setStanding({mode:'read-only',workspaceRoot:'/',sessionId:'synthetic-1'});
+  const call=f.start(args({workdir:'/',timeoutMs:1}));let owned;
+  async function inbox(){const names=await readdir(resolve(dir,'bridge','inbox'));return Promise.all(names.filter(n=>n.endsWith('.json')).map(n=>readFile(resolve(dir,'bridge','inbox',n),'utf8').then(JSON.parse)));}
+  for(let i=0;i<100;i++){owned=(await inbox()).find(x=>x.canDecide);if(owned)break;await new Promise(r=>setTimeout(r,10));}
+  assert.ok(owned,'live relay must expose actual owner');assert.equal(f.requests.length,0);
+  const decision={v:1,decisionId:'synthetic-private-answer',action:'allow_once',createdAt:Date.now(),leaseDeadline:Date.now()+15000};
+  for(const key of ['source','sessionId','runId','requestId','revision'])decision[key]=owned[key];
+  const file=resolve(dir,'bridge','decisions','answer.json');await writeFile(file,JSON.stringify(decision),{mode:0o600});await chmod(file,0o600);
+  await call.promise;
+  assert.equal(f.executions.length,1);assert.equal(auditPair(f,call.session)[1].data.outcome,'allowed-once');
+  let resolved;
+  for(let i=0;i<100;i++){resolved=(await inbox()).find(x=>x.state==='resolved');if(resolved)break;await new Promise(r=>setTimeout(r,10));}
+  assert.equal(resolved?.outcome,'allowed');assert.equal(resolved.requestId,owned.requestId);assert.equal(resolved.revision,2);assert.equal(resolved.detail,owned.detail);
 });

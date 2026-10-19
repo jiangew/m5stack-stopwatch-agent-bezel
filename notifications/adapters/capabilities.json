@@ -16,19 +16,25 @@
       "pin": "0.2.0-rc.2",
       "events": ["session/event turn/end", "approval/asked", "approval/decided", "userQuestions projection"],
       "rootVerification": "native agents.roots exact Session identity",
-      "approval": "audit observation only; native outcome is authoritative",
+      "approval": "stock unsupported; explicit nativeApprovals:true with pinned project extension owns only fully displayable exact Bash scope; committed audit outcome only",
       "input": "native projection observation only",
       "open": "application activation fallback",
-      "evidence": "installed source and fixtures; Host plugin installation unvalidated"
+      "evidence": "source fixtures and actual patched Cordis/Registry/Bash/ApprovalService plus duplex relay acceptance; installed app/profile stock and Host plugin deployment unvalidated",
+      "patchedNativeApprovals": {
+        "protocol": "stopwatch.dsh.native-approval.v1",
+        "optIn": "nativeApprovals:true",
+        "installed": false,
+        "scope": "known complete printable ASCII operation and permission fields within detail192; all other requests delegate"
+      }
     },
     "super": {
-      "pin": "ac45e7aa",
+      "pin": "tested lifecycle ac45e7aa; current installed 15aae8f8 requires stream revalidation",
       "events": ["native sc agent subscribe flat lifecycle"],
       "rootVerification": "explicit targets checked against native agents list; child targets excluded",
-      "approval": "attention observation only; no native approval request identity",
-      "input": "attention observation only",
+      "approval": "attention only; current agent answer explicitly forbids approvals",
+      "input": "attention only; ordinary question answer exists but content-minimized getter, runtime schema and request closure remain unvalidated",
       "open": "verified Chat UI binding or application fallback",
-      "evidence": "actual no-model ready/target_closed; other event variants fixture tested"
+      "evidence": "ac45e7aa no-model ready/target_closed; current15aae8f8 help/static sources only, lifecycle not runtime verified"
     },
     "hermes": {
       "pin": "desktop 0.17.6; source 74f726c17675642c2eff3033632e812f5f0e6614",

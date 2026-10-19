@@ -12,3 +12,8 @@ swiftc -parse-as-library companion/Sources/CodexWatchCompanion/TaskNotificationM
   companion/StandaloneTests/TaskNotificationRegression.swift -o "$output/bridge"
 TASK_NOTIFICATION_TEST_BINARY="$output/bridge" python3 -m unittest discover -s notifications/tests -p 'test_*.py' -v
 node --test notifications/tests/deepseek.test.mjs
+if [ -n "${DSH_NATIVE_MODULES:-}" ]; then
+  node scripts/test_deepseek_native.mjs "$DSH_NATIVE_MODULES" patched
+else
+  printf '%s\n' 'Pinned DSH native acceptance not run: set DSH_NATIVE_MODULES to explicit external verified node_modules.'
+fi
