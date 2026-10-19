@@ -66,20 +66,29 @@ export class ApprovalOwner {
     entry.status='released';this.entries.delete(entry.req.requestId);
     entry.req.signal?.removeEventListener('abort',entry.abort);
     entry.pending.record={...entry.pending.record,canDecide:false,createdAt:Math.max(this.now(),entry.pending.record.createdAt+1)};
-    if (this.observer.pending.get(JSON.stringify([entry.pending.session.id,entry.req.requestId]))===entry.pending) this.publish(entry);
+    // Invoke native continuation before telling the relay to drop its liveness
+    // lock, so a concurrent generic OPEN cannot activate ahead of delegation.
     if (delegate) { try {entry.resolve(entry.next());}catch(error){entry.reject(error);} }
     else entry.resolve(result);
+    if (this.observer.pending.get(JSON.stringify([entry.pending.session.id,entry.req.requestId]))===entry.pending) this.publish(entry);
   }
   decide(decision) {
     const entry=this.entries.get(decision.requestId);
     if (!entry || entry.status!=='owned') return false;
     const record=entry.pending.record,now=this.now();
-    if (!this.current(entry) || !this.transport.ready || now>=entry.start+60000 || now>=record.leaseDeadline) {
+    if (!this.current(entry) || !this.transport.ready || now>=entry.start+60000) {
       this.release(entry);return false;
     }
     if (!identity.every(k=>decision[k]===record[k]) || !['open','allow_once','decline'].includes(decision.action) ||
         !Number.isSafeInteger(decision.createdAt) || !Number.isSafeInteger(decision.leaseDeadline) ||
-        decision.createdAt>now || now>=decision.leaseDeadline || decision.leaseDeadline>decision.createdAt+15000) return false;
+        decision.createdAt>now || decision.leaseDeadline>decision.createdAt+15000) return false;
+    // OPEN has its own bounded navigation lifetime. An expired decision lease
+    // removes approval authority, but does not prove the callback was delegated.
+    if (decision.action==='open' ? now>=decision.createdAt+60000 :
+        now>=decision.leaseDeadline || now>=record.leaseDeadline) {
+      if (decision.action!=='open') this.release(entry);
+      return false;
+    }
     if (decision.action==='open') {
       this.release(entry);
       try {this.transport.open(entry.pending.record);}catch{this.disable();}

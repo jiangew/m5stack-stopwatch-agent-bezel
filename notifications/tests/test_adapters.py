@@ -38,6 +38,37 @@ def route_capacity_writer(directory, event, paused, release, result, hold_snapsh
         runtime.os.listdir = original
 
 
+def generic_open_after_snapshot(directory, paused, release, result, now):
+    """Freeze the real consumer immediately after its inventory snapshot."""
+    import notifications.adapters.runtime as runtime
+    original = runtime.RouteStore.records
+    def snapshot(store):
+        records = list(original(store))
+        paused.set()
+        if not release.wait(5): raise RuntimeError('snapshot synchronization timed out')
+        yield from records
+    runtime.RouteStore.records = snapshot
+    calls = []
+    try:
+        result.put((runtime.consume_open(directory, runner=calls.append, now=now), calls))
+    finally:
+        runtime.RouteStore.records = original
+
+
+def generic_open_paused_during_claim(directory, paused, release, result, now):
+    import notifications.adapters.runtime as runtime
+    original = runtime.bridge.decisions
+    def claim(*args, **kwargs):
+        paused.set()
+        if not release.wait(5): raise RuntimeError('claim synchronization timed out')
+        return original(*args, **kwargs)
+    runtime.bridge.decisions = claim
+    try:
+        result.put(runtime.consume_open(directory, runner=lambda _: None, now=now))
+    finally:
+        runtime.bridge.decisions = original
+
+
 class AdapterTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix='stopwatch-adapter-')
@@ -404,8 +435,8 @@ class NativeRelayTests(unittest.TestCase):
                           createdAt=int(time.time()*1000),leaseDeadline=int(time.time()*1000)+15000,
                           kind='approval',title='DeepSeek approval',model='',detail='complete synthetic scope',canDecide=True,state='pending')
 
-    def launch(self, env=None):
-        child = subprocess.Popen([sys.executable,'notifications/adapters/relay.py','--directory',str(self.directory),'--native'],
+    def launch(self, env=None, command=None):
+        child = subprocess.Popen(command or [sys.executable,'notifications/adapters/relay.py','--directory',str(self.directory),'--native'],
                                  stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,env=env)
         def cleanup():
             if child.poll() is None: child.kill()
@@ -498,3 +529,103 @@ class NativeRelayTests(unittest.TestCase):
         child.stdin.write('x'*8193);child.stdin.flush()
         child.wait(timeout=5);self.assertEqual(child.returncode,1)
         self.assertFalse(list(RouteStore(self.directory).records())[0][0]['canDecide'])
+
+    def clock_relay(self):
+        """Only time is synthetic; imports and process/private-file operations are real."""
+        clock=Path(self.temp.name)/'clock';clock.write_text(str(self.event['createdAt']))
+        wrapper=Path(self.temp.name)/'clock_relay.py'
+        wrapper.write_text('import sys\nfrom pathlib import Path\nsys.path.insert(0,'+repr(str(Path.cwd()))+')\n'
+                           'from notifications.adapters.deepseek import native_relay\n'
+                           'native_relay.time.time=lambda: int(Path(sys.argv[2]).read_text())/1000\n'
+                           'native_relay.serve(sys.argv[1])\n')
+        return self.launch(command=[sys.executable,str(wrapper),str(self.directory),str(clock)]),clock
+
+    def advance_clock(self, clock, now):
+        temporary=clock.with_suffix('.next');temporary.write_text(str(now));temporary.replace(clock)
+
+    def test_renewal_between_snapshot_and_claim_cannot_steal_native_open(self):
+        now=self.event['createdAt']
+        expired=dict(self.event,createdAt=now-16000,leaseDeadline=now-1000)
+        RouteStore(self.directory).save(expired)
+        self.decision('open')
+        paused,release=multiprocessing.Event(),multiprocessing.Event();result=multiprocessing.Queue()
+        consumer=multiprocessing.Process(target=generic_open_after_snapshot,args=(str(self.directory),paused,release,result,now))
+        consumer.start();self.addCleanup(lambda: consumer.is_alive() and consumer.terminate())
+        self.assertTrue(paused.wait(5),'consumer must read expired snapshot')
+        # Exact same identity/revision is renewed before the generic atomic claim.
+        RouteStore(self.directory).save(self.event)
+        release.set();consumer.join(5);self.assertEqual(consumer.exitcode,0)
+        received,calls=result.get(timeout=2)
+        self.assertEqual(received,[]);self.assertEqual(calls,[])
+        self.assertTrue((self.directory/'decisions'/'synthetic.json').exists())
+
+    def test_expired_but_live_native_owner_keeps_open_and_never_accepts_expired_allow(self):
+        import selectors
+        child,clock=self.clock_relay();self.assertEqual(json.loads(child.stdout.readline())['type'],'ready')
+        self.send(child,{'type':'event','event':self.event});self.assertEqual(json.loads(child.stdout.readline())['type'],'published')
+        # The lease expires while the native callback still belongs to this live child.
+        now=self.event['leaseDeadline']+1;self.advance_clock(clock,now);time.sleep(0.12)
+        self.decision('allow_once')
+        allow_file=self.directory/'decisions'/'expired-allow.json'
+        (self.directory/'decisions'/'synthetic.json').rename(allow_file)
+        time.sleep(0.1)
+        fresh=dict(self.decision('allow_once'),createdAt=now,leaseDeadline=now+15000)
+        fresh_file=self.directory/'decisions'/'fresh-allow.json';fresh_file.write_text(json.dumps(fresh));fresh_file.chmod(0o600)
+        self.decision('open')
+        self.assertEqual(consume_open(self.directory,runner=lambda _:self.fail('live owner OPEN stolen'),now=now),[])
+        selector=selectors.DefaultSelector();selector.register(child.stdout,selectors.EVENT_READ)
+        self.addCleanup(selector.close)
+        self.assertTrue(selector.select(2),'expired-but-live owner must receive OPEN')
+        self.assertEqual(json.loads(child.stdout.readline())['decision']['action'],'open')
+        self.assertFalse(allow_file.exists(),'expired allow is discarded without submission')
+        self.assertTrue(fresh_file.exists(),'fresh answer to expired native lease must remain unclaimed')
+
+    def test_crashed_owner_releases_private_lock_and_aged_open_falls_back(self):
+        child,clock=self.clock_relay();self.assertEqual(json.loads(child.stdout.readline())['type'],'ready')
+        self.send(child,{'type':'event','event':self.event});self.assertEqual(json.loads(child.stdout.readline())['type'],'published')
+        child.kill();child.wait(timeout=5)
+        self.decision('open');calls=[]
+        results=consume_open(self.directory,runner=calls.append,now=self.event['leaseDeadline']+1)
+        self.assertEqual(results[0]['status'],'application-activation-requested')
+        self.assertEqual(calls,[['open','-b','com.deepseek.dsh']])
+
+    def test_native_owner_window_does_not_renew_with_decision_lease(self):
+        child,clock=self.clock_relay();self.assertEqual(json.loads(child.stdout.readline())['type'],'ready')
+        self.send(child,{'type':'event','event':self.event});self.assertEqual(json.loads(child.stdout.readline())['type'],'published')
+        later=self.event['createdAt']+59000;self.advance_clock(clock,later)
+        renewed=dict(self.event,createdAt=later,leaseDeadline=later+15000)
+        self.send(child,{'type':'event','event':renewed});self.assertEqual(json.loads(child.stdout.readline())['type'],'published')
+        self.advance_clock(clock,later+1002)
+        child.wait(timeout=3)
+        self.assertEqual(child.returncode,1,'ownership must retire by original60swindow')
+        self.assertFalse(list(RouteStore(self.directory).records())[0][0]['canDecide'])
+
+
+    def test_route_renewal_lock_remains_held_through_generic_decision_claim(self):
+        import fcntl
+        now=self.event['createdAt']
+        RouteStore(self.directory).save(dict(self.event,createdAt=now-16000,leaseDeadline=now-1000))
+        self.decision('open')
+        paused,release=multiprocessing.Event(),multiprocessing.Event();result=multiprocessing.Queue()
+        consumer=multiprocessing.Process(target=generic_open_paused_during_claim,args=(str(self.directory),paused,release,result,now))
+        consumer.start();self.addCleanup(lambda: consumer.is_alive() and consumer.terminate())
+        self.assertTrue(paused.wait(5),'claim must pause inside real private bridge call')
+        fd=os.open(self.directory/'adapter-routes'/'.inventory.lock',os.O_RDWR|os.O_NOFOLLOW)
+        try:
+            # Every native route save/acquire uses this same lock. The latest
+            # route cannot renew between generic validation and atomic claim.
+            with self.assertRaises(BlockingIOError):fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
+        finally:
+            os.close(fd);release.set()
+        consumer.join(5);self.assertEqual(consumer.exitcode,0)
+        self.assertEqual(result.get(timeout=2)[0]['status'],'application-activation-requested')
+
+    def test_owner_lock_inventory_is_bounded_even_for_orphaned_lock_files(self):
+        RouteStore(self.directory).save(self.event)
+        folder=self.directory/'adapter-routes'
+        for i in range(256):
+            path=folder/('.owner-'+format(i,'064x')+'.json');path.write_text('');path.chmod(0o600)
+        self.decision('open')
+        with self.assertRaisesRegex(ValueError,'owner lock inventory full'):
+            consume_open(self.directory,runner=lambda _:self.fail('unbounded lock inventory'),now=self.event['leaseDeadline']+1)
+        self.assertTrue((self.directory/'decisions'/'synthetic.json').exists())

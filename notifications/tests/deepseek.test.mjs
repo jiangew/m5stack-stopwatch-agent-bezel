@@ -244,3 +244,24 @@ test('fresh renewed lease cannot extend ownership past60seconds',async()=>{
   f.setClock(61001);f.owner.heartbeat();
   assert.equal(await result,'rejected');assert.equal(calls,1);assert.equal(f.output.at(-1).canDecide,false);
 });
+
+test('exact OPEN after decision lease still releases live owner before activation',async()=>{
+  const f=await ownerFixture(),req=f.request();const order=[];
+  const send=f.transport.send;
+  f.transport.send=record=>{if(!record.canDecide)order.push('withdraw');return send(record);};
+  f.transport.open=()=>order.push('activate');
+  const answer=f.owner.request(req,()=>{order.push('delegate');return 'rejected';});
+  const record=f.output.at(-1);f.setClock(17000);
+  assert.equal(f.owner.decide({...record,action:'open',decisionId:'expired-open',createdAt:17000,leaseDeadline:32000}),true);
+  assert.equal(await answer,'rejected');assert.deepEqual(order,['delegate','withdraw','activate']);
+  assert.equal(f.owner.decide({...record,action:'open',decisionId:'duplicate',createdAt:17000,leaseDeadline:32000}),false);
+});
+
+test('fresh allow cannot settle a live owner whose current decision lease expired',async()=>{
+  const f=await ownerFixture(),req=f.request();let delegated=0;
+  const answer=f.owner.request(req,()=>{delegated++;return 'rejected';});
+  const record=f.output.at(-1);f.setClock(17000);
+  assert.equal(f.owner.decide({...record,action:'allow_once',decisionId:'fresh-late-allow',createdAt:17000,leaseDeadline:32000}),false);
+  assert.equal(await answer,'rejected');assert.equal(delegated,1);
+  assert.equal(f.output.some(x=>x.state==='resolved'),false);
+});

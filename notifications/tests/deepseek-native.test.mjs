@@ -254,11 +254,11 @@ test('unknown executor spec fields or explicit environment never enter public de
 // Actual Cordis/Registry/Bash/ApprovalService compose with the production owner.
 // Removing current-root admission or resolving optimistically breaks these assertions.
 import { AuditObserver, ApprovalOwner, apply as stopwatchPlugin } from '../adapters/deepseek/index.mjs';
-async function ownedFixture(t) {
+async function ownedFixture(t, now=Date.now) {
   const roots=[];const f=await fixture(t,{roots,livePolicy:true});f.ctx.agents={roots:()=>roots};
-  const records=[];const observer=new AuditObserver(f.ctx,record=>records.push(record));
+  const records=[];const observer=new AuditObserver(f.ctx,record=>records.push(record),now);
   const transport={ready:true,send:record=>records.push(record),open:()=>{}};
-  const owner=new ApprovalOwner(observer,transport);
+  const owner=new ApprovalOwner(observer,transport,now);
   f.ctx.on('session/event',(session,event)=>observer.observe(session,event));
   f.ctx.on('approval/request',(req,next)=>owner.request(req,next),{prepend:true});
   f.setDefaults({workdir:'/',timeoutMs:1,stdoutMaxBytes:1});
@@ -269,7 +269,7 @@ async function ownedFixture(t) {
     const call=f.start(args({workdir:'/',timeoutMs:1}));
     return call;
   }
-  return {...f,start,owner,observer,records,roots};
+  return {...f,start,owner,observer,records,roots,transport};
 }
 test('production owner binds real body scope and audit UUID; native cancellation overrides submitted allow',async t=>{
   const f=await ownedFixture(t);const call=f.start();await tick();
@@ -343,4 +343,19 @@ test('actual plugin consumes private watch allow and emits only the real committ
   let resolved;
   for(let i=0;i<100;i++){resolved=(await inbox()).find(x=>x.state==='resolved');if(resolved)break;await new Promise(r=>setTimeout(r,10));}
   assert.equal(resolved?.outcome,'allowed');assert.equal(resolved.requestId,owned.requestId);assert.equal(resolved.revision,2);assert.equal(resolved.detail,owned.detail);
+});
+
+
+test('expired-lease OPEN invokes actual native continuation before activation and never grants',async t=>{
+  let clock=Date.now();const f=await ownedFixture(t,()=>clock);let activations=0;
+  f.transport.open=()=>{assert.equal(f.requests.length,1,'normal native answerer must already own callback');activations++;};
+  const call=f.start();await tick();const owned=f.records.find(x=>x.canDecide);
+  assert.ok(owned);clock=owned.leaseDeadline+1;
+  assert.equal(f.owner.decide({...owned,action:'open',decisionId:'synthetic-expired-open',createdAt:clock,leaseDeadline:clock+15000}),true);
+  assert.equal(activations,1);assert.equal(f.executions.length,0);
+  assert.equal(f.records.some(x=>x.state==='resolved'),false);
+  assert.equal(f.owner.decide({...owned,action:'allow_once',decisionId:'late-allow',createdAt:clock,leaseDeadline:clock+15000}),false);
+  f.requests[0].gate.resolve('rejected');await call.promise;
+  assert.equal(f.executions.length,0);assert.equal(auditPair(f,call.session)[1].data.outcome,'rejected');
+  assert.equal(f.records.at(-1).outcome,'declined');assert.equal(f.records.at(-1).requestId,owned.requestId);
 });

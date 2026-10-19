@@ -91,6 +91,70 @@ class RouteStore:
             except FileNotFoundError: pass
             os.close(fd)
 
+    @staticmethod
+    def _owner_fd(fd, event):
+        # Keep the inode stable after release; unlinking would permit two locks
+        # for the same identity. At most one lock file per bounded route exists.
+        name = '.owner-' + _key(event)
+        owners = [item for item in os.listdir(fd) if re.fullmatch(r'\.owner-[0-9a-f]{64}\.json', item)]
+        if name not in owners and len(owners) >= 256:
+            raise ValueError('owner lock inventory full')
+        lock = os.open(name, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW | os.O_NONBLOCK, 0o600, dir_fd=fd)
+        try:
+            bridge._check(lock, False)
+            return lock
+        except BaseException:
+            os.close(lock)
+            raise
+
+    def acquire_owner(self, event):
+        """Hold a kernel liveness lock until native continuation release/exit."""
+        event = bridge.validate_event(event)
+        fd = self._open()
+        try:
+            with self._locked(fd, True):
+                if _key(event) not in self._names(fd) and len(self._names(fd)) >= 256:
+                    raise ValueError('adapter route inventory full')
+                lock = self._owner_fd(fd, event)
+                try:
+                    fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    bridge._check(lock, False)
+                    return lock
+                except BaseException:
+                    os.close(lock)
+                    raise
+        finally:
+            os.close(fd)
+
+    def claim_open(self, snapshot, now=None):
+        """Re-read and claim under the same lock used by every route renewal.
+
+        The lease grants decision authority, not proof that its owner is dead.
+        A live native lock excludes generic OPEN even after the lease expires.
+        """
+        fd = self._open()
+        try:
+            with self._locked(fd, True):
+                record = bridge._read(fd, _key(snapshot))
+                if set(record) != {'event', 'storedSession'}: raise ValueError('invalid route record')
+                event = bridge.validate_event(record['event'])
+                if _key(event) != _key(snapshot): raise ValueError('route identity mismatch')
+                lock = self._owner_fd(fd, event)
+                try:
+                    try: fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    except BlockingIOError: return None
+                    bridge._check(lock, False)
+                    current = int(time.time() * 1000) if now is None else now
+                    if event['canDecide'] and current < event['leaseDeadline']: return None
+                    decisions = bridge.decisions(self.directory, event, now=current)
+                    if any(decision['action'] != 'open' for decision in decisions):
+                        raise ValueError('native decisions unsupported')
+                    return event, record['storedSession'], decisions
+                finally:
+                    os.close(lock)
+        finally:
+            os.close(fd)
+
     def records(self):
         fd = self._open()
         try:
@@ -169,13 +233,11 @@ def consume_open(directory, runner=None, now=None):
     store = RouteStore(directory)
     runner = runner or _run_open
     result = []
-    current = int(time.time() * 1000) if now is None else now
-    for event, stored in store.records():
-        # The live duplex owner alone consumes fresh owned routes. A dead owner
-        # cannot strand OPEN forever: after its lease only OPEN can remain valid.
-        if event['canDecide'] and current < event['leaseDeadline']: continue
-        for decision in bridge.decisions(directory, event, now=now):
-            if decision['action'] != 'open': raise ValueError('native decisions unsupported')
+    for snapshot, _stored in store.records():
+        claimed = store.claim_open(snapshot, now=now)
+        if claimed is None: continue
+        event, stored, decisions = claimed
+        for decision in decisions:
             command, status = store.command(event, stored)
             try:
                 runner(command)

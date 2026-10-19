@@ -50,9 +50,14 @@ def serve(directory):
                                                for k, limit in [('title', 48), ('detail', 192)]) or event['model']):
                                 raise ValueError('invalid native capability')
                             if identity not in pending and len(pending) >= 64: raise ValueError('native inventory full')
-                            pending[identity] = event
+                            if identity not in pending:
+                                pending[identity] = {'event': event, 'owner': routes.acquire_owner(event),
+                                                     'deadline': event['createdAt'] + 60000}
+                            else:
+                                pending[identity]['event'] = event
                         else:
-                            pending.pop(identity, None)
+                            previous = pending.pop(identity, None)
+                            if previous is not None: os.close(previous['owner'])
                         routes.save(event)
                         bridge.emit(directory, event)
                         _write({'type': 'published', 'eventId': event['eventId']})
@@ -63,11 +68,14 @@ def serve(directory):
                         _run_open(routes.command(event)[0])
                     else: raise ValueError('unknown native frame')
                 if len(buffered) > 8192: raise ValueError('partial native frame too large')
-            for identity, event in list(pending.items()):
+            for entry in list(pending.values()):
+                event = entry['event']
                 now = int(time.time() * 1000)
-                if now >= event['leaseDeadline']:
-                    pending.pop(identity)
-                    continue
+                # Keep OPEN delivery alive after decision expiry. A stalled parent
+                # must still release its exclusive native continuation. The
+                # original ownership window cannot renew with incoming leases.
+                if now >= entry['deadline']:
+                    raise ValueError('native ownership window expired')
                 for decision in bridge.decisions(directory, event, now=now):
                     expected = {'v', 'decisionId', *bridge.IDENTITY, 'action', 'createdAt', 'leaseDeadline'}
                     if (set(decision) != expected or decision['action'] not in {'open', 'allow_once', 'decline'}
@@ -76,9 +84,14 @@ def serve(directory):
                     _write({'type': 'decision', 'decision': decision})
     finally:
         selector.close()
-        # EOF/error relinquishes persisted capabilities. Abrupt SIGKILL still has
-        # the lease-based OPEN fallback in the independent consumer.
-        for event in pending.values():
-            event = dict(event, canDecide=False, createdAt=max(int(time.time()*1000), event['createdAt']+1))
-            routes.save(event)
-            bridge.emit(directory, event)
+        # EOF/error/deadline disables the parent capability and relinquishes
+        # persisted routes. SIGKILL releases kernel locks automatically; the
+        # generic consumer can then use OPEN once the decision lease is old.
+        try:
+            for entry in pending.values():
+                event = entry['event']
+                event = dict(event, canDecide=False, createdAt=max(int(time.time()*1000), event['createdAt']+1))
+                routes.save(event)
+                bridge.emit(directory, event)
+        finally:
+            for entry in pending.values(): os.close(entry['owner'])
