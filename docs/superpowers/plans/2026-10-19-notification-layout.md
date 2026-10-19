@@ -46,3 +46,12 @@ Files: `include/TaskNotification.h`, `include/TaskNotificationUi.h`,
   Preserve BACK and all controller hit regions/gesture behavior.
 - [x] Run the firmware host regressions and native-preview build. Regenerate and
   inspect normal/max-length Inbox PNGs, then commit the scoped change.
+
+## Follow-up: Left-aligned body
+
+- [x] Add alignment checks for complete body text in browse/detail views while
+  preserving centered titles. Observe failure with centered body rendering.
+- [x] Add optional text datum/left edge to the existing helpers. Render body at
+  x=48 for Inbox/Toast and x=72 for other views; keep titles centered.
+- [x] Run the existing firmware host checks and native preview build, inspect
+  updated normal/long-body PNGs and commit. Do not flash hardware.

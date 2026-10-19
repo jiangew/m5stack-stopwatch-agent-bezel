@@ -6,10 +6,10 @@
 
 namespace task_notification {
 constexpr uint16_t kInk=0xF7DF,kDim=0x9CF3,kPanel=0x1082,kAmber=0xFD20,kGreen=0x47F2,kRed=0xFA8A;
-template<class Surface> void label(Surface& s,const char* text,int x,int y,uint16_t color=kInk,float size=2){
-  s.setTextFont(1);s.setTextSize(size);s.setTextDatum(middle_center);s.setTextColor(color);s.drawString(text,x,y);
+template<class Surface> void label(Surface& s,const char* text,int x,int y,uint16_t color=kInk,float size=2,textdatum_t datum=middle_center){
+  s.setTextFont(1);s.setTextSize(size);s.setTextDatum(datum);s.setTextColor(color);s.drawString(text,x,y);
 }
-template<class Surface> void wrapped(Surface& s,const char* text,int y,unsigned columns,float size,unsigned maxRows=6){
+template<class Surface> void wrapped(Surface& s,const char* text,int y,unsigned columns,float size,unsigned maxRows=6,int left=-1){
   const std::size_t n=std::strlen(text);
   unsigned row=0;
   for(std::size_t at=0;at<n;++row){
@@ -18,7 +18,8 @@ template<class Surface> void wrapped(Surface& s,const char* text,int y,unsigned 
     const std::size_t reserve=columns*(maxRows-row-1);
     const std::size_t minimum=(n-at)>reserve?(n-at)-reserve:1;
     if(count<n-at)for(std::size_t i=count;i>=minimum&&i>0;--i)if(text[at+i-1]==' '){count=i;break;}
-    std::memcpy(line,text+at,count);label(s,line,233,y,kInk,size);y+=size>=2?20:15;
+    std::memcpy(line,text+at,count);
+    label(s,line,left>=0?left:233,y,kInk,size,left>=0?middle_left:middle_center);y+=size>=2?20:15;
     at+=count;
   }
 }
@@ -46,7 +47,7 @@ template<class Surface> void render(Surface& s,const Controller& ui,uint32_t now
   if(!std::strcmp(c.state,"pending")&&c.decide&&!ui.canDecide(now)&&!ui.holdElapsed(now))state="WAITING / EXPIRED";
   label(s,state,233,139+offset,color,1.5f);
   // Keep all 192 ASCII bytes visible; browsing uses the space freed by compact hints.
-  wrapped(s,c.detail,165+offset,browsing?32:36,browsing?2:1.5f,browsing?7:6);
+  wrapped(s,c.detail,165+offset,browsing?32:36,browsing?2:1.5f,browsing?7:6,browsing?48:72);
   if(ui.view()==View::Confirm){
     const char* selected=ui.selection();
     if(!std::strcmp(selected,"allow_once"))selected="ALLOW ONCE";

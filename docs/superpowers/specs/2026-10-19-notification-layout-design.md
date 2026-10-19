@@ -27,6 +27,11 @@ the content of the inbox opened from that badge downward into the unused space.
 The fixed footer is explanatory text, not a set of touch buttons. Its smaller
 appearance does not change browsing, dismiss, detail or close behavior.
 
+After the user's alignment choice, body lines share a fixed left edge: x=48 in
+Inbox/Toast and x=72 in the narrower Detail/Confirm/Submitting body. Titles,
+source, model, state and footer remain centered. Wrapping, complete body content,
+font size and vertical spacing remain as specified above.
+
 ## Verification and delivery
 
 Check a rendered normal notification and maximum-length body for clipping or
