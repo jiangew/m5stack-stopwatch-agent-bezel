@@ -49,7 +49,7 @@ function run(command,args,options={}) {
   if (result.error) throw result.error;
   return result;
 }
-export async function testTemporaryNative(source,variant='patched') {
+export async function withTemporaryNative(source,callback,variant='patched') {
   if (!['patched','stock'].includes(variant)) throw new Error('variant must be stock or patched');
   const manifest=JSON.parse(await readFile(manifestPath));
   const patch=await readFile(patchPath); validatePatch(patch,manifest);
@@ -68,14 +68,19 @@ export async function testTemporaryNative(source,variant='patched') {
       await verifyNativeTree(target,manifest,'output');
       await verifyDependencyTree(target,manifest,'output');
     }
+    const result=await callback(target);
+    await verifyNativeTree(source,manifest); await verifyDependencyTree(source,manifest); // The external stock tree stayed untouched.
+    return result;
+  } finally { await rm(temporary,{recursive:true,force:true}); }
+}
+export async function testTemporaryNative(source,variant='patched') {
+  return withTemporaryNative(source,async target=>{
     const result=run(process.execPath,['--test',resolve(repo,'notifications/tests/deepseek-native.test.mjs')],{
-      // Do not copy credentials, proxy or provider variables into the test process.
       env:{PATH:process.env.PATH,DSH_NATIVE_MODULES:target,DSH_NATIVE_VARIANT:variant},
     });
     process.stdout.write(result.stdout); process.stderr.write(result.stderr);
-    await verifyNativeTree(source,manifest); await verifyDependencyTree(source,manifest); // The external stock tree stayed untouched.
     return result.status ?? 1;
-  } finally { await rm(temporary,{recursive:true,force:true}); }
+  },variant);
 }
 if (process.argv[1] && import.meta.url===pathToFileURL(resolve(process.argv[1])).href) {
   const [source,variant='patched',...extra]=process.argv.slice(2);

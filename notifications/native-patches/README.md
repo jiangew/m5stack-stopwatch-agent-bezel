@@ -42,6 +42,8 @@ Only foreground calls without a job registry receive a descriptor, and only when
 
 Native strict-widening validation, never policy, normalization, cancellation race and audit append remain authoritative. A callback return or local ACK is not a native resolution. Consumers accept only the matching committed `approval/decided`, including cancellation after locally submitted allow. No grant is persisted or widened beyond the one native request.
 
+The extension also rechecks the effective approval policy after an allowed answer, before committing the native decided audit. A pending answer cannot survive a policy change to never. The isolated source candidate adds a live root policy floor; see [deployment boundaries and verification modes](deployment/README.md). That historical candidate does not support the currently installed newer archive.
+
 This protocol assumes a trusted composition of the pinned ordinary Bash tool, sandbox helper, approval service and shell provider. A protocol string is not attestation against malicious same-process plugins. Audit text, a mutable registry execution object, and AsyncLocalStorage are not scope authority. Persistent Bash and other implementations are unsupported.
 
 ## Adapter handoff

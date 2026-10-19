@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "asarSha256": "18d5036bbb58eaff41d351ede99314b8d06505aec06fb2e164c49874ada30f9e",
+  "fixture": {"fileCount": 9006, "sha256": "8b934dfefb2d3de3fab5b4b691443d2810351ef22759523069f005b554da25b5"},
+  "addon": {
+    "package": "node-addon-require-builtin-darwin-arm64",
+    "platform": "darwin", "arch": "arm64", "abi": "napi-v9",
+    "manifest": "dsh/node_modules/node-addon-require-builtin-darwin-arm64/prebuilds.json",
+    "manifestSha256": "bd4c9864b9bb2c10c7b60579177ffb2e350bd9602a199996b8c3ffa1a76c3100",
+    "binary": "dsh/node_modules/node-addon-require-builtin-darwin-arm64/prebuilt/darwin-arm64-napi-v9.node",
+    "binarySha256": "c5b79eb086a587a7eca3f0216a220701496a77cf14a68c95cbac5853ad9b07c8"
+  }
+}

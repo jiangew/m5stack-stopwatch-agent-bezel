@@ -26,7 +26,7 @@
       "package": "dsh-user-approval",
       "path": "@deepseek-ai/dsh-user-approval/lib/index.js",
       "inputSha256": "6a5ad1ba3c3dc3abbbae52e6c8c4463970ee0c1c8988cebb0d5cf2acd17ee90b",
-      "outputSha256": "ec21d9b89d3807783c84a201345b2a3630ab31a5c965b8c8051a727f84037c35",
+      "outputSha256": "be8dba2cb8ab6ca48700d76abf96149983fa28fd1ae489007e1db960281360a2",
       "patched": true
     },
     {
@@ -68,11 +68,11 @@
       "patched": false
     }
   ],
-  "patchSha256": "90779da8fbc0a01d593fd649237e229bfc2aec4df2d9011e0f6d9b54156349ee",
+  "patchSha256": "675260eca585aef4faf90de3136f0f9b22da3ac49a1039db21802426a38b1f06",
   "dependencyTree": {
     "algorithm": "sha256(sorted(relative POSIX path + NUL + lowercase file SHA256 + LF)); regular files only; no symlinks",
     "fileCount": 1558,
     "inputSha256": "eb3364a145dbc36a02588b3df60e2a05fb300358260fa42011bb050809b5bfad",
-    "outputSha256": "fa6012b0191661dabc3ccf13ce12ec1b3e25c81878fa79890805f55dd7742571"
+    "outputSha256": "035b2318d3fb46baa0ec97750952cf5b4a97076afb047aafe904258bd38c79b9"
   }
 }

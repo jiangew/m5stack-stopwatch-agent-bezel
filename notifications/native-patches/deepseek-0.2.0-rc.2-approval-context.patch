@@ -1,8 +1,10 @@
 --- a/@deepseek-ai/dsh-user-approval/lib/index.js
 +++ b/@deepseek-ai/dsh-user-approval/lib/index.js
-@@ -138 +138 @@
+@@ -138 +138,3 @@
 -		const outcome = await this.decide(req, session);
-+		const outcome = await this.decide(Object.freeze({ ...req, requestId: id }), session);
++		let outcome = await this.decide(Object.freeze({ ...req, requestId: id }), session);
++		// Recheck live policy before the native audit, independent of answerer ordering.
++		if (outcome === "allowed-once" && this.effectivePolicy(session) !== "ask") outcome = "rejected";
 --- a/@deepseek-ai/dsh-sandbox/lib/index.js
 +++ b/@deepseek-ai/dsh-sandbox/lib/index.js
 @@ -114 +114,2 @@
