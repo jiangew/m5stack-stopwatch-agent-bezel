@@ -71,7 +71,10 @@ async function contents(options){
   if(!['installed-archive','historical-source-fixture'].includes(verificationMode))throw Error('unknown verification mode');
   if(verificationMode==='historical-source-fixture'){
     if(options.archive!==undefined)throw Error('historical source fixture mode cannot validate an archive');
-  }else await readArchiveCode(options.archive??'/Applications/DeepSeek Harness.app/Contents/Resources/app.asar');
+  }else{
+    if(options.archive!==undefined)throw Error('installed archive path cannot be overridden');
+    await readArchiveCode('/Applications/DeepSeek Harness.app/Contents/Resources/app.asar');
+  }
   await verifyLoaderFixture(fixture);
   const manifest=JSON.parse(await readFile(resolve(patchDir,'manifest.json')));
   const patch=await readFile(resolve(patchDir,'deepseek-0.2.0-rc.2-approval-context.patch'));validatePatch(patch,manifest);

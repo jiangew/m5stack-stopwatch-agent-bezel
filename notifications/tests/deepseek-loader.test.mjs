@@ -170,6 +170,16 @@ test('actual generated package through native Loader, resolver, registry and pro
   });
 });
 
+test('installed archive provenance cannot be claimed through any API archive override',async t=>{
+  const f=await setup(t);
+  // Reject the option before reading bytes, even if the caller retained an exact pinned archive.
+  const retained=resolve(f.profile,'retained-pinned.asar');
+  for(const verificationMode of [undefined,'installed-archive']){
+    await assert.rejects(builder.buildCandidate({...options(f),verificationMode,archive:retained}),/installed archive path cannot be overridden/);
+    await assert.rejects(lstat(f.output),/ENOENT/);
+  }
+});
+
 test('archive traversal, changed installed ASAR, and changed external fixture are rejected before importing code',async t=>{
   const {archiveEntries,readArchiveCode,verifyLoaderFixture}=await import('../../scripts/test_deepseek_native_loader.mjs');
   const {validatePatch,verifyNativeTree,verifyDependencyTree}=await import('../../scripts/test_deepseek_native.mjs');
@@ -182,7 +192,7 @@ test('archive traversal, changed installed ASAR, and changed external fixture ar
   await assert.rejects(verifyDependencyTree(f.profile,manifest),/dependency tree SHA256/);
   await assert.rejects(verifyNativeTree(f.profile,manifest),/ENOENT/);
   await assert.rejects(verifyLoaderFixture(f.profile),/fixture SHA256/);
-  await assert.rejects(builder.buildCandidate({...options(f),verificationMode:undefined,archive:fake}),/ASAR SHA256/);
+  await assert.rejects(builder.buildCandidate({...options(f),verificationMode:undefined,archive:fake}),/installed archive path cannot be overridden/);
   await assert.rejects(builder.buildCandidate({...options(f),verificationMode:'unknown'}),/unknown verification mode/);
   await assert.rejects(builder.buildCandidate({...options(f),verificationMode:'historical-source-fixture',archive:fake}),/cannot validate an archive/);
 });
