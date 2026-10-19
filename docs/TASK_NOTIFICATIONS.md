@@ -1,5 +1,10 @@
 # Task notifications candidate — 2026-10-18
 
+For the later local installation, physical results and remaining native-source
+limits, see [installation acceptance — 2026-10-19](TASK_NOTIFICATIONS_INSTALL_ACCEPTANCE.md).
+The source-only verification and packaging statements below describe the earlier
+candidate stage, not the current local installation.
+
 This is an opt-in source candidate for C152. The Mac owns the queue; the watch
 shows opaque cards over a separate encrypted GATT service. Existing HID, quota,
 workspace navigation and USB input-only audio retain their original paths.
