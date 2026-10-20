@@ -29,8 +29,8 @@ Existing notification content layout and controls remain unchanged.
 | Complete previous app0 backup | Rechecked 6,553,600 bytes, stored full hash and previous image prefix hash |
 | Installed local receipt | Rechecked matching this candidate |
 | Companion LaunchAgent | Running; this alone does not establish device reconnection |
-| Normal startup, badge palette/size and navigation | Pending user acceptance after short reset |
-| Notification paging/BACK, Home tilt and Agent keys | Pending post-update physical acceptance |
+| Normal startup, badge palette/size and navigation | User confirmed short reset, correct appearance, comfortable size/taps, hidden on Agent desktops and restored on Home |
+| Notification paging/BACK, Home tilt and Agent keys | User confirmed all normal after this update |
 | Fresh USB audio / host BLE HID checks | No new enumeration or audio-quality claim |
 
 The user ran the prepared updater in Terminal because the agent's execution
@@ -39,3 +39,10 @@ installation receipts remain outside tracked files. Earlier candidates and
 backups were retained. No Companion binary, pairing record or GATT schema was
 changed in this update. The earlier 52 px image passed functional checks but
 was rejected for badge size and tap comfort; it is retained as a recovery image.
+
+## Physical acceptance
+
+On 2026-10-20 the user confirmed that all requested checks passed after a short
+reset, including the badge size and tap comfort. This closes the notification
+UI update acceptance. USB audio capture quality remains outside this visual and
+control acceptance; no new recording or audio-quality claim was made.

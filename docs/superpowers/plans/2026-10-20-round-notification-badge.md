@@ -101,3 +101,13 @@ regressions and native-preview build pass. Palette previews are local artifacts
 in `artifacts/home-only-notification-badge-20261020/`. No flash performed;
 physical palette and navigation acceptance remain pending. The selected isolated
 USB-mic + Home IMU firmware build also passed after this routing change.
+
+## Update closed after physical acceptance
+
+Firmware source `bb64fd2` was flashed to app0, with independent application
+readback, protected-area equality and complete prior app0 backup verified.
+On 2026-10-20 the user confirmed normal restart, appropriate badge size/tap
+comfort, Home-only visibility with restoration on return, notification paging
+and BACK, Home tilt and Agent keys. Notification UI acceptance is complete.
+See `docs/NOTIFICATION_HOME_ONLY_UPDATE_20261020.md` for the release evidence
+and the separate USB-audio verification boundary.

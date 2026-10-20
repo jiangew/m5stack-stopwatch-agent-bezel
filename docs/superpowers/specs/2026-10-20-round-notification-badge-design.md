@@ -59,7 +59,8 @@ match the candidate, and the source draws directly into the full-size canvas;
 these checks do not explain the reported difference in physical appearance.
 The next sizing preview increases the disc to 80 px and the invisible target
 to 96 px, while retaining the 402 px center and reserving a 10 px character gap.
-This preview has not been flashed or accepted on hardware.
+This sizing change, with the subsequent quiet palette and Home-only entry, was
+installed from `bb64fd2` and physically accepted by the user on 2026-10-20.
 
 ## Verification after approval
 
