@@ -28,10 +28,10 @@ template<class Surface> void button(Surface& s,const char* text,int x,int y,int 
 }
 template<class Surface> void badge(Surface& s,const Controller& ui){
   if(!ui.card().count)return;
-  char text[8];std::snprintf(text,sizeof(text),"N%u",ui.card().count);
-  s.fillRoundRect(kBadgeX,kBadgeY,kBadgeWidth,kBadgeHeight,18,kPanel);
-  s.drawRoundRect(kBadgeX,kBadgeY,kBadgeWidth,kBadgeHeight,18,kAmber);
-  label(s,text,kBadgeX+kBadgeWidth/2,kBadgeY+kBadgeHeight/2,kAmber);
+  char text[8];std::snprintf(text,sizeof(text),"%u",ui.card().count);
+  s.fillCircle(kBadgeCenterX,kBadgeCenterY,kBadgeRadius,kAmber);
+  s.fillCircle(kBadgeCenterX,kBadgeCenterY,kBadgeRadius-2,kPanel);
+  label(s,text,kBadgeCenterX,kBadgeCenterY,kAmber,2.5f);
 }
 template<class Surface> void render(Surface& s,const Controller& ui,uint32_t now){
   const auto& c=ui.card();s.fillScreen(0x0000);

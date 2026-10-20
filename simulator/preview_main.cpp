@@ -266,7 +266,8 @@ int main(int argc, char** argv) {
     }
     if(std::strstr(scenario,"done")){std::strcpy(c.src,"super");std::strcpy(c.kind,"done");std::strcpy(c.state,"resolved");c.decide=false;c.alert=1;}
     const bool inbox=std::strstr(scenario,"inbox")!=nullptr;
-    const bool badge=std::strcmp(scenario,"notification-badge")==0;
+    const bool badge=std::strncmp(scenario,"notification-badge",18)==0;
+    if(badge&&std::strstr(scenario,"-64"))c.count=64;
     if(inbox||badge){
       std::strcpy(c.src,"codex");std::strcpy(c.kind,"done");std::strcpy(c.state,"resolved");c.decide=false;
       std::strcpy(c.title,"Build finished");
@@ -290,6 +291,16 @@ int main(int argc, char** argv) {
     if(std::strstr(scenario,"offline"))ui.disconnect();
     if(badge){
       robot_home::State state;state.batteryPercent=82;state.connected=true;
+      state.notificationBadgeVisible=true;
+      const char* roles[]={"bumblebee","bumblebeefullbody","optimus","jazz","hotrod","wheeljack","hound","ironhide","ratchet","megatron","starscream","soundwave","shockwave","thundercracker","skywarp","blitzwing","astrotrain"};
+      for(int i=0;i<robot_home::kCharacterCount;++i)
+        if(std::string(scenario).find(std::string("notification-badge-")+roles[i])==0)
+          state.character=static_cast<robot_home::Character>(i);
+      if(std::strstr(scenario,"-tilt"))state.imuPose={8,10,-8,1};
+      if(std::strstr(scenario,"-skill")) {
+        state.mood=robot_home::Mood::Skill;
+        state.reactionElapsedMs=argc>3?std::strtoul(argv[3],nullptr,10):250;
+      }
       framebuffer.preparePortraits(state.character);
       robot_home::render(framebuffer,state);task_notification::badge(framebuffer,ui);
     }else task_notification::render(framebuffer,ui,std::strstr(scenario,"submitting")?1900:1500);

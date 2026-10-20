@@ -712,6 +712,10 @@ void drawScreen() {
       ui.batteryPercent=batteryPercent;ui.charging=charging;
       ui.connected=state.workspaceHostReady;
       ui.powerOverlay=superPowerOverlay();ui.powerHoldProgress=currentPowerHoldProgress();
+#if defined(CODEX_STOPWATCH_TASK_NOTIFICATIONS)
+      ui.notificationBadgeVisible=taskNotificationUi.card().count &&
+          powerOverlay==dashboard::PowerOverlay::None;
+#endif
       robot_home::render(canvas,ui);
     } else super_workspace::render(canvas, superWorkspaceState());
     renderedHealthValid = false;

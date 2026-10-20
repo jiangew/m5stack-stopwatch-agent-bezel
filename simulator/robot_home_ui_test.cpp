@@ -5,13 +5,13 @@
 #include <vector>
 #include "RobotHomeUi.h"
 struct Surface {
-  struct Portrait { const std::uint8_t* bytes; float x,y,scale,angle; };
+  struct Portrait { const std::uint8_t* bytes; float x,y,scale,angle; bool badge; };
   struct Text { std::string value; int x,y; };
   std::vector<Portrait> portraits;
   std::vector<Text> texts;
   unsigned effects=0;
-  void drawPortrait(const std::uint8_t* bytes,std::uint32_t,float x,float y,float scale,float angle) {
-    portraits.push_back({bytes,x,y,scale,angle});
+  void drawPortrait(const std::uint8_t* bytes,std::uint32_t,float x,float y,float scale,float angle,bool badge=false) {
+    portraits.push_back({bytes,x,y,scale,angle,badge});
   }
   void loadFont(const std::uint8_t*) {}
   void unloadFont() {}
@@ -69,6 +69,13 @@ int main(){
     Surface arrival;render(arrival,state);assert(arrival.portraits[0].scale<portrait.scale);
   }
   assert(identities.size()==17);
+  State notified;notified.notificationBadgeVisible=true;
+  Surface withBadge;render(withBadge,notified);
+  assert(withBadge.portraits[0].badge);
+  notified.notificationBadgeVisible=false;
+  Surface cleared;render(cleared,notified);
+  assert(!cleared.portraits[0].badge);
+
   State tilted;tilted.imuPose={8,10,-8,1};
   Surface tiltSurface;render(tiltSurface,tilted);
   assert(tiltSurface.portraits[0].x==243&&tiltSurface.portraits[0].y==224);

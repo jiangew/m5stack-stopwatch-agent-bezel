@@ -21,6 +21,7 @@ struct State {
   int batteryPercent = -1;
   bool charging = false;
   bool connected = false;
+  bool notificationBadgeVisible = false;
   super_workspace::PowerOverlay powerOverlay =
       super_workspace::PowerOverlay::None;
   float powerHoldProgress = 0;
@@ -33,7 +34,7 @@ void render(Surface& surface, const State& state) {
 
   surface.fillScreen(0);
   renderCharacter(surface, state.character, state.mood, state.reactionElapsedMs,
-                  state.transitionProgress, state.imuPose);
+                  state.transitionProgress, state.imuPose, state.notificationBadgeVisible);
 
   surface.loadFont(dashboard::font_data::kSpaceMono18Vlw);
   super_workspace::drawText(surface,

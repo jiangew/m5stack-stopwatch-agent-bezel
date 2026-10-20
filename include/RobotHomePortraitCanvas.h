@@ -27,11 +27,21 @@ class PortraitCanvas : public Base {
     actions_.clear();cache_.clear();
     current_=Character::Bumblebee;actionsPrepared_=false;
   }
-  void drawPortrait(const std::uint8_t* bytes,std::uint32_t size,float cx,float cy,float scale,float angle) {
+  void drawPortrait(const std::uint8_t* bytes,std::uint32_t size,float cx,float cy,float scale,float angle,bool notificationBadgeVisible=false) {
     std::int32_t x,y,w,h;
     this->getClipRect(&x,&y,&w,&h);
-    const int left=std::max(64,static_cast<int>(x)), top=std::max(64,static_cast<int>(y));
-    const int right=std::min(403,static_cast<int>(x+w)), bottom=std::min(399,static_cast<int>(y+h));
+    constexpr float fit=302.f/339.f;
+    int clipTop=64,clipRight=403,clipBottom=399;
+    if(notificationBadgeVisible) {
+      // Transform the original portrait and its clip as one layout. Keep the
+      // right edge at 366, ten pixels clear of the notification circle.
+      cx=64+(cx-64)*fit;cy=232+(cy-232)*fit;scale*=fit;
+      clipTop=static_cast<int>(std::ceil(232+(64-232)*fit));
+      clipBottom=static_cast<int>(std::floor(232+(399-232)*fit));
+      clipRight=366;
+    }
+    const int left=std::max(64,static_cast<int>(x)), top=std::max(clipTop,static_cast<int>(y));
+    const int right=std::min(clipRight,static_cast<int>(x+w)), bottom=std::min(clipBottom,static_cast<int>(y+h));
     this->setClipRect(left,top,std::max(0,right-left),std::max(0,bottom-top));
     const PortraitImage image{bytes,size};
     const auto idle=character_art::idleForAsset(image);

@@ -1,6 +1,6 @@
 # Round notification badge — layout proposal
 
-Status: proposed; character placement requires user confirmation before implementation.
+Status: approved by the user; implement and preview before flashing.
 
 ## Goal
 

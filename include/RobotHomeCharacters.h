@@ -74,7 +74,7 @@ inline Asset idleForAsset(Asset image) {
 template<class Surface>
 void renderCharacter(Surface& surface, Character character, Mood mood,
                      std::uint32_t elapsed, float transitionProgress,
-                     imu::Pose posture = {}) {
+                     imu::Pose posture = {}, bool notificationBadgeVisible = false) {
   const auto motion=motionFor(character,mood,elapsed);
   const auto asset=character_art::actionFor(character,motion.pose);
   const float p=std::max(0.0f,std::min(1.0f,transitionProgress));
@@ -85,6 +85,6 @@ void renderCharacter(Surface& surface, Character character, Mood mood,
   // All source portraits share the same center. Their black margin leaves
   // status and battery safe even at the largest rebound/rotation.
   surface.drawPortrait(asset.bytes,asset.size,233+posture.x,232+motion.offsetY+posture.y,
-                       scale,motion.angle+posture.angle);
+                       scale,motion.angle+posture.angle,notificationBadgeVisible);
 }
 }

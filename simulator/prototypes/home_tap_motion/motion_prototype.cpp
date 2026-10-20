@@ -10,7 +10,7 @@
 struct PilotCanvas : lgfx::LGFX_Sprite {
   lgfx::LGFX_Sprite poses[3];
   int pose=0; float compression=1, lift=0;
-  void drawPortrait(const std::uint8_t*,std::uint32_t,float cx,float cy,float scale,float angle) {
+  void drawPortrait(const std::uint8_t*,std::uint32_t,float cx,float cy,float scale,float angle,bool=false) {
     setClipRect(64,64,339,335);
     poses[pose].pushRotateZoom(this,cx,cy-lift,angle,scale*compression,scale*compression,0);
     clearClipRect();

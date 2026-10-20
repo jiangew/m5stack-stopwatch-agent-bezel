@@ -6,6 +6,8 @@
 struct Canvas {
   struct Text {std::string value;int x,y;float size;textdatum_t datum;};
   struct Rect {int x,y,w,h;};
+  struct Circle {int x,y,r;};
+  std::vector<Circle> circles;
   std::vector<std::string> strings;
   std::vector<Text> texts;
   std::vector<Rect> rectangles;
@@ -16,6 +18,7 @@ struct Canvas {
   void fillRoundRect(int x,int y,int w,int h,int,unsigned){rectangles.push_back({x,y,w,h});}
   void drawRoundRect(int,int,int,int,int,unsigned){}
   void fillRect(int,int,int,int,unsigned){}
+  void fillCircle(int x,int y,int r,unsigned){circles.push_back({x,y,r});}
   void drawString(const char* s,int x,int y){strings.emplace_back(s);texts.push_back({s,x,y,textSize,datum});}
 };
 int main(){
@@ -25,13 +28,22 @@ int main(){
   std::strcpy(c.title,"Synthetic task");
   for(int i=0;i<192;++i)c.detail[i]=char('a'+i%26);
   Controller inbox;inbox.receive(c,100);
-  assert(inbox.badge(420,233));assert(!inbox.badge(325,74));
-  Canvas badge;task_notification::badge(badge,inbox);
-  assert(badge.rectangles.size()==1);
-  const auto& bounds=badge.rectangles.front();
-  assert(bounds.x>390&&bounds.y+bounds.h/2==233);
-  assert(inbox.badge(bounds.x,bounds.y)&&inbox.badge(bounds.x+bounds.w,bounds.y+bounds.h));
-  Controller empty;assert(!empty.badge(420,233));
+  for(int count:{1,9,10,64}) {
+    c.count=count;inbox.receive(c,100);
+    Canvas badge;task_notification::badge(badge,inbox);
+    assert(badge.texts.size()==1&&badge.texts[0].value==std::to_string(count));
+    assert(badge.texts[0].x==398&&badge.texts[0].y==233&&badge.texts[0].datum==middle_center);
+    assert(badge.circles.size()==2&&badge.circles[0].r==22&&badge.circles[1].r==20);
+    for(auto circle:badge.circles)assert(circle.x==398&&circle.y==233);
+  }
+  for(int x:{366,398,430})for(int y:{201,233,265}) {
+    assert(inbox.badge(x,y));
+    assert((x-233)*(x-233)+(y-233)*(y-233)<233*233);
+  }
+  assert(!inbox.badge(365,233)&&!inbox.badge(431,233));
+  assert(!inbox.badge(398,200)&&!inbox.badge(398,266));
+  Controller empty;Canvas hidden;task_notification::badge(hidden,empty);
+  assert(!empty.badge(398,233)&&hidden.texts.empty()&&hidden.circles.empty());
   for(bool toast:{false,true}){
     Controller layout;layout.receive(c,100);
     if(toast)layout.present(100,true);else layout.openInbox(100);

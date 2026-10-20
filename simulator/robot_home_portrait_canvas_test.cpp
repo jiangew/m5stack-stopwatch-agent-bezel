@@ -15,7 +15,8 @@ struct Sprite {
   inline static int live=0,peak=0,decodes=0,allocations=0,budget=19;
   inline static const std::uint8_t* badImage=nullptr;
   inline static const std::uint8_t* drawn=nullptr;
-  inline static float angle=0,scale=0,centerY=0;
+  inline static float angle=0,scale=0,centerY=0,centerX=0;
+  inline static int clipRight=0,clipTop=0,clipBottom=0;
   bool allocated=false;
   const std::uint8_t* pixels=nullptr;
   void setPsram(bool) {}
@@ -31,8 +32,9 @@ struct Sprite {
   bool drawJpg(const std::uint8_t* bytes,std::uint32_t,int,int) {
     ++decodes;if(bytes==badImage)return false;pixels=bytes;return true;
   }
-  template<class Canvas> void pushRotateZoom(Canvas*,float,float cy,float a,float s,float,int) {
-    assert(allocated&&pixels);drawn=pixels;angle=a;scale=s;centerY=cy;
+  template<class Canvas> void pushRotateZoom(Canvas* canvas,float cx,float cy,float a,float s,float,int) {
+    assert(allocated&&pixels);drawn=pixels;angle=a;scale=s;centerY=cy;centerX=cx;
+    clipRight=canvas->x+canvas->w;clipTop=canvas->y;clipBottom=canvas->y+canvas->h;
   }
 };
 using Canvas=robot_home::PortraitCanvas<Surface,Sprite>;
@@ -64,6 +66,25 @@ int main() {
       const auto idle=character_art::assetFor(static_cast<Character>(i));
       draw(canvas,idle);assert(Sprite::drawn==idle.bytes);
     }
+    // Badge layout transforms offsets and the original clip together, then restores it.
+    auto image=character_art::assetFor(Character::Bumblebee);
+    for(float x:{223.f,233.f,243.f})for(float y:{224.f,232.f,240.f})for(float angle:{-8.f,8.f}) {
+      canvas.drawPortrait(image.bytes,image.size,x,y,1.18f,angle,true);
+      const float fit=302.f/339.f;
+      assert(std::fabs(Sprite::centerX-(64+(x-64)*fit))<.001f);
+      assert(std::fabs(Sprite::centerY-(232+(y-232)*fit))<.001f);
+      assert(std::fabs(Sprite::scale-1.18f*fit)<.001f&&Sprite::angle==angle);
+      assert(Sprite::clipRight==366&&Sprite::clipTop>=82&&Sprite::clipBottom<=381);
+      assert(398-22-Sprite::clipRight>=10);
+      assert(canvas.x==0&&canvas.y==0&&canvas.w==466&&canvas.h==466);
+    }
+    canvas.setClipRect(100,100,200,200);
+    canvas.drawPortrait(image.bytes,image.size,233,232,1.18f,0,true);
+    assert(Sprite::clipRight==300&&Sprite::clipTop==100&&Sprite::clipBottom==300);
+    assert(canvas.x==100&&canvas.y==100&&canvas.w==200&&canvas.h==200);
+    canvas.setClipRect(0,0,466,466);
+    draw(canvas,image);
+    assert(Sprite::centerX==233&&Sprite::clipRight==403);
     assert(Sprite::decodes==17);
     canvas.preparePortraits(Character::BumblebeeFullbody);
     assert(Sprite::live==19&&Sprite::decodes==19);
