@@ -536,3 +536,6 @@ OpenAI 关于原始设备的说明见
 [原生通知适配器](notifications/README.md)通过[私有 Companion 文件桥](companion/TASK_NOTIFICATIONS.md)接入任务完成，以及仅用于返回 Mac 的审批/输入提醒。入口包括 Codex notify、独立 DeepSeek Host observer、SUPER 原生 lifecycle CLI 和 Hermes agent plugin；均须显式选择安装或运行，源码/夹具验证不代表已接入现有桌面会话，也不代表 C152 实机验收。
 
 当前所有原生适配器均为 `canDecide:false`。阅读、忽略与 OPEN ON MAC 不会批准、拒绝或回答原生请求。只有已核对的原生会话路由才请求精确导航，其余明确回退到激活应用。真实事件、原生 ID 与日志必须保留在仓库外；安装方式和各 Harness 的具体限制见适配器说明。
+
+[2026-10-20 集成记录](docs/TASK_NOTIFICATIONS_RELEASE_20261020.md)汇总了最终首页角标、
+正文居中布局、回归检查，以及单独记录的实机验收结果。

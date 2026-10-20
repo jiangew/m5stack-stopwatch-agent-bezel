@@ -610,6 +610,10 @@ The [native notification adapters](notifications/README.md) add opt-in completio
 
 All current native adapters set `canDecide:false`. Read, dismiss and OPEN ON MAC never approve or answer a native request. Exact navigation is available only for verified source session routes; other routes request application activation. Keep real events/IDs outside the repository and follow the per-harness opt-in setup and limitations in the adapter guide.
 
+The [2026-10-20 integration record](docs/TASK_NOTIFICATIONS_RELEASE_20261020.md)
+summarizes the final Home badge, centered notification text, regression checks
+and separately recorded physical acceptance.
+
 ## Troubleshooting
 
 ### The C152 does not appear as a serial device
