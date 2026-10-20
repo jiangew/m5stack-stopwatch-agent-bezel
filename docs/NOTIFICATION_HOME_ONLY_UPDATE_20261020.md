@@ -1,6 +1,9 @@
 # Home-only notification badge update — 2026-10-20
 
-## Installed image
+The subsequent inset, larger reading text and consecutive browsing update is
+recorded in [the latest update record](NOTIFICATION_READABILITY_FIX_20261020.md).
+
+## Previously installed image
 
 - Source: `bb64fd2cbccbf2f56867047446c97de9e3f6c232`.
 - Environment: isolated USB-mic `m5stack-stopwatch-home-imu`.

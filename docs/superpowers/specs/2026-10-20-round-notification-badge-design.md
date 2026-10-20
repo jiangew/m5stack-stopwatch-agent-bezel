@@ -71,7 +71,7 @@ Home gestures. Render wide and narrow characters plus animation/IMU extremes
 using the actual native renderer. Review the resulting previews before a later,
 separately confirmed app-only firmware update.
 
-## Latest inset and reading follow-up (candidate, not installed)
+## Latest inset and reading follow-up (installed; physical acceptance pending)
 
 The user requested further left movement with the role image unchanged, larger
 reading text, and repair of UP/DOWN on the first page opened from the badge.

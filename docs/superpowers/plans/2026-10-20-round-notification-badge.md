@@ -121,6 +121,8 @@ and the separate USB-audio verification boundary.
 - [x] Pass firmware host regressions, actual broker/controller/send-guard coupling,
   real canvas regression, native preview and selected USB-mic + Home IMU build.
 - [x] Check 51 native role frames for overlap and two baseline pixel comparisons.
-- [ ] Later device flash and physical acceptance, following exact-port safeguards.
+- [x] Device flash from `5ce58d1`, following exact-port safeguards, independently verified
+  application readback, protected-area equality and complete prior app0 backup.
+- [ ] Post-update physical acceptance of inset, reading comfort and repeated browsing.
 
 Candidate evidence: `docs/NOTIFICATION_READABILITY_FIX_20261020.md`.

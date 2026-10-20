@@ -1,7 +1,23 @@
 # Notification inset, reading size and consecutive browsing fix — 2026-10-20
 
-Status: candidate verified in host/native builds; not flashed or physically accepted.
-The currently installed and accepted baseline remains firmware source `bb64fd2`.
+Status: flashed and independently verified; post-update physical acceptance pending.
+The previous accepted baseline was firmware source `bb64fd2`.
+
+## Installed firmware and flash verification
+
+- Source: `5ce58d15c9ed8ccd6af175eedaff111421af1eaa`.
+- Environment: isolated USB-mic `m5stack-stopwatch-home-imu`.
+- Image size: 2,667,632 bytes.
+- SHA-256: `13237e16c04178b2e8f5afdf9d9762d3cdbe03d4282de04fb1f42bddccc4f84c`.
+- App0 at `0x10000` only, following interactive exact-port confirmation.
+- User reported UPDATE VERIFIED from the prepared Terminal updater.
+- Application readback independently rechecked byte-identical to the candidate.
+- Protected first 64 KiB independently rechecked byte-identical before/after.
+- Complete prior app0 backup rechecked at 6,553,600 bytes, with matching full
+  stored hash and prior-image prefix hash. Installed local receipt matches.
+- Physical appearance, reading comfort and consecutive browsing remain pending
+  user confirmation after a short reset. No fresh USB-audio capture or host HID
+  enumeration claim is made from a successful write alone.
 
 ## Changes
 
@@ -40,6 +56,8 @@ The currently installed and accepted baseline remains firmware source `bb64fd2`.
 - Ordinary, two-digit and full-length reading previews are local ignored files
   under `artifacts/inset-notification-readability-20261020/`.
 
-No companion app, pairing record, GATT schema or installed firmware changed.
-Physical tap placement, reading comfort and repeated UP/DOWN still require a
-later device update and acceptance.
+No companion app, pairing record or GATT schema changed. The user ran the
+updater in Terminal because this execution environment denied serial access.
+Private device identifiers, backups and installation receipts remain outside
+tracked files. Physical tap placement, reading comfort and repeated UP/DOWN
+still require post-update acceptance.
