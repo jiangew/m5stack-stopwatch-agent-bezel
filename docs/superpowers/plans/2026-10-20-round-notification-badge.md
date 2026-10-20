@@ -67,3 +67,21 @@ Updated existing geometry/input fixtures; notification firmware host regressions
 and native-preview build passed. Native one/two-digit previews in
 `artifacts/vivid-notification-badge-20261020/` confirm visible yellow count pixels
 and a black gap between character and circle. No device update performed.
+
+## Physical sizing correction preview
+
+The user confirmed normal operation after resetting the installed 52 px image,
+but rejected its tap comfort and perceived size. Receipt/image identity and
+direct full-size sprite rendering were inspected; no physical size discrepancy
+has been reproduced, so no unsupported root cause is asserted.
+
+Increase disc diameter to 80 px and target to 96 px, retain center (402,233),
+blue fill and yellow count, and increase label size to 4. Fit the character's
+original x=64..403 region into x=64..352 using 288/339 uniform scale. Its right
+edge remains 10 px clear of the circle's x=362 left edge. Existing hit-boundary,
+round-screen bounds and canvas transform tests were updated.
+
+Notification host regressions and native-preview build passed. Native wide,
+two-digit full-body and tilted character previews in
+`artifacts/large-notification-badge-20261020/` pass the actual pixel gap check.
+This is a source/preview correction; no new firmware was built or flashed.

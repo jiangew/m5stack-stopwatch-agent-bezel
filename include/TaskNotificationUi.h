@@ -34,7 +34,7 @@ template<class Surface> void badge(Surface& s,const Controller& ui){
   char text[8];std::snprintf(text,sizeof(text),"%u",ui.card().count);
   s.fillSmoothCircle(kBadgeCenterX,kBadgeCenterY,kBadgeRadius,kBadgeEdge);
   s.fillSmoothCircle(kBadgeCenterX,kBadgeCenterY,kBadgeRadius-1,kBadgeFill);
-  label(s,text,kBadgeCenterX,kBadgeCenterY,kBadgeText,3.f);
+  label(s,text,kBadgeCenterX,kBadgeCenterY,kBadgeText,4.f);
 }
 template<class Surface> void render(Surface& s,const Controller& ui,uint32_t now){
   const auto& c=ui.card();s.fillScreen(0x0000);

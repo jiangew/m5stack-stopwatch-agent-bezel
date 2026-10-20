@@ -70,12 +70,12 @@ int main() {
     auto image=character_art::assetFor(Character::Bumblebee);
     for(float x:{223.f,233.f,243.f})for(float y:{224.f,232.f,240.f})for(float angle:{-8.f,8.f}) {
       canvas.drawPortrait(image.bytes,image.size,x,y,1.18f,angle,true);
-      const float fit=302.f/339.f;
+      const float fit=288.f/339.f;
       assert(std::fabs(Sprite::centerX-(64+(x-64)*fit))<.001f);
       assert(std::fabs(Sprite::centerY-(232+(y-232)*fit))<.001f);
       assert(std::fabs(Sprite::scale-1.18f*fit)<.001f&&Sprite::angle==angle);
-      assert(Sprite::clipRight==366&&Sprite::clipTop>=82&&Sprite::clipBottom<=381);
-      assert(402-26-Sprite::clipRight>=10);
+      assert(Sprite::clipRight==352&&Sprite::clipTop>=82&&Sprite::clipBottom<=381);
+      assert(402-40-Sprite::clipRight>=10);
       assert(canvas.x==0&&canvas.y==0&&canvas.w==466&&canvas.h==466);
     }
     canvas.setClipRect(100,100,200,200);

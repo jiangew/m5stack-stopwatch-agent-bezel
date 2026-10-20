@@ -10,7 +10,7 @@
 namespace task_notification {
 constexpr uint32_t kLeaseMs=15000, kToastMs=5000, kConfirmMs=800;
 constexpr std::size_t kMaximumBytes=512;
-constexpr int kBadgeCenterX=402,kBadgeCenterY=233,kBadgeRadius=26,kBadgeHitRadius=34;
+constexpr int kBadgeCenterX=402,kBadgeCenterY=233,kBadgeRadius=40,kBadgeHitRadius=48;
 
 struct Card {
   uint32_t g=0,id=0,r=0,ttl=0,ack=0;

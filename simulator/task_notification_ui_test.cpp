@@ -33,15 +33,15 @@ int main(){
     Canvas badge;task_notification::badge(badge,inbox);
     assert(badge.texts.size()==1&&badge.texts[0].value==std::to_string(count));
     assert(badge.texts[0].x==402&&badge.texts[0].y==233&&badge.texts[0].datum==middle_center);
-    assert(badge.circles.size()==2&&badge.circles[0].r==26&&badge.circles[1].r==25);
+    assert(badge.circles.size()==2&&badge.circles[0].r==40&&badge.circles[1].r==39);
     for(auto circle:badge.circles)assert(circle.x==402&&circle.y==233);
   }
-  for(int x:{368,402,436})for(int y:{199,233,267}) {
+  for(int x:{354,402,450})for(int y:{185,233,281}) {
     assert(inbox.badge(x,y));
     assert((x-233)*(x-233)+(y-233)*(y-233)<233*233);
   }
-  assert(!inbox.badge(367,233)&&!inbox.badge(437,233));
-  assert(!inbox.badge(402,198)&&!inbox.badge(402,268));
+  assert(!inbox.badge(353,233)&&!inbox.badge(451,233));
+  assert(!inbox.badge(402,184)&&!inbox.badge(402,282));
   Controller empty;Canvas hidden;task_notification::badge(hidden,empty);
   assert(!empty.badge(402,233)&&hidden.texts.empty()&&hidden.circles.empty());
   for(bool toast:{false,true}){

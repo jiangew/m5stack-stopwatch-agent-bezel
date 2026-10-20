@@ -27,8 +27,9 @@ left-aligned notification body and compact footer remain unchanged.
 | Complete previous app0 backup | Rechecked 6,553,600 bytes and matching stored hash |
 | Installed local receipt | Rechecked matching the candidate image |
 | Companion LaunchAgent | Running |
-| Normal startup / USB audio / BLE HID | Pending short physical reset and fresh runtime checks |
-| Layout, taps, paging/BACK, Home tilt, Agent keys | Pending user acceptance after reset |
+| Normal startup | User confirmed short reset and normal Home/control operation |
+| USB audio / fresh host BLE HID checks | No new host enumeration claim; functional Agent keys confirmed by user |
+| Layout, taps, paging/BACK, Home tilt, Agent keys | User confirmed restart, appearance and controls work; badge is still too small and inconvenient to tap, so sizing acceptance failed |
 | Audio capture quality | No new acceptance claim; previous execution environment denied microphone capture |
 
 Private backup, device identity and installation receipts remain outside tracked
