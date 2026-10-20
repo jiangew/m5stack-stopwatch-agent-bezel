@@ -1,6 +1,9 @@
 # Vivid notification badge update — 2026-10-20
 
-## Installed image
+The subsequent 80 px Home-only badge installation is recorded in
+[the latest update record](NOTIFICATION_HOME_ONLY_UPDATE_20261020.md).
+
+## Previously installed image
 
 - Firmware source: `8fc76bff8991a5423355e2bda06e85f01839ec59`.
 - Selected environment: isolated USB-mic `m5stack-stopwatch-home-imu`.
