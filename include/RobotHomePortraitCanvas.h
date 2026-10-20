@@ -33,8 +33,8 @@ class PortraitCanvas : public Base {
     constexpr float fit=288.f/339.f;
     int clipTop=64,clipRight=403,clipBottom=399;
     if(notificationBadgeVisible) {
-      // Transform the original portrait and its clip as one layout. Keep the
-      // right edge at 352, ten pixels clear of the notification circle.
+      // Preserve the accepted portrait layout and clipping independently of
+      // notification badge placement. Moving the badge must not move the role.
       cx=64+(cx-64)*fit;cy=232+(cy-232)*fit;scale*=fit;
       clipTop=static_cast<int>(std::ceil(232+(64-232)*fit));
       clipBottom=static_cast<int>(std::floor(232+(399-232)*fit));

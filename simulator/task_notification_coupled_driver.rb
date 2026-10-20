@@ -36,8 +36,9 @@ fixture=<<~CPP
    else if(op=="hold"){ui.press(233,320,now,true);ui.tick(now+800);}
    else if(op=="open-on-mac"){
      ui.tick(now);ui.release(233,233,now);ui.press(233,390,now+1,true);ui.release(233,390,now+2);
-   }else if(op=="next"){
-     ui.release(233,233,now);ui.press(233,300,now+1,true);ui.release(233,220,now+2);
+   }else if(op=="next"||op=="previous"){
+     const bool next=op=="next";
+     ui.press(233,next?300:220,now+1,true);ui.release(233,next?220:300,now+2);
    }
    else if(op=="close")ui.close(now);
    else assert(false);

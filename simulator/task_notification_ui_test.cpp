@@ -32,18 +32,18 @@ int main(){
     c.count=count;inbox.receive(c,100);
     Canvas badge;task_notification::badge(badge,inbox);
     assert(badge.texts.size()==1&&badge.texts[0].value==std::to_string(count));
-    assert(badge.texts[0].x==402&&badge.texts[0].y==233&&badge.texts[0].datum==middle_center);
+    assert(badge.texts[0].x==378&&badge.texts[0].y==233&&badge.texts[0].datum==middle_center);
     assert(badge.circles.size()==2&&badge.circles[0].r==40&&badge.circles[1].r==39);
-    for(auto circle:badge.circles)assert(circle.x==402&&circle.y==233);
+    for(auto circle:badge.circles)assert(circle.x==378&&circle.y==233);
   }
-  for(int x:{354,402,450})for(int y:{185,233,281}) {
+  for(int x:{330,378,426})for(int y:{185,233,281}) {
     assert(inbox.badge(x,y));
     assert((x-233)*(x-233)+(y-233)*(y-233)<233*233);
   }
-  assert(!inbox.badge(353,233)&&!inbox.badge(451,233));
-  assert(!inbox.badge(402,184)&&!inbox.badge(402,282));
+  assert(!inbox.badge(329,233)&&!inbox.badge(427,233));
+  assert(!inbox.badge(378,184)&&!inbox.badge(378,282));
   Controller empty;Canvas hidden;task_notification::badge(hidden,empty);
-  assert(!empty.badge(402,233)&&hidden.texts.empty()&&hidden.circles.empty());
+  assert(!empty.badge(378,233)&&hidden.texts.empty()&&hidden.circles.empty());
   for(bool toast:{false,true}){
     Controller layout;layout.receive(c,100);
     if(toast)layout.present(100,true);else layout.openInbox(100);
@@ -52,15 +52,26 @@ int main(){
     for(const auto& text:frame.texts){
       full+=text.value;
       if(text.value==c.title)lowerTitle=text.y>=120&&text.datum==middle_center;
-      if(text.y>=195&&text.y<=323){assert(text.datum==middle_left&&text.x>=40&&text.x<=64);}
-      if(text.value==std::string(c.detail,32))lowerBody=text.y>=195&&text.y+6*20+8<350&&text.size>=2;
+      if(text.y>=195&&text.y<=363){assert(text.datum==middle_left&&text.x>=40&&text.x<=64);}
+      if(text.value==std::string(c.detail,24))lowerBody=text.y>=195&&text.y+7*24+10<382&&text.size>=2.5f;
       if(text.value.find("UP/DOWN")!=std::string::npos||text.value.find("LEFT:")!=std::string::npos){
-        assert(text.y>=375&&text.y<=405&&text.size<=1.25f);++compactHints;
+        assert(text.y>=375&&text.y<=410&&text.size<=1.5f);++compactHints;
       }
       if(text.value=="BACK")back=text.y==430;
     }
     assert(lowerTitle&&lowerBody&&back&&compactHints==2&&full.find(c.detail)!=std::string::npos);
   }
+  Card readOnly=c;readOnly.decide=false;
+  Controller detail;detail.receive(readOnly,100);detail.present(100,true);
+  detail.press(233,233,110,true);detail.release(233,233,120);
+  Canvas largeDetail;task_notification::render(largeDetail,detail,130);
+  std::string readable;
+  for(const auto& text:largeDetail.texts){
+    readable+=text.value;
+    if(text.y>=195&&text.y<=363)assert(text.datum==middle_left&&text.size>=2.5f);
+    if(text.value=="OPEN ON MAC")assert(text.y==392&&text.size>=2.5f);
+  }
+  assert(readable.find(c.detail)!=std::string::npos);
   Controller ui;ui.receive(c,100);ui.present(100,true);
   ui.press(233,233,110,true);ui.release(233,233,120);
   Action a;assert(ui.takeAction(a));c.ack=a.seq;c.alert=0;ui.receive(c,130);

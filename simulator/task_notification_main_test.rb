@@ -74,7 +74,7 @@ fixture=<<~CPP
        const auto workspace=static_cast<workspace_mode::Mode>(mode);
        if(workspace==workspace_mode::Mode::Home)continue;
        state.workspaceMode=workspace;
-       touch.down=true;touch.held=true;touch.x=402;touch.y=233;++now;
+       touch.down=true;touch.held=true;touch.x=378;touch.y=233;++now;
        assert(!handleTaskNotifications()&&!taskBadgeTouch&&!taskNotificationUi.visible());
        touch.down=false;touch.held=false;touch.up=true;++now;
        assert(!handleTaskNotifications()&&!taskNotificationUi.visible());touch={};
@@ -82,12 +82,12 @@ fixture=<<~CPP
      // Returning Home restores entry; leaving during a press cancels opening
      // while retaining ownership of that press through release.
      state.workspaceMode=workspace_mode::Mode::Home;
-     touch.down=true;touch.held=true;touch.x=402;touch.y=233;++now;assert(handleTaskNotifications());
+     touch.down=true;touch.held=true;touch.x=378;touch.y=233;++now;assert(handleTaskNotifications());
      state.workspaceMode=workspace_mode::Mode::Super;
      touch.down=false;touch.held=false;touch.up=true;++now;assert(handleTaskNotifications());
      assert(!taskNotificationUi.visible());touch={};++now;assert(!handleTaskNotifications());
      state.workspaceMode=workspace_mode::Mode::Home;
-     touch.down=true;touch.held=true;touch.x=402;touch.y=233;++now;assert(handleTaskNotifications());
+     touch.down=true;touch.held=true;touch.x=378;touch.y=233;++now;assert(handleTaskNotifications());
      touch.down=false;touch.held=false;touch.up=true;++now;assert(handleTaskNotifications());
      assert(taskNotificationUi.view()==task_notification::View::Inbox);
      std::puts("PASS badge entry restricted to Home across all Agent modes and mid-press switch");return 0;
@@ -100,7 +100,7 @@ fixture=<<~CPP
      assert(!handleTaskNotifications());underlyingButtons();
      assert(scenario=="accepted-left-badge"?leftPressed:rightPressed);
      button.down=false;
-     touch.down=true;touch.held=true;touch.x=402;touch.y=233;++now;handleTaskNotifications();
+     touch.down=true;touch.held=true;touch.x=378;touch.y=233;++now;handleTaskNotifications();
      touch.down=false;touch.held=false;touch.up=true;++now;handleTaskNotifications();
      touch={};++now;handleTaskNotifications(); // old implementation steals the already accepted hold here
      c.g=2;c.id=0;c.count=0;c.alert=0;++codex.value.version;++now;handleTaskNotifications();
@@ -113,7 +113,7 @@ fixture=<<~CPP
      button={};
      // A new idle badge gesture remains reachable after the underlying input ends.
      c.g=3;c.id=1;c.count=1;++codex.value.version;++now;assert(!handleTaskNotifications());
-     touch.down=true;touch.held=true;touch.x=402;touch.y=233;++now;assert(handleTaskNotifications());
+     touch.down=true;touch.held=true;touch.x=378;touch.y=233;++now;assert(handleTaskNotifications());
      touch.down=false;touch.held=false;touch.up=true;++now;assert(handleTaskNotifications());
      assert(taskNotificationUi.view()==task_notification::View::Inbox);
      std::puts("PASS accepted underlying button survives attempted badge open; fresh idle badge opens Inbox");return 0;

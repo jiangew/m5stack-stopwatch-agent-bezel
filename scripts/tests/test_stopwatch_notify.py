@@ -204,6 +204,36 @@ class NotifyTests(unittest.TestCase):
             self.assertEqual(len(list((directory / 'inbox').glob('*.json'))), 1)
 
     @unittest.skipUnless(os.environ.get('TASK_NOTIFICATION_CONTROLLER_BINARY') and os.environ.get('TASK_NOTIFICATION_PROBE_BINARY'), 'coupled production broker/controller required')
+    def test_consecutive_browse_swipes_need_no_extra_release(self):
+        def exchange(proc, op, now, **data):
+            proc.stdin.write(json.dumps(dict(op=op, now=now, **data)) + '\n'); proc.stdin.flush()
+            return json.loads(proc.stdout.readline())
+        with tempfile.TemporaryDirectory(dir='/private/tmp') as root:
+            host = subprocess.Popen([os.environ['TASK_NOTIFICATION_PROBE_BINARY'], '--broker', str(Path(root) / 'bridge')], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+            watch = subprocess.Popen([os.environ['TASK_NOTIFICATION_CONTROLLER_BINARY']], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+            try:
+                for now, name in enumerate(('A', 'B', 'C'), 1000):
+                    card = exchange(host, 'ingest', now, request=name, kind='done')
+                exchange(watch, 'receive', 1010, card=card)
+                read = exchange(watch, 'open', 1011)['action']
+                card = exchange(host, 'action', 1012, action=read)
+                exchange(watch, 'receive', 1013, card=card)
+                order = ('A', 'B', 'C')
+                for index, direction in enumerate(('next', 'next', 'previous', 'previous', 'next', 'previous')):
+                    now = 1100 + index * 100
+                    expected = order[(order.index(card['title']) + (1 if direction == 'next' else -1)) % 3]
+                    result = exchange(watch, direction, now)
+                    self.assertTrue(result['accepted'], 'each consecutive physical swipe must issue an action')
+                    self.assertEqual(result['action']['action'], direction)
+                    card = exchange(host, 'action', now + 3, action=result['action'])
+                    self.assertEqual(card['title'], expected)
+                    exchange(watch, 'receive', now + 4, card=card)
+                self.assertEqual(exchange(host, 'decisions', 2000)['decisions'], 0)
+            finally:
+                for proc in (host, watch):
+                    proc.stdin.close(); proc.wait(timeout=10); proc.stdout.close()
+
+    @unittest.skipUnless(os.environ.get('TASK_NOTIFICATION_CONTROLLER_BINARY') and os.environ.get('TASK_NOTIFICATION_PROBE_BINARY'), 'coupled production broker/controller required')
     def test_superseded_confirmation_close_unpins_host_and_announces_next(self):
         def exchange(proc, **command):
             proc.stdin.write(json.dumps(command) + '\n'); proc.stdin.flush()

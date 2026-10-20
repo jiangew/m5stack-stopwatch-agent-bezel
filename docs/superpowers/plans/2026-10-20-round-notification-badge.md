@@ -111,3 +111,16 @@ comfort, Home-only visibility with restoration on return, notification paging
 and BACK, Home tilt and Agent keys. Notification UI acceptance is complete.
 See `docs/NOTIFICATION_HOME_ONLY_UPDATE_20261020.md` for the release evidence
 and the separate USB-audio verification boundary.
+
+## Further inset, reading typography and consecutive browsing
+
+- [x] Reproduce the lost swipe after an acknowledged navigation in a controller test.
+- [x] Fix the expected-ACK input latch while preserving unsolicited-context guards.
+- [x] Move badge and hit target left 24 px without changing the role transform.
+- [x] Enlarge reading text and retain the full 192-byte context without footer overlap.
+- [x] Pass firmware host regressions, actual broker/controller/send-guard coupling,
+  real canvas regression, native preview and selected USB-mic + Home IMU build.
+- [x] Check 51 native role frames for overlap and two baseline pixel comparisons.
+- [ ] Later device flash and physical acceptance, following exact-port safeguards.
+
+Candidate evidence: `docs/NOTIFICATION_READABILITY_FIX_20261020.md`.

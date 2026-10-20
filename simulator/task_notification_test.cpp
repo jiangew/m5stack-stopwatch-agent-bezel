@@ -81,6 +81,13 @@ int main() {
   assert(browse.takeAction(a)&&a.action==ActionKind::Next);
   Card next=first;next.id=9;next.ack=a.seq;assert(browse.receive(next,150));
   assert(browse.card().id==9&&browse.view()==View::Inbox);
+  // An acknowledged browse must allow the very next physical swipe.
+  browse.press(233,230,160,true);browse.release(233,300,170);
+  assert(browse.takeAction(a)&&a.action==ActionKind::Previous);
+  first.ack=a.seq;assert(browse.receive(first,180));
+  browse.press(233,300,190,true);browse.release(233,230,200);
+  assert(browse.takeAction(a)&&a.action==ActionKind::Next);
+
   Controller choices;Card input=approval();std::strcpy(input.kind,"input");input.optionCount=3;
   std::strcpy(input.options[0],"First");std::strcpy(input.options[1],"Second");std::strcpy(input.options[2],"Third");
   assert(choices.receive(input,100));choices.present(100,true);

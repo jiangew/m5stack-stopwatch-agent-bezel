@@ -7,7 +7,7 @@ Status: approved by the user; implement and preview before flashing.
 Make the Home notification target easier to tap and give the count a circular
 appearance, while keeping clear space between it and every character.
 
-## Proposed geometry on the 466 px screen
+## Previously accepted geometry on the 466 px screen
 
 - Move the center from `(420,233)` to `(402,233)`: 18 px toward the center.
 - Use an 80 px diameter subtle low-brightness blue circle (`0x10C5`, RGB565), a subtle 1 px
@@ -70,3 +70,18 @@ edge cannot reach the circle. Check existing notification input ownership and
 Home gestures. Render wide and narrow characters plus animation/IMU extremes
 using the actual native renderer. Review the resulting previews before a later,
 separately confirmed app-only firmware update.
+
+## Latest inset and reading follow-up (candidate, not installed)
+
+The user requested further left movement with the role image unchanged, larger
+reading text, and repair of UP/DOWN on the first page opened from the badge.
+Move only badge drawing and its hit target 24 px left to center (378,233).
+Preserve the accepted 288/339 role transform and clip. The old fixed 10 px
+clip-to-circle reservation no longer describes this position; actual sampled
+artwork clearance is checked instead, without moving or shrinking the role.
+
+Enlarge browsing/read-only Detail typography while retaining all 192 body bytes
+and separate footer controls. Expected navigation acknowledgements must allow
+the immediately following swipe; unsolicited context changes retain their
+input invalidation. See `docs/NOTIFICATION_READABILITY_FIX_20261020.md` for the
+reproduction, candidate validation and remaining physical acceptance boundary.

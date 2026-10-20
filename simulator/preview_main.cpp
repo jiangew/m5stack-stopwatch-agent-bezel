@@ -278,6 +278,14 @@ int main(int argc, char** argv) {
         c.detail[192]=0;
       }
     }
+    if(std::strstr(scenario,"readonly")){
+      c.decide=false;
+      if(std::strstr(scenario,"long")){
+        const std::string words="Full notification context remains readable while browsing. ";
+        for(unsigned i=0;i<192;++i)c.detail[i]=words[i%words.size()];
+        c.detail[192]=0;
+      }
+    }
     task_notification::Controller ui;ui.receive(c,1000);ui.present(1000,true);
     if(inbox)ui.openInbox(1010);
     if(!inbox&&!badge&&!std::strstr(scenario,"toast")){
@@ -302,7 +310,8 @@ int main(int argc, char** argv) {
         state.reactionElapsedMs=argc>3?std::strtoul(argv[3],nullptr,10):250;
       }
       framebuffer.preparePortraits(state.character);
-      robot_home::render(framebuffer,state);task_notification::badge(framebuffer,ui);
+      robot_home::render(framebuffer,state);
+      if(!std::strstr(scenario,"portrait-only"))task_notification::badge(framebuffer,ui);
     }else task_notification::render(framebuffer,ui,std::strstr(scenario,"submitting")?1900:1500);
   } else if (std::strncmp(scenario,"home",4)==0) {
     robot_home::State state;state.batteryPercent=82;state.connected=true;

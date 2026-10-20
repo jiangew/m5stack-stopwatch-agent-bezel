@@ -10,7 +10,7 @@
 namespace task_notification {
 constexpr uint32_t kLeaseMs=15000, kToastMs=5000, kConfirmMs=800;
 constexpr std::size_t kMaximumBytes=512;
-constexpr int kBadgeCenterX=402,kBadgeCenterY=233,kBadgeRadius=40,kBadgeHitRadius=48;
+constexpr int kBadgeCenterX=378,kBadgeCenterY=233,kBadgeRadius=40,kBadgeHitRadius=48;
 
 struct Card {
   uint32_t g=0,id=0,r=0,ttl=0,ack=0;
@@ -109,7 +109,9 @@ class Controller {
     const bool generationChanged=card_.g&&card_.g!=c.g;
     if(generationChanged){view_=View::Hidden;held_=false;pressed_=false;busy_=false;hasAction_=false;
       pendingToast_=false;pendingAlert_=0;}
-    if(!same){held_=false;pressed_=false;blocked_=true;}
+    // A matching navigation ACK completes the released gesture; it must not
+    // consume the next swipe. Unsolicited context changes still block input.
+    if(!same){held_=false;pressed_=false;blocked_=!browsed;}
     if(c.alert&&(!same||c.alert!=card_.alert)){pendingToast_=true;pendingAlert_=c.alert;}
     if(same&&view_==View::Submitting&&std::strcmp(c.state,"submitting"))view_=View::Detail;
     if(same&&view_==View::Confirm&&(!c.decide||std::strcmp(c.state,"pending"))){view_=View::Detail;held_=false;pressed_=false;blocked_=true;}
