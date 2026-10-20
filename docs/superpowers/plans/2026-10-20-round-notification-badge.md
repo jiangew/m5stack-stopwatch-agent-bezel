@@ -85,3 +85,19 @@ Notification host regressions and native-preview build passed. Native wide,
 two-digit full-body and tilted character previews in
 `artifacts/large-notification-badge-20261020/` pass the actual pixel gap check.
 This is a source/preview correction; no new firmware was built or flashed.
+
+## Home-only badge and quiet palette
+
+User requested a background only slightly distinct from black, orange-red
+numbers, and an icon shown only on Transformers Home. Updated fill/edge/text to
+RGB565 0x10C5/0x0863/0xFB27. Moved badge rendering from the shared desktop footer
+to the Home renderer branch. Restricted manual badge press entry to Home and
+cancelled a pending open if the workspace changes before release.
+
+Added an existing main-loop fixture scenario that first failed against the old
+implementation, then passed across every non-Home workspace mode, a mid-press
+workspace switch, and entry after returning Home. Existing notification host
+regressions and native-preview build pass. Palette previews are local artifacts
+in `artifacts/home-only-notification-badge-20261020/`. No flash performed;
+physical palette and navigation acceptance remain pending. The selected isolated
+USB-mic + Home IMU firmware build also passed after this routing change.

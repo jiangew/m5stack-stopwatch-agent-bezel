@@ -10,8 +10,8 @@ appearance, while keeping clear space between it and every character.
 ## Proposed geometry on the 466 px screen
 
 - Move the center from `(420,233)` to `(402,233)`: 18 px toward the center.
-- Use an 80 px diameter vivid blue circle (`0x231D`, RGB565), a subtle 1 px
-  darker blue edge (`0x1A15`), and bright yellow count text (`0xFFE0`). Use the
+- Use an 80 px diameter subtle low-brightness blue circle (`0x10C5`, RGB565), a subtle 1 px
+  darker blue edge (`0x0863`), and orange-red count text (`0xFB27`). Use the
   dashboard's smooth circle rendering. The user requested a larger circle and
   brighter fill and text after reviewing the blue-gray version. Enlarge the
   centered numeric label from text size 3 to 4; keep two-digit counts legible.
@@ -36,6 +36,20 @@ A local analysis sampled 68 native frames across all 17 roles and conservatively
 expanded their occupied regions for the existing transition/IMU bounds. It found
 no suitable inner-right position that preserved a 12 px visual gap without a
 character layout adjustment. This is design evidence, not physical acceptance.
+
+## Home-only entry and palette follow-up
+
+Per the user's latest request, render the badge only inside the Transformers
+Home branch. Agent desktops (including Codex, DeepSeek, SUPER and Hermes and
+their idle/opening/error variants) show no badge and have no badge hit region.
+Returning Home restores entry without dismissing notifications. A workspace
+change during a badge press cancels opening but retains ownership until release.
+Automatic notification presentation retains its existing policy.
+
+Use a very low-brightness blue fill, only slightly distinct from Home's black
+background, with orange-red digits. This interprets the user's color direction
+according to the explicit low-contrast-with-black requirement. Preserve the
+80 px circle, 96 px target and existing role clearance.
 
 ## Physical sizing feedback
 

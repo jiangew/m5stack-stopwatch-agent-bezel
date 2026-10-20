@@ -26,9 +26,9 @@ template<class Surface> void wrapped(Surface& s,const char* text,int y,unsigned 
 template<class Surface> void button(Surface& s,const char* text,int x,int y,int w,uint16_t color){
   s.fillRoundRect(x,y,w,32,9,kPanel);s.drawRoundRect(x,y,w,32,9,color);label(s,text,x+w/2,y+16,color);
 }
-// Keep the dashboard's solid-key shape with a vivid blue disc, quiet blue
-// edge and bright yellow count for contrast against both Home and the fill.
-constexpr uint16_t kBadgeFill=0x231D,kBadgeEdge=0x1A15,kBadgeText=0xFFE0;
+// Keep the large disc quiet against Home's black background; the orange-red
+// count carries the contrast instead of a bright fill or outline.
+constexpr uint16_t kBadgeFill=0x10C5,kBadgeEdge=0x0863,kBadgeText=0xFB27;
 template<class Surface> void badge(Surface& s,const Controller& ui){
   if(!ui.card().count)return;
   char text[8];std::snprintf(text,sizeof(text),"%u",ui.card().count);

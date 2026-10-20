@@ -717,6 +717,9 @@ void drawScreen() {
           powerOverlay==dashboard::PowerOverlay::None;
 #endif
       robot_home::render(canvas,ui);
+#if defined(CODEX_STOPWATCH_TASK_NOTIFICATIONS)
+      if(ui.notificationBadgeVisible)task_notification::badge(canvas,taskNotificationUi);
+#endif
     } else super_workspace::render(canvas, superWorkspaceState());
     renderedHealthValid = false;
     renderedWorkspaceModeValid = true;
@@ -738,9 +741,6 @@ void drawScreen() {
 #endif
   renderedBatteryPercent = batteryPercent;
   renderedCharging = charging;
-#if defined(CODEX_STOPWATCH_TASK_NOTIFICATIONS)
-  if(powerOverlay==dashboard::PowerOverlay::None)task_notification::badge(canvas,taskNotificationUi);
-#endif
   canvas.pushSprite(0, 0);
   lastDrawMs = millis();
 #if defined(CODEX_STOPWATCH_USB_MIC)
@@ -1521,10 +1521,12 @@ bool handleTaskNotifications() {
 #endif
   }
   if(!taskNotificationUi.visible()){
-    if(!ownedTouch&&workspaceIdle&&touch.wasPressed()&&taskNotificationUi.badge(touch.x,touch.y)){
+    if(state.workspaceMode==workspace_mode::Mode::Home&&
+        !ownedTouch&&workspaceIdle&&touch.wasPressed()&&taskNotificationUi.badge(touch.x,touch.y)){
       taskBadgeTouch=true;taskBadgeCanOpen=noteActivity();taskBadgeX=touch.x;taskBadgeY=touch.y;
     }
     if(taskBadgeTouch){
+      if(state.workspaceMode!=workspace_mode::Mode::Home)taskBadgeCanOpen=false;
       if(touch.isPressed()&&(std::abs(touch.x-taskBadgeX)>=20||std::abs(touch.y-taskBadgeY)>=20))taskBadgeCanOpen=false;
       if(touch.wasReleased()){
         if(taskBadgeCanOpen){taskNotificationUi.openInbox(now);taskNotificationUi.release(touch.x,touch.y,now);}

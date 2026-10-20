@@ -21,6 +21,7 @@ fixture=<<~CPP
  #include <string>
  #include <vector>
  #include "TaskNotification.h"
+ #include "WorkspaceMode.h"
  unsigned now=1000;unsigned millis(){return now;}
  struct Touch {bool down=false,held=false,up=false;int x=233,y=233;
  bool wasPressed()const{return down;}bool wasReleased()const{return up;}bool isPressed()const{return held;}} touch;
@@ -47,8 +48,8 @@ fixture=<<~CPP
  const char* kVoiceChatCommandKey="synthetic-voice";const char* kLeftMicSwitch="synthetic-mic";
  struct {template<class... Args>void printf(const char*,Args...){}} Serial;
  void beginVoiceChatClick(){++voiceClicks;}void startHaptic(unsigned,unsigned){}void stopRobotReaction(){}
- namespace workspace_input {enum class Control{LeftPhysicalButton,RightPhysicalButton};bool allowed(int,Control){return true;}}
- struct{int workspaceMode=0;} state;
+ namespace workspace_input {enum class Control{LeftPhysicalButton,RightPhysicalButton};bool allowed(workspace_mode::Mode,Control){return true;}}
+ struct{workspace_mode::Mode workspaceMode=workspace_mode::Mode::Home;} state;
  struct {task_notification::Snapshot value;std::vector<task_notification::Action> actions;std::vector<int> keys;
  auto notificationSnapshot(){return value;}
  void sendKey(const char*,int value){keys.push_back(value);}
@@ -65,6 +66,32 @@ fixture=<<~CPP
  if(argc>1){
    const std::string scenario=argv[1];
    assert(handleTaskNotifications()); // visible native notification
+   if(scenario=="badge-workspaces"){
+     now+=task_notification::kToastMs;handleTaskNotifications();
+     touch={};++now;assert(!handleTaskNotifications());
+     // The invisible Home entry must not intercept any Agent desktop touch.
+     for(unsigned mode=0;mode<=static_cast<unsigned>(workspace_mode::Mode::SuperError);++mode){
+       const auto workspace=static_cast<workspace_mode::Mode>(mode);
+       if(workspace==workspace_mode::Mode::Home)continue;
+       state.workspaceMode=workspace;
+       touch.down=true;touch.held=true;touch.x=402;touch.y=233;++now;
+       assert(!handleTaskNotifications()&&!taskBadgeTouch&&!taskNotificationUi.visible());
+       touch.down=false;touch.held=false;touch.up=true;++now;
+       assert(!handleTaskNotifications()&&!taskNotificationUi.visible());touch={};
+     }
+     // Returning Home restores entry; leaving during a press cancels opening
+     // while retaining ownership of that press through release.
+     state.workspaceMode=workspace_mode::Mode::Home;
+     touch.down=true;touch.held=true;touch.x=402;touch.y=233;++now;assert(handleTaskNotifications());
+     state.workspaceMode=workspace_mode::Mode::Super;
+     touch.down=false;touch.held=false;touch.up=true;++now;assert(handleTaskNotifications());
+     assert(!taskNotificationUi.visible());touch={};++now;assert(!handleTaskNotifications());
+     state.workspaceMode=workspace_mode::Mode::Home;
+     touch.down=true;touch.held=true;touch.x=402;touch.y=233;++now;assert(handleTaskNotifications());
+     touch.down=false;touch.held=false;touch.up=true;++now;assert(handleTaskNotifications());
+     assert(taskNotificationUi.view()==task_notification::View::Inbox);
+     std::puts("PASS badge entry restricted to Home across all Agent modes and mid-press switch");return 0;
+   }
    if(scenario=="accepted-left-badge"||scenario=="accepted-right-badge"){
      now+=task_notification::kToastMs;handleTaskNotifications(); // hidden toast, unread badge remains
      ++now;assert(!handleTaskNotifications());
@@ -143,7 +170,7 @@ Dir.mktmpdir('notification-main-','/private/tmp') do |dir|
  abort 'compile failed' unless system('clang++','-std=c++17','-fsanitize=address,undefined',"-I#{root}/include",'-isystem',"#{root}/.pio/libdeps/m5stack-stopwatch/ArduinoJson/src",path,'-o',exe)
  abort 'notification main-loop regression failed' unless system(exe)
  passed=true
- scenarios=%w[right-timeout right-back right-generation new-generation-touch power-touch accepted-left-badge accepted-right-badge]
+ scenarios=%w[badge-workspaces right-timeout right-back right-generation new-generation-touch power-touch accepted-left-badge accepted-right-badge]
  scenarios.each do |scenario|
    passed=system(exe,scenario)&&passed
  end
