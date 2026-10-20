@@ -3,6 +3,10 @@
 Scope: install the four notification sources on one C152 and keep native
 confirmation on the Mac. Watch allow/decline is not enabled.
 
+The subsequent [2026-10-20 UI firmware update](NOTIFICATION_UI_UPDATE_20261020.md)
+records the newer layout image and its own verification. The original image
+and acceptance evidence below are retained as history.
+
 ## Installed artifacts
 
 - Source checkout: `feature/task-notifications`, installation revision `af0b707`.
