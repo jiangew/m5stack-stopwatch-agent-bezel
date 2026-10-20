@@ -1,6 +1,6 @@
 # Notification inset, reading size and consecutive browsing fix — 2026-10-20
 
-Status: flashed and independently verified; post-update physical acceptance pending.
+Status: flashed and independently verified; physical UP/DOWN navigation passed with distinct live test cards.
 The previous accepted baseline was firmware source `bb64fd2`.
 
 ## Installed firmware and flash verification
@@ -61,3 +61,35 @@ updater in Terminal because this execution environment denied serial access.
 Private device identifiers, backups and installation receipts remain outside
 tracked files. Physical tap placement, reading comfort and repeated UP/DOWN
 still require post-update acceptance.
+
+## Follow-up after physical retry
+
+The user reported that UP/DOWN on the first page still does not visibly switch
+notifications, and confirmed swiping vertically within the notification body.
+The expected-ACK latch fix addresses a reproduced defect but has not closed the
+physical issue. Read-only inspection of the live queue found seven visible
+records with identical model, title and detail text. Existing UI has no per-card
+identifier, so successful navigation among those records can be visually
+indistinguishable. This is an observation, not proof of successful live browsing.
+Prepared two distinct, explicitly synthetic, nondeciding test cards for a live
+end-to-end check before proposing another firmware change.
+
+## Distinct-card physical navigation acceptance
+
+On 2026-10-20, the running Companion consumed two explicitly synthetic,
+nondeciding cards, TEST SWIPE A and TEST SWIPE B. The user returned Home,
+opened the badge and confirmed A → B → A on consecutive up/down gestures.
+This validates the live touch/controller/action/host-selection/card-display
+path with the installed `5ce58d1` firmware. No additional flash or Companion
+replacement was performed for this diagnostic check.
+
+The seven records inspected before this test had identical title, model and
+body; the existing screen has no per-card number, so browsing those records
+can have no visible content difference. This explains why the previous
+content-based acceptance was inconclusive. The earlier expected-ACK latch
+regression remains a separately reproduced and repaired defect.
+
+The synthetic cards have canDecide=false and attach no native task or authority.
+They can be removed with LEFT while their TEST SWIPE titles are visible; other
+notifications must be retained. Badge inset and reading comfort were not
+separately reconfirmed in this diagnostic response. No new audio-quality claim.
