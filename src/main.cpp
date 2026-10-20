@@ -1521,6 +1521,7 @@ bool handleTaskNotifications() {
 #endif
   }
   if(!taskNotificationUi.visible()){
+#if defined(CODEX_STOPWATCH_USB_MIC)
     if(state.workspaceMode==workspace_mode::Mode::Home&&
         !ownedTouch&&workspaceIdle&&touch.wasPressed()&&taskNotificationUi.badge(touch.x,touch.y)){
       taskBadgeTouch=true;taskBadgeCanOpen=noteActivity();taskBadgeX=touch.x;taskBadgeY=touch.y;
@@ -1533,6 +1534,7 @@ bool handleTaskNotifications() {
         taskBadgeTouch=false;taskBadgeCanOpen=false;
       }
     }
+#endif
   }else{
     if(touch.wasPressed())taskNotificationUi.press(touch.x,touch.y,now,noteActivity());
     if(touch.isPressed()){

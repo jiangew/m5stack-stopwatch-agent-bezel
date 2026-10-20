@@ -49,7 +49,11 @@ fixture=<<~CPP
  struct {template<class... Args>void printf(const char*,Args...){}} Serial;
  void beginVoiceChatClick(){++voiceClicks;}void startHaptic(unsigned,unsigned){}void stopRobotReaction(){}
  namespace workspace_input {enum class Control{LeftPhysicalButton,RightPhysicalButton};bool allowed(workspace_mode::Mode,Control){return true;}}
- struct{workspace_mode::Mode workspaceMode=workspace_mode::Mode::Home;} state;
+ struct{
+ #if defined(CODEX_STOPWATCH_USB_MIC)
+ workspace_mode::Mode workspaceMode=workspace_mode::Mode::Home;
+ #endif
+ } state;
  struct {task_notification::Snapshot value;std::vector<task_notification::Action> actions;std::vector<int> keys;
  auto notificationSnapshot(){return value;}
  void sendKey(const char*,int value){keys.push_back(value);}
@@ -66,6 +70,17 @@ fixture=<<~CPP
  if(argc>1){
    const std::string scenario=argv[1];
    assert(handleTaskNotifications()); // visible native notification
+ #if !defined(CODEX_STOPWATCH_USB_MIC)
+   if(scenario=="no-home-badge"){
+     now+=task_notification::kToastMs;handleTaskNotifications();
+     touch={};++now;assert(!handleTaskNotifications());
+     touch.down=true;touch.held=true;touch.x=378;touch.y=233;++now;
+     assert(!handleTaskNotifications()&&!taskBadgeTouch);
+     touch.down=false;touch.held=false;touch.up=true;++now;
+     assert(!handleTaskNotifications()&&!taskNotificationUi.visible());
+     std::puts("PASS dashboard without Home never intercepts an invisible badge");return 0;
+   }
+ #else
    if(scenario=="badge-workspaces"){
      now+=task_notification::kToastMs;handleTaskNotifications();
      touch={};++now;assert(!handleTaskNotifications());
@@ -118,6 +133,7 @@ fixture=<<~CPP
      assert(taskNotificationUi.view()==task_notification::View::Inbox);
      std::puts("PASS accepted underlying button survives attempted badge open; fresh idle badge opens Inbox");return 0;
    }
+ #endif
    if(scenario=="new-generation-touch"||scenario=="power-touch"){
      touch.down=true;touch.held=true;touch.y=320;
      if(scenario=="power-touch")powerButtonPressed=true;
@@ -170,13 +186,14 @@ Dir.mktmpdir('notification-main-','/private/tmp') do |dir|
  abort 'compile failed' unless system('clang++','-std=c++17','-fsanitize=address,undefined',"-I#{root}/include",'-isystem',"#{root}/.pio/libdeps/m5stack-stopwatch/ArduinoJson/src",path,'-o',exe)
  abort 'notification main-loop regression failed' unless system(exe)
  passed=true
- scenarios=%w[badge-workspaces right-timeout right-back right-generation new-generation-touch power-touch accepted-left-badge accepted-right-badge]
- scenarios.each do |scenario|
+ scenarios=%w[right-timeout right-back right-generation new-generation-touch power-touch]
+ (scenarios+%w[no-home-badge]).each do |scenario|
    passed=system(exe,scenario)&&passed
  end
  usb=File.join(dir,'usb-test')
  abort 'USB fixture compile failed' unless system('clang++','-std=c++17','-DCODEX_STOPWATCH_USB_MIC=1','-fsanitize=address,undefined',"-I#{root}/include",'-isystem',"#{root}/.pio/libdeps/m5stack-stopwatch/ArduinoJson/src",path,'-o',usb)
- scenarios.each do |scenario|
+ abort 'USB notification main-loop regression failed' unless system(usb)
+ (scenarios+%w[badge-workspaces accepted-left-badge accepted-right-badge]).each do |scenario|
    passed=system(usb,scenario)&&passed
  end
  abort 'notification main-loop gesture regressions failed' unless passed
