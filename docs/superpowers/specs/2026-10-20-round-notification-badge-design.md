@@ -10,8 +10,11 @@ appearance, while keeping clear space between it and every character.
 ## Proposed geometry on the 466 px screen
 
 - Move the center from `(420,233)` to `(398,233)`: 22 px toward the center.
-- Use a 44 px diameter circle, a dark fill and a 2 px amber ring. Show only the
-  numeric count, centered; remove the `N` prefix. Keep two-digit counts legible.
+- Use a 44 px diameter solid blue-gray circle (`0x2187`, dashboard track),
+  a subtle 1 px darker same-hue edge (`0x1946`, dashboard pressed panel), and
+  ice-white count text. Use the dashboard's smooth circle rendering. This
+  replaces the earlier amber outline per the user's follow-up style request.
+  Show only the numeric count, centered; keep two-digit counts legible.
 - Use an invisible 64×64 px touch target centered on the circle. Its right edge
   becomes x=430 instead of the old x=447, making taps less dependent on the edge.
 - When the badge is visible on Home, reserve character pixels to the left of

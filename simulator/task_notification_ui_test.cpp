@@ -18,7 +18,7 @@ struct Canvas {
   void fillRoundRect(int x,int y,int w,int h,int,unsigned){rectangles.push_back({x,y,w,h});}
   void drawRoundRect(int,int,int,int,int,unsigned){}
   void fillRect(int,int,int,int,unsigned){}
-  void fillCircle(int x,int y,int r,unsigned){circles.push_back({x,y,r});}
+  void fillSmoothCircle(int x,int y,int r,unsigned){circles.push_back({x,y,r});}
   void drawString(const char* s,int x,int y){strings.emplace_back(s);texts.push_back({s,x,y,textSize,datum});}
 };
 int main(){
@@ -33,7 +33,7 @@ int main(){
     Canvas badge;task_notification::badge(badge,inbox);
     assert(badge.texts.size()==1&&badge.texts[0].value==std::to_string(count));
     assert(badge.texts[0].x==398&&badge.texts[0].y==233&&badge.texts[0].datum==middle_center);
-    assert(badge.circles.size()==2&&badge.circles[0].r==22&&badge.circles[1].r==20);
+    assert(badge.circles.size()==2&&badge.circles[0].r==22&&badge.circles[1].r==21);
     for(auto circle:badge.circles)assert(circle.x==398&&circle.y==233);
   }
   for(int x:{366,398,430})for(int y:{201,233,265}) {

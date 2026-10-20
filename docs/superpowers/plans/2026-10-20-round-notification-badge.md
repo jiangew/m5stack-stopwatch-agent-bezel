@@ -38,3 +38,18 @@ Reproduce a preview using `.pio/build/native-preview/program OUTPUT.ppm SCENARIO
 after building `pio run -e native-preview` with the existing local dependencies.
 No firmware image was built or written for this preview. Physical tap comfort
 and the updated layout still require a later device update and user acceptance.
+
+## Filled-disc style follow-up
+
+The user requested a visible background and quieter border, referencing the
+Codex dashboard circles. Reused dashboard track blue-gray (`0x2187`) for the
+fill and pressed-panel shade (`0x1946`) for a one-pixel darker edge, with ice
+count text and the same smooth-circle primitive as dashboard keys.
+Geometry, touch bounds, character placement and notification content stay as
+previously verified. Updated the existing circle test for smooth rendering and
+the one-pixel edge; notification host regressions and native-preview build pass.
+
+New local previews: `artifacts/filled-notification-badge-20261020/` for
+`notification-badge` and `notification-badge-starscream-64`. Actual RGB pixels
+confirm the solid background is distinct from black and its subtle edge, with
+the existing ten-pixel character clearance. Native previews reviewed; no flash.
