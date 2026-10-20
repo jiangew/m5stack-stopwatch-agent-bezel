@@ -73,7 +73,7 @@ fixture=<<~CPP
      assert(!handleTaskNotifications());underlyingButtons();
      assert(scenario=="accepted-left-badge"?leftPressed:rightPressed);
      button.down=false;
-     touch.down=true;touch.held=true;touch.x=398;touch.y=233;++now;handleTaskNotifications();
+     touch.down=true;touch.held=true;touch.x=402;touch.y=233;++now;handleTaskNotifications();
      touch.down=false;touch.held=false;touch.up=true;++now;handleTaskNotifications();
      touch={};++now;handleTaskNotifications(); // old implementation steals the already accepted hold here
      c.g=2;c.id=0;c.count=0;c.alert=0;++codex.value.version;++now;handleTaskNotifications();
@@ -86,7 +86,7 @@ fixture=<<~CPP
      button={};
      // A new idle badge gesture remains reachable after the underlying input ends.
      c.g=3;c.id=1;c.count=1;++codex.value.version;++now;assert(!handleTaskNotifications());
-     touch.down=true;touch.held=true;touch.x=398;touch.y=233;++now;assert(handleTaskNotifications());
+     touch.down=true;touch.held=true;touch.x=402;touch.y=233;++now;assert(handleTaskNotifications());
      touch.down=false;touch.held=false;touch.up=true;++now;assert(handleTaskNotifications());
      assert(taskNotificationUi.view()==task_notification::View::Inbox);
      std::puts("PASS accepted underlying button survives attempted badge open; fresh idle badge opens Inbox");return 0;

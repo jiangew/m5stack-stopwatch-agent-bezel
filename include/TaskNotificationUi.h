@@ -26,15 +26,15 @@ template<class Surface> void wrapped(Surface& s,const char* text,int y,unsigned 
 template<class Surface> void button(Surface& s,const char* text,int x,int y,int w,uint16_t color){
   s.fillRoundRect(x,y,w,32,9,kPanel);s.drawRoundRect(x,y,w,32,9,color);label(s,text,x+w/2,y+16,color);
 }
-// Match the dashboard's recessed solid keys: a visible blue-gray disc and
-// a quiet same-hue edge, with an ice label rather than a bright outline.
-constexpr uint16_t kBadgeFill=0x2187,kBadgeEdge=0x1946;
+// Keep the dashboard's solid-key shape with a vivid blue disc, quiet blue
+// edge and bright yellow count for contrast against both Home and the fill.
+constexpr uint16_t kBadgeFill=0x231D,kBadgeEdge=0x1A15,kBadgeText=0xFFE0;
 template<class Surface> void badge(Surface& s,const Controller& ui){
   if(!ui.card().count)return;
   char text[8];std::snprintf(text,sizeof(text),"%u",ui.card().count);
   s.fillSmoothCircle(kBadgeCenterX,kBadgeCenterY,kBadgeRadius,kBadgeEdge);
   s.fillSmoothCircle(kBadgeCenterX,kBadgeCenterY,kBadgeRadius-1,kBadgeFill);
-  label(s,text,kBadgeCenterX,kBadgeCenterY,kInk,2.5f);
+  label(s,text,kBadgeCenterX,kBadgeCenterY,kBadgeText,3.f);
 }
 template<class Surface> void render(Surface& s,const Controller& ui,uint32_t now){
   const auto& c=ui.card();s.fillScreen(0x0000);

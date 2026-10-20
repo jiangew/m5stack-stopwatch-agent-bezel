@@ -75,7 +75,7 @@ int main() {
       assert(std::fabs(Sprite::centerY-(232+(y-232)*fit))<.001f);
       assert(std::fabs(Sprite::scale-1.18f*fit)<.001f&&Sprite::angle==angle);
       assert(Sprite::clipRight==366&&Sprite::clipTop>=82&&Sprite::clipBottom<=381);
-      assert(398-22-Sprite::clipRight>=10);
+      assert(402-26-Sprite::clipRight>=10);
       assert(canvas.x==0&&canvas.y==0&&canvas.w==466&&canvas.h==466);
     }
     canvas.setClipRect(100,100,200,200);

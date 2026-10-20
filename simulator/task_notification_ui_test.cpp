@@ -32,18 +32,18 @@ int main(){
     c.count=count;inbox.receive(c,100);
     Canvas badge;task_notification::badge(badge,inbox);
     assert(badge.texts.size()==1&&badge.texts[0].value==std::to_string(count));
-    assert(badge.texts[0].x==398&&badge.texts[0].y==233&&badge.texts[0].datum==middle_center);
-    assert(badge.circles.size()==2&&badge.circles[0].r==22&&badge.circles[1].r==21);
-    for(auto circle:badge.circles)assert(circle.x==398&&circle.y==233);
+    assert(badge.texts[0].x==402&&badge.texts[0].y==233&&badge.texts[0].datum==middle_center);
+    assert(badge.circles.size()==2&&badge.circles[0].r==26&&badge.circles[1].r==25);
+    for(auto circle:badge.circles)assert(circle.x==402&&circle.y==233);
   }
-  for(int x:{366,398,430})for(int y:{201,233,265}) {
+  for(int x:{368,402,436})for(int y:{199,233,267}) {
     assert(inbox.badge(x,y));
     assert((x-233)*(x-233)+(y-233)*(y-233)<233*233);
   }
-  assert(!inbox.badge(365,233)&&!inbox.badge(431,233));
-  assert(!inbox.badge(398,200)&&!inbox.badge(398,266));
+  assert(!inbox.badge(367,233)&&!inbox.badge(437,233));
+  assert(!inbox.badge(402,198)&&!inbox.badge(402,268));
   Controller empty;Canvas hidden;task_notification::badge(hidden,empty);
-  assert(!empty.badge(398,233)&&hidden.texts.empty()&&hidden.circles.empty());
+  assert(!empty.badge(402,233)&&hidden.texts.empty()&&hidden.circles.empty());
   for(bool toast:{false,true}){
     Controller layout;layout.receive(c,100);
     if(toast)layout.present(100,true);else layout.openInbox(100);

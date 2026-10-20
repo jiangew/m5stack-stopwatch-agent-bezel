@@ -53,3 +53,17 @@ New local previews: `artifacts/filled-notification-badge-20261020/` for
 `notification-badge` and `notification-badge-starscream-64`. Actual RGB pixels
 confirm the solid background is distinct from black and its subtle edge, with
 the existing ten-pixel character clearance. Native previews reviewed; no flash.
+
+## Larger vivid badge follow-up
+
+The user requested a larger circle and bright accent colors for both fill and
+number. Increased diameter from 44 to 52 px and label size from 2.5 to 3. The
+fill is vivid blue (`0x231D`) with a quiet dark-blue edge (`0x1A15`), and the
+count is saturated yellow (`0xFFE0`). Shifted the center right by 4 px to
+(402,233), preserving the existing x=376 left edge and 10 px character gap.
+The touch target grows from 64 to 68 px, still inside the round screen.
+
+Updated existing geometry/input fixtures; notification firmware host regressions
+and native-preview build passed. Native one/two-digit previews in
+`artifacts/vivid-notification-badge-20261020/` confirm visible yellow count pixels
+and a black gap between character and circle. No device update performed.
