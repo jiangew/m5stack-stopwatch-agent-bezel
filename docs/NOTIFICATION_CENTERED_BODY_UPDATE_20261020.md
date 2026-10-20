@@ -1,6 +1,6 @@
 # Centered notification body update — 2026-10-20
 
-Status: flashed and independently verified; physical acceptance pending.
+Status: flashed, independently verified and physically accepted by the user.
 
 - Installed source: `ae5a8a5386942520796c1701b54004764580eb4b`.
 - Environment: isolated USB-mic `m5stack-stopwatch-home-imu`.
@@ -22,6 +22,7 @@ full/prefix hashes, and an installed receipt matching this image. Only app0 at
 0x10000 was updated after interactive exact-port confirmation. Earlier images
 and private backups are retained; no Companion binary or GATT schema changed.
 
-Physical centered layout, font comfort and notification/Home/Agent controls
-remain pending user confirmation after a short reset. No fresh audio capture
-or host HID enumeration claim is made from a successful firmware write alone.
+On 2026-10-20 the user confirmed normal operation after a short reset: body
+text is centered, font size is comfortable, UP/DOWN, LEFT/RIGHT, BACK and
+Home/Agent controls all work normally. This closes the centered-body update
+acceptance. No fresh audio capture or host HID enumeration claim is made.

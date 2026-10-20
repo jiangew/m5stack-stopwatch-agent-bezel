@@ -86,10 +86,11 @@ the immediately following swipe; unsolicited context changes retain their
 input invalidation. See `docs/NOTIFICATION_READABILITY_FIX_20261020.md` for the
 reproduction, candidate validation and remaining physical acceptance boundary.
 
-## Centered body follow-up (installed; physical acceptance pending)
+## Centered body follow-up (installed and physically accepted)
 
 The user requested body text centered again because most notifications are
 short. Render each wrapped body line with middle-center datum at x=233 on all
 notification views. Retain the current font sizes, row spacing, column/row
 limits, badge placement and gesture behavior. Installed source `ae5a8a5` has centered body text and passed independent flash
-verification. Physical acceptance remains pending.
+verification. The user confirmed centered appearance, font comfort and normal
+notification/Home/Agent controls after reset on 2026-10-20.

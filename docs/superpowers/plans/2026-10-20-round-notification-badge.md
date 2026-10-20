@@ -139,6 +139,7 @@ Candidate evidence: `docs/NOTIFICATION_READABILITY_FIX_20261020.md`.
 
 - [x] Built and flashed centered-body source `ae5a8a5` with exact-port confirmation;
   application readback, protected area and full prior app0 backup verified.
-- [ ] Physical centered-body layout and control acceptance after short reset.
+- [x] User confirmed centered-body layout, font comfort, UP/DOWN, LEFT/RIGHT,
+  BACK and Home/Agent controls after reset on 2026-10-20.
 
 Installation evidence: `docs/NOTIFICATION_CENTERED_BODY_UPDATE_20261020.md`.
