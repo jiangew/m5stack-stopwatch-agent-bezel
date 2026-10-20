@@ -1,6 +1,9 @@
 # Notification UI firmware update — 2026-10-20
 
-## Installed candidate
+The later round, vivid badge update is recorded in
+[the latest update record](NOTIFICATION_VIVID_UPDATE_20261020.md).
+
+## Previously accepted candidate
 
 - Firmware source: `2af19c7e1ecd4741a93ae431a4d739956f1c2cf2`.
 - Selected environment: `m5stack-stopwatch-home-imu` in the isolated USB-mic project.
