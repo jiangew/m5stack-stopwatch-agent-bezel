@@ -85,3 +85,11 @@ and separate footer controls. Expected navigation acknowledgements must allow
 the immediately following swipe; unsolicited context changes retain their
 input invalidation. See `docs/NOTIFICATION_READABILITY_FIX_20261020.md` for the
 reproduction, candidate validation and remaining physical acceptance boundary.
+
+## Centered body follow-up (candidate, not installed)
+
+The user requested body text centered again because most notifications are
+short. Render each wrapped body line with middle-center datum at x=233 on all
+notification views. Retain the current font sizes, row spacing, column/row
+limits, badge placement and gesture behavior. The installed `5ce58d1` image
+still has left-aligned body text until a later device update.

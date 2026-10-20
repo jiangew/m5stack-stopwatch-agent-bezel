@@ -52,7 +52,7 @@ int main(){
     for(const auto& text:frame.texts){
       full+=text.value;
       if(text.value==c.title)lowerTitle=text.y>=120&&text.datum==middle_center;
-      if(text.y>=195&&text.y<=363){assert(text.datum==middle_left&&text.x>=40&&text.x<=64);}
+      if(text.y>=195&&text.y<=363){assert(text.datum==middle_center&&text.x==233);}
       if(text.value==std::string(c.detail,24))lowerBody=text.y>=195&&text.y+7*24+10<382&&text.size>=2.5f;
       if(text.value.find("UP/DOWN")!=std::string::npos||text.value.find("LEFT:")!=std::string::npos){
         assert(text.y>=375&&text.y<=410&&text.size<=1.5f);++compactHints;
@@ -68,7 +68,7 @@ int main(){
   std::string readable;
   for(const auto& text:largeDetail.texts){
     readable+=text.value;
-    if(text.y>=195&&text.y<=363)assert(text.datum==middle_left&&text.size>=2.5f);
+    if(text.y>=195&&text.y<=363)assert(text.datum==middle_center&&text.x==233&&text.size>=2.5f);
     if(text.value=="OPEN ON MAC")assert(text.y==392&&text.size>=2.5f);
   }
   assert(readable.find(c.detail)!=std::string::npos);
@@ -77,7 +77,7 @@ int main(){
   Action a;assert(ui.takeAction(a));c.ack=a.seq;c.alert=0;ui.receive(c,130);
   Canvas canvas;task_notification::render(canvas,ui,140);
   for(const auto& text:canvas.texts){
-    if(text.y>=165&&text.y<=240)assert(text.datum==middle_left&&text.x>=60&&text.x<=80);
+    if(text.y>=165&&text.y<=240)assert(text.datum==middle_center&&text.x==233);
     if(text.value==c.title)assert(text.datum==middle_center);
   }
   std::string joined;for(auto& s:canvas.strings)joined+=s;

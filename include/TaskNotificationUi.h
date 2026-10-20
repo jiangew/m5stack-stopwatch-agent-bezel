@@ -53,7 +53,7 @@ template<class Surface> void render(Surface& s,const Controller& ui,uint32_t now
   label(s,state,233,139+offset,color,reading?2.f:1.5f);
   // Keep all 192 ASCII bytes visible at the larger reading size: eight rows
   // of 24 columns, with dedicated space below for controls.
-  wrapped(s,c.detail,165+offset,reading?24:36,reading?2.5f:1.5f,reading?8:6,reading?48:72);
+  wrapped(s,c.detail,165+offset,reading?24:36,reading?2.5f:1.5f,reading?8:6);
   if(ui.view()==View::Confirm){
     const char* selected=ui.selection();
     if(!std::strcmp(selected,"allow_once"))selected="ALLOW ONCE";

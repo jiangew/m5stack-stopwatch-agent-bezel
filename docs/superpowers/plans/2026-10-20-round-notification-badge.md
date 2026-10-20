@@ -127,3 +127,12 @@ and the separate USB-audio verification boundary.
 - [ ] Inset and reading comfort not separately reconfirmed in the browsing diagnostic.
 
 Candidate evidence: `docs/NOTIFICATION_READABILITY_FIX_20261020.md`.
+
+## Restore centered body text
+
+- [x] Switch body wrapping back to its existing centered drawing path.
+- [x] Update existing alignment assertions for browsing, Toast and Detail,
+  preserving full 192-byte context and the existing scope checks.
+- [x] Native-preview build and existing UI regression passed; short and maximum-length
+  centered previews checked in `artifacts/centered-notification-body-20261020/`.
+  No firmware build or device flash in this step.
