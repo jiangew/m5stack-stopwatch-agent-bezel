@@ -3,7 +3,10 @@
 Status: flashed and independently verified; physical UP/DOWN navigation passed with distinct live test cards.
 The previous accepted baseline was firmware source `bb64fd2`.
 
-## Installed firmware and flash verification
+The subsequent centered-body installation is recorded in
+[the latest update record](NOTIFICATION_CENTERED_BODY_UPDATE_20261020.md).
+
+## Previously installed firmware and flash verification
 
 - Source: `5ce58d15c9ed8ccd6af175eedaff111421af1eaa`.
 - Environment: isolated USB-mic `m5stack-stopwatch-home-imu`.

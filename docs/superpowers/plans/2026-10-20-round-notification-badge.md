@@ -136,3 +136,9 @@ Candidate evidence: `docs/NOTIFICATION_READABILITY_FIX_20261020.md`.
 - [x] Native-preview build and existing UI regression passed; short and maximum-length
   centered previews checked in `artifacts/centered-notification-body-20261020/`.
   No firmware build or device flash in this step.
+
+- [x] Built and flashed centered-body source `ae5a8a5` with exact-port confirmation;
+  application readback, protected area and full prior app0 backup verified.
+- [ ] Physical centered-body layout and control acceptance after short reset.
+
+Installation evidence: `docs/NOTIFICATION_CENTERED_BODY_UPDATE_20261020.md`.
