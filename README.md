@@ -103,7 +103,7 @@ See the
   the user confirmed its Home interactions normal. Subsequent IMU swipe-resume
   acceptance above belongs to `df5480c` / `c83363fcc22e`. Quantified latency,
   frame rate, motor timing and PSRAM headroom remain unmeasured.
-- DSH: the same four-triangle layout as SUPER. Up/down navigate existing
+- DSH: the same four-circle layout as SUPER. Up/down navigate existing
   threads in sidebar order across project boundaries; right switches Chat /
   Trajectory. Requires the optional navigation plugin; center and physical
   action buttons remain disabled when active. The title is exactly `DSH`
@@ -111,7 +111,7 @@ See the
 - When a harness is not running, left selects its waiting page without launching;
   center explicitly launches/retries. Opening rejects repeated taps. Existing
   active controls remain. CODEX always retains the original dashboard UI in all
-  states: no four-triangle replacement or new visual prompts, only the pending
+  states: no directional-circle replacement or new visual prompts, only the pending
   center-launch behavior changes. All four pages use the same foreground/center activation policy.
 - Dedicated navigation retains 350ms release-gated cooldown; cycling/launch
   retains 800ms protection and key sequences retain 30ms pacing.
@@ -195,7 +195,7 @@ Leaving Home resets the next visit to Bumblebee.
   <tr>
     <td width="25%"><img src="artifacts/dashboard-preview-v2-round.png" alt="Codex Micro dashboard with six controls, quota and battery"></td>
     <td width="25%"><img src="artifacts/deepseek-workspace-preview.png" alt="DSH with CYCLE, PREV, NEXT and VIEW"></td>
-    <td width="25%"><img src="artifacts/super-workspace-preview.png" alt="SUPER with four colored triangles and no separate center border"></td>
+    <td width="25%"><img src="artifacts/super-workspace-preview.png" alt="SUPER with four colored circles and a thin status dial"></td>
     <td width="25%"><img src="artifacts/hermes-workspace-preview.png" alt="HERMES with CYCLE, PREV, NEXT and OPEN controls"></td>
   </tr>
 </table>
@@ -256,7 +256,7 @@ experimental until that checklist is complete.
 
 The **DSH** page uses the exact app bundle `com.deepseek.dsh`, not a browser
 URL or CLI. Left from Codex selects it; left from DSH selects SUPER.
-The CYCLE / PREV / NEXT / VIEW triangles share SUPER's geometry and palette.
+The CYCLE / PREV / NEXT / VIEW circles share SUPER's geometry and palette.
 Up/down select the previous/next existing thread in sidebar order, continuing
 across project boundaries; right switches the main Chat / Trajectory view.
 When active, center and physical action buttons remain disabled. When absent,
@@ -372,14 +372,23 @@ Control modifier. Repeat acceptance after changing Hermes versions.
 4. Install matching Companion and explicitly chosen USB-mic firmware only
    after source validation, backups and exact-port flash confirmation.
 
-SUPER/HERMES share four outward triangles, with no independent center outline.
+DSH/SUPER/HERMES share four solid circular indicators and a thin central status
+ring, using the Codex black background and Space Mono font family. The ring
+shows connectivity, not quota or progress. Pending launch pages dim up/down/right
+while retaining left navigation and the existing center input region.
 The battery icon and percentage are centered together beneath the title and
 connection status, including unknown and three-digit percentages.
 Every accepted local swipe picks four distinct colors from a 12-color pool;
-each direction changes from its previous color. Text colors remain stable.
+each direction changes from its previous color. Text switches between light and
+dark for contrast; accepted swipes briefly dim the indicator.
 Palette feedback has its own 800ms cooldown; redraw, heartbeat, quota updates
 and Dock/Command-Tab changes do not recolor. This is local input feedback, not
 proof that the Mac accepted a shortcut.
+
+Notification counts and text also use native-size antialiased Space Mono fonts.
+Source names display as Codex, DSH, Super and Hermes; empty model metadata stays
+hidden. Notification content remains centered, and browsing preserves all 192
+ASCII context bytes. This UI update does not add native model capture.
 
 All pages preserve the selection made on the watch. Foreground loss puts the
 selected Agent into its center-to-activate state. Mode heartbeats run every

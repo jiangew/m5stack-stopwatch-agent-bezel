@@ -3,11 +3,18 @@
 #include <M5GFX.h>
 #include <cstdio>
 #include "TaskNotification.h"
+#include "SpaceMonoVlw.h"
+#include "NotificationFonts.h"
 
 namespace task_notification {
 constexpr uint16_t kInk=0xF7DF,kDim=0x9CF3,kPanel=0x1082,kAmber=0xFD20,kGreen=0x47F2,kRed=0xFA8A;
 template<class Surface> void label(Surface& s,const char* text,int x,int y,uint16_t color=kInk,float size=2,textdatum_t datum=middle_center){
-  s.setTextFont(1);s.setTextSize(size);s.setTextDatum(datum);s.setTextColor(color);s.drawString(text,x,y);
+  const auto* font=size>=4 ? dashboard::font_data::kSpaceMono46Vlw
+      : size>=2.5f ? font_data::kSpaceMono24Vlw
+      : size>=2 ? font_data::kSpaceMono22Vlw
+      : size>=1.75f ? dashboard::font_data::kSpaceMono18Vlw
+      : font_data::kSpaceMono15Vlw;
+  s.loadFont(font);s.setTextSize(1);s.setTextDatum(datum);s.setTextColor(color);s.drawString(text,x,y);s.unloadFont();
 }
 template<class Surface> void wrapped(Surface& s,const char* text,int y,unsigned columns,float size,unsigned maxRows=6,int left=-1){
   const std::size_t n=std::strlen(text);
@@ -36,17 +43,32 @@ template<class Surface> void badge(Surface& s,const Controller& ui){
   s.fillSmoothCircle(kBadgeCenterX,kBadgeCenterY,kBadgeRadius-1,kBadgeFill);
   label(s,text,kBadgeCenterX,kBadgeCenterY,kBadgeText,4.f);
 }
+inline const char* sourceName(const char* source){
+  if(!std::strcmp(source,"codex"))return "Codex";
+  if(!std::strcmp(source,"deepseek"))return "DSH";
+  if(!std::strcmp(source,"super"))return "Super";
+  if(!std::strcmp(source,"hermes"))return "Hermes";
+  return source;
+}
+// Only canonicalize known generated labels; task content remains verbatim.
+inline const char* displayTitle(const Card& card){
+  if(!std::strcmp(card.src,"super")){
+    if(!std::strcmp(card.title,"SUPER task"))return "Super task";
+    if(!std::strcmp(card.title,"SUPER needs input"))return "Super needs input";
+  }
+  return card.title;
+}
 template<class Surface> void render(Surface& s,const Controller& ui,uint32_t now){
   const auto& c=ui.card();s.fillScreen(0x0000);
   const uint16_t color=!std::strcmp(c.kind,"failed")?kRed:
       (!std::strcmp(c.kind,"done")?kGreen:kAmber);
-  char heading[30];std::snprintf(heading,sizeof(heading),"%s   %u NOTICES",c.src,c.count);
+  char heading[30];std::snprintf(heading,sizeof(heading),"%s   %u NOTICES",sourceName(c.src),c.count);
   const bool browsing=ui.view()==View::Inbox||ui.view()==View::Toast;
   const bool reading=browsing||(ui.view()==View::Detail&&!c.decide);
   const int offset=reading?30:0;
   label(s,heading,233,45+offset,color,reading?2.5f:2.f);
-  label(s,c.model,233,67+offset,kDim,reading?1.75f:1.5f);
-  wrapped(s,c.title,94+offset,24,reading?2.5f:2.f,2);
+  if(c.model[0])label(s,c.model,233,67+offset,kDim,reading?1.75f:1.5f);
+  wrapped(s,displayTitle(c),94+offset,24,reading?2.5f:2.f,2);
   const char* state=!ui.linked()?"OFFLINE":c.state;
   if(ui.linked()&&!std::strcmp(c.state,"resolved")&&c.outcome[0])state=c.outcome;
   if(!std::strcmp(c.state,"pending")&&c.decide&&!ui.canDecide(now)&&!ui.holdElapsed(now))state="WAITING / EXPIRED";
@@ -72,8 +94,8 @@ template<class Surface> void render(Surface& s,const Controller& ui,uint32_t now
     }else if(!reading)label(s,!std::strcmp(c.state,"unknown")?"RESULT UNKNOWN":"Review on Mac",233,301,kDim);
     button(s,"OPEN ON MAC",100,376,266,kDim,reading?2.5f:2.f);
   }else{
-    label(s,"UP/DOWN: BROWSE   TAP: DETAILS",233,388,kDim,1.5f);
-    label(s,"LEFT: DISMISS   RIGHT: BACK",233,405,kDim,1.5f);
+    label(s,"UP/DOWN: BROWSE   TAP: DETAILS",233,388,kDim,1.75f);
+    label(s,"LEFT: DISMISS   RIGHT: BACK",233,405,kDim,1.75f);
   }
   label(s,ui.view()==View::Confirm?"CANCEL":"BACK",233,430,kDim,reading?2.5f:2.f);
 }

@@ -4,13 +4,16 @@
 #include <vector>
 #include "TaskNotificationUi.h"
 struct Canvas {
-  struct Text {std::string value;int x,y;float size;textdatum_t datum;};
+  struct Text {std::string value;int x,y;float size;textdatum_t datum;const std::uint8_t* font;};
   struct Rect {int x,y,w,h;};
   struct Circle {int x,y,r;};
   std::vector<Circle> circles;
   std::vector<std::string> strings;
   std::vector<Text> texts;
   std::vector<Rect> rectangles;
+  const std::uint8_t* font=nullptr;
+  void loadFont(const std::uint8_t* f){font=f;}
+  void unloadFont(){font=nullptr;}
   float textSize=1;
   textdatum_t datum=middle_center;
   void fillScreen(unsigned){} void setTextFont(int){} void setTextSize(float size){textSize=size;}
@@ -19,7 +22,7 @@ struct Canvas {
   void drawRoundRect(int,int,int,int,int,unsigned){}
   void fillRect(int,int,int,int,unsigned){}
   void fillSmoothCircle(int x,int y,int r,unsigned){circles.push_back({x,y,r});}
-  void drawString(const char* s,int x,int y){strings.emplace_back(s);texts.push_back({s,x,y,textSize,datum});}
+  void drawString(const char* s,int x,int y){strings.emplace_back(s);assert(font&&textSize==1);texts.push_back({s,x,y,textSize,datum,font});}
 };
 int main(){
   using namespace task_notification;
@@ -53,9 +56,9 @@ int main(){
       full+=text.value;
       if(text.value==c.title)lowerTitle=text.y>=120&&text.datum==middle_center;
       if(text.y>=195&&text.y<=363){assert(text.datum==middle_center&&text.x==233);}
-      if(text.value==std::string(c.detail,24))lowerBody=text.y>=195&&text.y+7*24+10<382&&text.size>=2.5f;
+      if(text.value==std::string(c.detail,24))lowerBody=text.y>=195&&text.y+7*24+10<382&&text.font==font_data::kSpaceMono24Vlw;
       if(text.value.find("UP/DOWN")!=std::string::npos||text.value.find("LEFT:")!=std::string::npos){
-        assert(text.y>=375&&text.y<=410&&text.size<=1.5f);++compactHints;
+        assert(text.y>=375&&text.y<=410&&text.font==dashboard::font_data::kSpaceMono18Vlw);++compactHints;
       }
       if(text.value=="BACK")back=text.y==430;
     }
@@ -68,8 +71,8 @@ int main(){
   std::string readable;
   for(const auto& text:largeDetail.texts){
     readable+=text.value;
-    if(text.y>=195&&text.y<=363)assert(text.datum==middle_center&&text.x==233&&text.size>=2.5f);
-    if(text.value=="OPEN ON MAC")assert(text.y==392&&text.size>=2.5f);
+    if(text.y>=195&&text.y<=363)assert(text.datum==middle_center&&text.x==233&&text.font==font_data::kSpaceMono24Vlw);
+    if(text.value=="OPEN ON MAC")assert(text.y==392&&text.font==font_data::kSpaceMono24Vlw);
   }
   assert(readable.find(c.detail)!=std::string::npos);
   Controller ui;ui.receive(c,100);ui.present(100,true);
@@ -85,5 +88,19 @@ int main(){
   canvas.strings.clear();ui.disconnect();task_notification::render(canvas,ui,150);
   joined.clear();for(auto& s:canvas.strings)joined+=s;
   assert(joined.find("ALLOW ONCE")==std::string::npos);assert(joined.find("OFFLINE")!=std::string::npos);
+  for(const auto& item:std::vector<std::pair<const char*,const char*>>{{"codex","Codex"},{"deepseek","DSH"},{"super","Super"},{"hermes","Hermes"}}){
+    Card named=c;std::strcpy(named.src,item.first);std::strcpy(named.title,"SUPER task");
+    Controller names;names.receive(named,100);names.openInbox(110);
+    Canvas frame;render(frame,names,120);
+    assert(frame.texts[0].value.find(item.second)==0);
+    for(const auto& text:frame.texts)assert(!text.value.empty()&&text.value!="Model A");
+    assert(std::strcmp(names.card().title,"SUPER task")==0);
+    if(!std::strcmp(item.first,"super"))assert(frame.strings[1]=="Super task");
+  }
+  Card modeled=c;std::strcpy(modeled.model,"actual-model-version");
+  Controller modelRow;modelRow.receive(modeled,100);modelRow.openInbox(110);
+  Canvas modeledFrame;render(modeledFrame,modelRow,120);
+  assert(modeledFrame.texts[1].value==modeled.model);
+  assert(modeledFrame.texts[1].font==dashboard::font_data::kSpaceMono18Vlw);
   std::puts("PASS full decision scope rendered and offline decision controls removed");
 }

@@ -257,7 +257,7 @@ int main(int argc, char** argv) {
   if(std::strncmp(scenario,"notification",12)==0){
     task_notification::Card c;c.g=1;c.id=1;c.r=1;c.count=3;c.ttl=15000;c.alert=2;c.decide=true;
     std::strcpy(c.src,"deepseek");std::strcpy(c.kind,"approval");std::strcpy(c.state,"pending");
-    std::strcpy(c.title,"Synthetic workspace check");std::strcpy(c.model,"Model A");
+    std::strcpy(c.title,"Synthetic workspace check");std::strcpy(c.model,"");
     std::strcpy(c.detail,"Run echo check in the selected workspace. Network: none. Permission: allow once for this exact request.");
     if(std::strstr(scenario,"input")){
       std::strcpy(c.kind,"input");c.optionCount=3;
@@ -268,6 +268,9 @@ int main(int argc, char** argv) {
     const bool inbox=std::strstr(scenario,"inbox")!=nullptr;
     const bool badge=std::strncmp(scenario,"notification-badge",18)==0;
     if(badge&&std::strstr(scenario,"-64"))c.count=64;
+    if(!std::strcmp(scenario,"notification-badge-1"))c.count=1;
+    if(!std::strcmp(scenario,"notification-badge-9"))c.count=9;
+    if(!std::strcmp(scenario,"notification-badge-10"))c.count=10;
     if(inbox||badge){
       std::strcpy(c.src,"codex");std::strcpy(c.kind,"done");std::strcpy(c.state,"resolved");c.decide=false;
       std::strcpy(c.title,"Build finished");

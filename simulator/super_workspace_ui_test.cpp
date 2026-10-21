@@ -1,4 +1,5 @@
 #include <cassert>
+#include <cmath>
 #include <cstring>
 #include <type_traits>
 #include <utility>
@@ -24,6 +25,9 @@ struct RecordingSurface {
   std::vector<std::array<int, 5>> rectangles;
   std::vector<int> triangleColors;
   std::vector<std::string> texts;
+  std::vector<std::array<int, 4>> circles;
+  void fillSmoothCircle(int x,int y,int r,int c) { circles.push_back({x,y,r,c}); }
+  void drawLine(int,int,int,int,int) {}
   void fillScreen(int) {}
   void fillRect(int x, int y, int w, int h, int c) { rectangles.push_back({x,y,w,h,c}); }
   void fillTriangle(int, int, int, int, int, int, int c) { triangleColors.push_back(c); }
@@ -92,25 +96,26 @@ void testBatteryAndLabelAreCenteredAsOneMeasuredGroup() {
         assert(label.x - (terminal[0] + terminal[2]) == 8);
         const double center = (outline[0] + label.x + item.textWidth) / 2.0;
         assert(std::abs(center - 233.0) <= 1.0);
-        assert(label.y == 276 && outline[1] + outline[3] / 2 == 276);
+        assert(label.y == 300 && outline[1] + outline[3] / 2 == 300);
         assert(!surface.fontLoaded);
       }
     }
   }
 }
 
-void testSharedRendererDoesNotCoverTriangleBases() {
+void testCircularRendererRetainsLabelsAndPalette() {
   super_workspace::State state;
   state.profile = super_workspace::Profile::Hermes;
   state.borderColors = {0xFFFF, 0xFFE0, 0x07FF, 0xF81F};
   state.swipeDirection = touch_gesture::Direction::Right;
   RecordingSurface surface;
   super_workspace::render(surface, state);
-  assert(surface.rectangles.size() == 1);
-  const auto rect = surface.rectangles[0];
-  assert(rect[0] > 143 && rect[1] > 143);
-  assert(rect[0] + rect[2] <= 322 && rect[1] + rect[3] <= 322);
-  for (std::size_t i=0; i<4; ++i) assert(surface.triangleColors[i*2] == state.borderColors[i]);
+  assert(surface.circles.size() == 10);
+  for (std::size_t i=0; i<4; ++i) {
+    const auto& disc = surface.circles[i*2+1];
+    assert(disc[2] == 53);
+    assert(disc[3] == (i == 1 ? super_workspace::shade565(state.borderColors[i], 0.72f) : state.borderColors[i]));
+  }
   auto contains = [&](const char* text) {
     return std::find(surface.texts.begin(), surface.texts.end(), text) != surface.texts.end();
   };
@@ -139,9 +144,11 @@ void testPendingProfilesShowPromptWithoutLosingConnectionOrBattery() {
     const char* title = profile == Profile::Deepseek ? "DSH"
         : profile == Profile::Hermes ? "HERMES" : "SUPER";
     assert(has(title) && has(item.second) && has("CONNECTED") && has("100%"));
+    for (std::size_t i=0;i<4;++i)
+      assert(surface.circles[i*2+1][3] == (i==3 ? state.borderColors[i] : kMuted));
     for (const auto& draw : surface.textDraws) {
-      if (draw.text == item.second) assert(draw.x == 233 && draw.y == 222);
-      if (draw.text == "CONNECTED") assert(draw.x == 233 && draw.y == 247);
+      if (draw.text == item.second) assert(draw.x == 233 && draw.y == 270);
+      if (draw.text == "CONNECTED") assert(draw.x == 233 && draw.y == 185);
     }
   }
 }
@@ -186,68 +193,19 @@ void testDirectionalGeometryAndPalette() {
   assert(std::strcmp(super_workspace::kTitle, "SUPER") == 0);
   static_assert(super_workspace::kWidth == 466);
   static_assert(super_workspace::kHeight == 466);
-  static_assert(super_workspace::kOutlineWidth == 5);
-  static_assert(super_workspace::kCenterSquare.left == 143);
-  static_assert(super_workspace::kCenterSquare.top == 143);
-  static_assert(super_workspace::kCenterSquare.right == 322);
-  static_assert(super_workspace::kCenterSquare.bottom == 322);
-  static_assert(super_workspace::kBackground == 0x0041);
-  static_assert(super_workspace::kCenterBorder == 0x372F);
-
+  static_assert(super_workspace::kBackground == 0x0000);
   const auto& controls = super_workspace::kDirectionalControls;
-  assert(controls.size() == 4);
-
-  assert(controls[0].direction == Direction::Up);
-  assertPoint(controls[0].baseStart, 143, 143);
-  assertPoint(controls[0].baseEnd, 322, 143);
-  assertPoint(controls[0].tip, 233, 26);
-  assertPoint(controls[0].labelAnchor, 233, 91);
-  assert(std::strcmp(controls[0].label, "PREV") == 0);
-  assert(controls[0].borderColor == 0x26DF);
-
-  assert(controls[1].direction == Direction::Right);
-  assertPoint(controls[1].baseStart, 322, 143);
-  assertPoint(controls[1].baseEnd, 322, 322);
-  assertPoint(controls[1].tip, 440, 233);
-  assertPoint(controls[1].labelAnchor, 375, 233);
-  assert(std::strcmp(controls[1].label, "TAB") == 0);
-  assert(controls[1].borderColor == 0xFCE6);
-
-  assert(controls[2].direction == Direction::Down);
-  assertPoint(controls[2].baseStart, 322, 322);
-  assertPoint(controls[2].baseEnd, 143, 322);
-  assertPoint(controls[2].tip, 233, 440);
-  assertPoint(controls[2].labelAnchor, 233, 387);
-  assert(std::strcmp(controls[2].label, "NEXT") == 0);
-  assert(controls[2].borderColor == 0xEA7F);
-
-  assert(controls[3].direction == Direction::Left);
-  assertPoint(controls[3].baseStart, 143, 322);
-  assertPoint(controls[3].baseEnd, 143, 143);
-  assertPoint(controls[3].tip, 26, 233);
-  assertPoint(controls[3].labelAnchor, 90, 233);
-  assert(std::strcmp(controls[3].label, "CYCLE") == 0);
-  assert(controls[3].borderColor == 0x53DF);
-
-  for (const auto& control : controls) {
-    assert(control.tip.x >= 0 && control.tip.x < super_workspace::kWidth);
-    assert(control.tip.y >= 0 && control.tip.y < super_workspace::kHeight);
+  const super_workspace::Point expected[] = {{233,72},{398,237},{233,402},{68,237}};
+  const Direction directions[] = {Direction::Up,Direction::Right,Direction::Down,Direction::Left};
+  for (std::size_t i=0;i<4;++i) {
+    assert(controls[i].direction == directions[i]);
+    assert(controls[i].center == expected[i]);
+    const int dx=controls[i].center.x-233,dy=controls[i].center.y-237;
+    assert(dx*dx+dy*dy > (104+56)*(104+56));
+    const int screenDx=controls[i].center.x-233,screenDy=controls[i].center.y-233;
+    assert(std::sqrt(double(screenDx*screenDx+screenDy*screenDy))+56 <= 233);
   }
-  assert(controls[0].baseStart.x == super_workspace::kCenterSquare.left);
-  assert(controls[0].baseEnd.x == super_workspace::kCenterSquare.right);
-  assert(controls[1].baseStart.y == super_workspace::kCenterSquare.top);
-  assert(controls[1].baseEnd.y == super_workspace::kCenterSquare.bottom);
-  assert(controls[2].baseStart.x == super_workspace::kCenterSquare.right);
-  assert(controls[2].baseEnd.x == super_workspace::kCenterSquare.left);
-  assert(controls[3].baseStart.y == super_workspace::kCenterSquare.bottom);
-  assert(controls[3].baseEnd.y == super_workspace::kCenterSquare.top);
 
-  assert(controls[0].borderColor != controls[1].borderColor);
-  assert(controls[0].borderColor != controls[2].borderColor);
-  assert(controls[0].borderColor != controls[3].borderColor);
-  assert(controls[1].borderColor != controls[2].borderColor);
-  assert(controls[1].borderColor != controls[3].borderColor);
-  assert(controls[2].borderColor != controls[3].borderColor);
 }
 
 void testDedicatedVisualState() {
@@ -289,9 +247,9 @@ void testDeepseekSharesFourDirectionalControls() {
   assert(has("CYCLE") && has("OFFLINE") && has("--%"));
   assert(has("PREV") && has("NEXT") && has("VIEW"));
   assert(!has("TAB") && !has("OPEN"));
-  assert(surface.triangleColors.size() == 8);
+  assert(surface.circles.size() == 10);
   for (std::size_t i = 0; i < 4; ++i)
-    assert(surface.triangleColors[i * 2] == state.borderColors[i]);
+    assert(surface.circles[i * 2 + 1][3] == state.borderColors[i]);
 }
 
 void testTitlesShareFontAndFitMeasuredInterior() {
@@ -308,7 +266,7 @@ void testTitlesShareFontAndFitMeasuredInterior() {
       const auto& title = surface.textDraws.at(0);
       assert(title.font == dashboard::font_data::kSpaceMono46Vlw);
       assert(title.datum == middle_center && title.x == 233);
-      assert(title.y == (presentation == HermesPresentation::Active ? 190 : 182));
+      assert(title.y == 228);
       assert(title.width <= 178);
       if (presentation == HermesPresentation::Active) {
         surface.loadFont(title.font);
@@ -333,7 +291,7 @@ int main() {
   testDeepseekSharesFourDirectionalControls();
   testPendingProfilesShowPromptWithoutLosingConnectionOrBattery();
   testBatteryAndLabelAreCenteredAsOneMeasuredGroup();
-  testSharedRendererDoesNotCoverTriangleBases();
+  testCircularRendererRetainsLabelsAndPalette();
   testDirectionalGeometryAndPalette();
   testDedicatedVisualState();
   testNoUserContentOrCodexTelemetryFields();

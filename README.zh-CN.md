@@ -65,7 +65,7 @@ DeepSeek、SUPER、Hermes 还检查实际窗口：关闭最后一个窗口后，
   应用摘要、受保护元数据、重启、USB 纯输入音频、BLE HID 状态 RPC 及短录音检查均通过，原配对配置保留。
   用户已于2026-10-14确认该历史九图首页交互正常；上述历史IMU滑动恢复反馈属于`df5480c`／`c83363fcc22e`。
   延迟、帧率、震动时长及PSRAM余量尚未量化测量。
-- DSH：桌面标题显示为 `DSH`，沿用 SUPER 的四色三角布局和标题字体；上下按侧栏顺序切换已有 thread、跨项目边界，
+- DSH：桌面标题显示为 `DSH`，沿用 SUPER 的四色圆形布局和标题字体；上下按侧栏顺序切换已有 thread、跨项目边界，
   右滑切“对话／轨迹”。需要配套导航插件；已激活时中央与实体操作键保持无动作。
 - 所有 harness 未运行时，左滑仅选择对应桌面，中央点按才启动；启动中阻止连点，失败可重试。
   **CODEX 所有状态始终保留原仪表盘 UI**，不改四向布局、不添加新提示；仅未启动时中央改为启动／重试。
@@ -126,7 +126,7 @@ Mac 操作，USB 麦克风和 Codex 完成提示音保持原样。
   <tr>
     <td width="25%"><img src="artifacts/dashboard-preview-v2-round.png" alt="含六项控制、额度与电量的 Codex Micro 面板"></td>
     <td width="25%"><img src="artifacts/deepseek-workspace-preview.png" alt="DSH 四向 CYCLE、PREV、NEXT、VIEW 布局"></td>
-    <td width="25%"><img src="artifacts/super-workspace-preview.png" alt="四色三角形、无独立中心边框的 SUPER 屏幕"></td>
+    <td width="25%"><img src="artifacts/super-workspace-preview.png" alt="四色圆形控件和细状态圆环的 SUPER 屏幕"></td>
     <td width="25%"><img src="artifacts/hermes-workspace-preview.png" alt="含 CYCLE、PREV、NEXT、OPEN 的 HERMES 屏幕"></td>
   </tr>
 </table>
@@ -178,7 +178,7 @@ ChatGPT Desktop 仅暴露一个 Mic key，而非单独的 `ACT10` 和 `ACT11`：
 ## DeepSeek Harness 工作区
 
 **DSH** 通过准确的应用 bundle `com.deepseek.dsh` 激活桌面客户端，不打开浏览器 URL
-或 CLI。从 Codex 左滑进入；从 DSH 左滑选择 SUPER。四色三角形布局与 SUPER 一致：
+或 CLI。从 Codex 左滑进入；从 DSH 左滑选择 SUPER。四色圆形布局与 SUPER 一致：
 上 PREV、下 NEXT、右 VIEW、左 CYCLE。上/下按侧栏顺序选上一条/下一条已有 thread，
 到项目边界继续相邻项目；右滑在当前主工作窗口“对话／轨迹”之间切换。未启动时中央用于启动／重试；
 真实激活后的中央及实体操作键无动作。待启动／启动中／错误页仅允许左滑和有效的中央启动，不发送导航键。
@@ -264,11 +264,16 @@ Project 树排序。无需 Hermes 插件或源码扩展。Companion 不检测选
    权限变更后重启原 Companion LaunchAgent。
 4. 在源码验证、备份及当次准确端口刷写确认后，再安装匹配的 Companion 和明确选择的 USB-mic 固件。
 
-SUPER/HERMES 使用四个向外三角形，不绘制独立中心方框。电池图标与百分比作为
+DSH/SUPER/HERMES 使用四个实心圆形控件与中央细状态圆环，统一采用 Codex 的黑底与 Space Mono 字体。
+圆环仅表示连接状态，不表示额度或进度。待启动时上／下／右控件置灰，左滑与中央输入区域保持原有规则。电池图标与百分比作为
 整体居中显示在标题和连接状态下方，也覆盖未知电量和三位数百分比。每次本地有效滑动从
-12 色池中抽取四种不同边框颜色，每个方向不沿用自己的上一次颜色，文字色保持稳定。
+12 色池中抽取四种不同控件颜色，每个方向不沿用自己的上一次颜色；文字根据底色切换明暗，有效滑动时控件短暂变暗。
 配色反馈独立执行 800ms 冷却；重绘、心跳、额度变化和 Dock/Command-Tab 切换不换色。
 换色只是本地输入反馈，不证明 Mac 快捷键执行成功。
+
+通知角标数字和通知文字也采用原生字号的抗锯齿 Space Mono 字体。
+来源名称固定为 Codex、DSH、Super、Hermes；模型字段为空时隐藏，不填入默认模型。
+正文保持居中，浏览页保留完整 192 字节 ASCII 上下文；本次 UI 更新不新增原生模型采集。
 
 所有桌面保留手表的手动选择，目标退到后台时进入同一 Agent 的中央唤起状态。
 心跳 5 秒、连接所有者租约 15 秒；租约过期或所有者断开则恢复首页。
