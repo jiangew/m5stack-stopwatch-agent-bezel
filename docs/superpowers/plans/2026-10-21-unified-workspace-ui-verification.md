@@ -46,11 +46,19 @@ baseline and remain in private storage. Only app0@0x10000 was written.
 - Protected 64KiB matched its original backup byte for byte, preserving bootloader,
   partition table, NVS and OTA metadata.
 - Updater completed with UPDATE VERIFIED; private installation receipts updated.
-- Automatic hard reset left USB in its download personality. A single physical
-  RESET was requested before runtime acceptance. Initial post-reset HID probes
-  found no vendor HID device; runtime verification is still pending.
+- Automatic hard reset initially left USB in its download personality. After a
+  single physical RESET, the user confirmed appearance and operations normal:
+  circular DSH/SUPER/HERMES pages, clear notification fonts/canonical source
+  names, taps, four swipe directions, notification browsing/BACK and Home tilt.
+- Device status RPC and IMU RPC both returned successfully through vendor HID.
+  IMU was available, enabled and active, with zero reported errors.
+- USB re-enumerated as Codex StopWatch Mic. The precompiled capture helper
+  captured 96256 mono PCM frames in 2.005 seconds; duration and analysis passed.
+  The first interpreted helper attempt timed out; separating compilation and
+  capture succeeded without firmware changes. The temporary recording was deleted.
+- Private installation records now mark physical UI acceptance and USB audio,
+  HID RPC and IMU RPC checks complete.
 
-Physical acceptance remains pending: unified circles/fonts, notification
-browsing/BACK, workspace taps and all four swipe actions, Home IMU, BLE/HID and
-USB input-only audio. Native pixels and build results do not prove device feel,
-latency, microphone quality or physical gesture acceptance.
+The user has accepted this UI release on C152. Quantified device latency,
+long-duration microphone quality, power consumption and false-trigger rates
+were not measured by this focused UI acceptance.

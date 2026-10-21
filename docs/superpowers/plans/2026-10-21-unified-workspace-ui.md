@@ -55,5 +55,6 @@ Files: `scripts/generate_notification_fonts.py`, `include/NotificationFonts.h`,
 - [x] Flash app0 only, independently compare readback and protected regions,
   restart, and request physical UI/audio/HID/Home acceptance.
 
-Device write/readback/protected-region checks passed. Physical RESET and
-post-update UI/audio/HID acceptance remain pending; see the validation record.
+Device write/readback/protected-region checks passed. The user confirmed
+physical RESET, appearance and interactions normal. HID/IMU RPC and a short USB
+audio capture passed; see the validation record.
