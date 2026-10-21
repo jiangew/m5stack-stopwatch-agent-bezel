@@ -34,6 +34,17 @@ matched the previous accepted unified UI image. Application from source commit
 - Independent 2710144-byte application readback matched the immutable image.
 - Protected first 64KiB remained byte-identical.
 - Updater completed with UPDATE VERIFIED and private receipts were updated.
-- Automatic reset left USB in its download personality; a single physical RESET
-  was requested. Physical layout/control acceptance and post-reset runtime checks
-  remain pending. Prior accepted images and private backups are retained.
+- After a single physical RESET, the user confirmed the new display layout normal.
+- The user reported no visible change on UP/DOWN with two notices. Read-only queue
+  inspection found two distinct completion records whose source, kind, title,
+  model, body, options, outcome and displayed state were identical.
+- Distinct read-only TEST SWIPE A/B fixtures were ingested through normal ingress.
+  The user confirmed A -> B -> A on every swipe. Browsing works on this unchanged
+  firmware; identical content had made switching visually ambiguous. No gesture
+  thresholds, ownership rules or input routing were changed.
+- Post-reset device status and IMU RPC passed. USB input capture passed:
+  96256 mono PCM frames in 2.005 seconds, within duration tolerance.
+  The temporary recording was deleted; private acceptance receipts were updated.
+- Physical layout/navigation acceptance is complete. Prior accepted images and
+  private backups are retained. Quantified latency, audio quality and long-term
+  false-trigger rates were not measured by this UI update.
