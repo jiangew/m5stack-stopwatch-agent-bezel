@@ -26,6 +26,14 @@
 
 ## Device gate
 
-Private app0/protected-area backup is in progress. Exact live-port confirmation,
-app0-only write, independent readback, protected-region comparison and physical
-UI acceptance remain required before calling this device update accepted.
+The user confirmed the exact live port after full app0/protected-region backup
+matched the previous accepted unified UI image. Application from source commit
+`33de6d4fa1ad95f9d0e83a5ccc4b03b1aaf7872a` was written to app0@0x10000 only.
+
+- Write hash verification passed.
+- Independent 2710144-byte application readback matched the immutable image.
+- Protected first 64KiB remained byte-identical.
+- Updater completed with UPDATE VERIFIED and private receipts were updated.
+- Automatic reset left USB in its download personality; a single physical RESET
+  was requested. Physical layout/control acceptance and post-reset runtime checks
+  remain pending. Prior accepted images and private backups are retained.
