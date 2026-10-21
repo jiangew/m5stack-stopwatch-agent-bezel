@@ -57,12 +57,22 @@ int main(){
       if(text.value==c.title)lowerTitle=text.y>=120&&text.datum==middle_center;
       if(text.y>=195&&text.y<=363){assert(text.datum==middle_center&&text.x==233);}
       if(text.value==std::string(c.detail,24))lowerBody=text.y>=195&&text.y+7*24+10<382&&text.font==font_data::kSpaceMono24Vlw;
-      if(text.value.find("UP/DOWN")!=std::string::npos||text.value.find("LEFT:")!=std::string::npos){
-        assert(text.y>=375&&text.y<=410&&text.font==dashboard::font_data::kSpaceMono18Vlw);++compactHints;
+      if(text.value=="UP/DOWN: BROWSE"||text.value=="LEFT: DISMISS"||text.value=="TAP: DETAILS"||text.value=="RIGHT: BACK"){
+        assert(text.y>=365&&text.y<=400&&text.font==font_data::kSpaceMono15Vlw);
+        assert(text.datum==middle_left);++compactHints;
       }
       if(text.value=="BACK")back=text.y==430;
     }
-    assert(lowerTitle&&lowerBody&&back&&compactHints==2&&full.find(c.detail)!=std::string::npos);
+    assert(lowerTitle&&lowerBody&&back&&compactHints==4&&full.find(c.detail)!=std::string::npos);
+    auto hint=[&](const char* value)->const Canvas::Text&{
+      for(const auto& text:frame.texts)if(text.value==value)return text;
+      assert(false);return frame.texts.front();
+    };
+    assert(hint("UP/DOWN: BROWSE").x==hint("LEFT: DISMISS").x);
+    assert(hint("TAP: DETAILS").x==hint("RIGHT: BACK").x);
+    assert(hint("UP/DOWN: BROWSE").x<hint("TAP: DETAILS").x);
+    assert(hint("UP/DOWN: BROWSE").y==hint("TAP: DETAILS").y);
+    assert(hint("LEFT: DISMISS").y==hint("RIGHT: BACK").y);
   }
   Card readOnly=c;readOnly.decide=false;
   Controller detail;detail.receive(readOnly,100);detail.present(100,true);

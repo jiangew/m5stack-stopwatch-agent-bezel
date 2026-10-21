@@ -16,7 +16,7 @@ template<class Surface> void label(Surface& s,const char* text,int x,int y,uint1
       : font_data::kSpaceMono15Vlw;
   s.loadFont(font);s.setTextSize(1);s.setTextDatum(datum);s.setTextColor(color);s.drawString(text,x,y);s.unloadFont();
 }
-template<class Surface> void wrapped(Surface& s,const char* text,int y,unsigned columns,float size,unsigned maxRows=6,int left=-1){
+template<class Surface> void wrapped(Surface& s,const char* text,int y,unsigned columns,float size,unsigned maxRows=6,int left=-1,int lineStep=0){
   const std::size_t n=std::strlen(text);
   unsigned row=0;
   for(std::size_t at=0;at<n;++row){
@@ -26,7 +26,7 @@ template<class Surface> void wrapped(Surface& s,const char* text,int y,unsigned 
     const std::size_t minimum=(n-at)>reserve?(n-at)-reserve:1;
     if(count<n-at)for(std::size_t i=count;i>=minimum&&i>0;--i)if(text[at+i-1]==' '){count=i;break;}
     std::memcpy(line,text+at,count);
-    label(s,line,left>=0?left:233,y,kInk,size,left>=0?middle_left:middle_center);y+=size>=2.5f?24:size>=2?20:15;
+    label(s,line,left>=0?left:233,y,kInk,size,left>=0?middle_left:middle_center);y+=lineStep>0?lineStep:(size>=2.5f?24:size>=2?20:15);
     at+=count;
   }
 }
@@ -75,7 +75,8 @@ template<class Surface> void render(Surface& s,const Controller& ui,uint32_t now
   label(s,state,233,139+offset,color,reading?2.f:1.5f);
   // Keep all 192 ASCII bytes visible at the larger reading size: eight rows
   // of 24 columns, with dedicated space below for controls.
-  wrapped(s,c.detail,165+offset,reading?24:36,reading?2.5f:1.5f,reading?8:6);
+  // Browsing keeps all eight rows clear of the raised compact hints.
+  wrapped(s,c.detail,165+offset,reading?24:36,reading?2.5f:1.5f,reading?8:6,-1,browsing?23:0);
   if(ui.view()==View::Confirm){
     const char* selected=ui.selection();
     if(!std::strcmp(selected,"allow_once"))selected="ALLOW ONCE";
@@ -94,8 +95,11 @@ template<class Surface> void render(Surface& s,const Controller& ui,uint32_t now
     }else if(!reading)label(s,!std::strcmp(c.state,"unknown")?"RESULT UNKNOWN":"Review on Mac",233,301,kDim);
     button(s,"OPEN ON MAC",100,376,266,kDim,reading?2.5f:2.f);
   }else{
-    label(s,"UP/DOWN: BROWSE   TAP: DETAILS",233,388,kDim,1.75f);
-    label(s,"LEFT: DISMISS   RIGHT: BACK",233,405,kDim,1.75f);
+    // Align each column independently while retaining the compact two-row footer.
+    label(s,"UP/DOWN: BROWSE",88,378,kDim,1.5f,middle_left);
+    label(s,"LEFT: DISMISS",88,395,kDim,1.5f,middle_left);
+    label(s,"TAP: DETAILS",264,378,kDim,1.5f,middle_left);
+    label(s,"RIGHT: BACK",264,395,kDim,1.5f,middle_left);
   }
   label(s,ui.view()==View::Confirm?"CANCEL":"BACK",233,430,kDim,reading?2.5f:2.f);
 }
