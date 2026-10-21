@@ -52,5 +52,8 @@ Files: `scripts/generate_notification_fonts.py`, `include/NotificationFonts.h`,
 - [x] Commit only reviewed source, fonts, tests and design/release documentation.
 - [x] Prepare a new immutable private candidate and updater. Resolve the actual
   connected C152 port; back up app0/protected regions and confirm exact target.
-- [ ] Flash app0 only, independently compare readback and protected regions,
+- [x] Flash app0 only, independently compare readback and protected regions,
   restart, and request physical UI/audio/HID/Home acceptance.
+
+Device write/readback/protected-region checks passed. Physical RESET and
+post-update UI/audio/HID acceptance remain pending; see the validation record.

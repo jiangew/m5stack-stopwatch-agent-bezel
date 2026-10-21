@@ -35,11 +35,20 @@ Missing model data remains hidden; native model capture is outside this release.
 
 ## Device release gate
 
-The existing accepted C152 identity and 16MB flash were confirmed read-only.
-A separate private updater and candidate were prepared; original images and
-receipts remain intact. Full app0 and protected-region backup, exact-port
-confirmation, app0-only write, independent readback and protected-region
-comparison must complete before calling the update flashed.
+Application from source commit `3e9c8dc133b9df50a51deee7da01d2b162472f55`
+was written after explicit confirmation of the exact live port. The existing
+accepted C152 identity, 16MB capacity and actual partition table were checked.
+Complete app0 (0x640000 bytes) and protected 64KiB backups matched the accepted
+baseline and remain in private storage. Only app0@0x10000 was written.
+
+- Esptool write hash passed.
+- Independent 2710080-byte application readback matched the candidate byte for byte.
+- Protected 64KiB matched its original backup byte for byte, preserving bootloader,
+  partition table, NVS and OTA metadata.
+- Updater completed with UPDATE VERIFIED; private installation receipts updated.
+- Automatic hard reset left USB in its download personality. A single physical
+  RESET was requested before runtime acceptance. Initial post-reset HID probes
+  found no vendor HID device; runtime verification is still pending.
 
 Physical acceptance remains pending: unified circles/fonts, notification
 browsing/BACK, workspace taps and all four swipe actions, Home IMU, BLE/HID and
