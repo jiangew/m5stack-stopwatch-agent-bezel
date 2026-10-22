@@ -70,6 +70,19 @@ Rich read-only publication fits the assembled route envelope before filesystem
 writes and marks shortened excerpts. A real Python→Swift ingress test also covers
 Foundation's slash escaping; no approval/input scope uses this fitting path.
 
+## Artifact pins
+
+Implementation source: `7ec093f64390b147aa285c0be36bc2cae4b4d212`.
+The narrow re-review confirmed both findings resolved with no actionable regression.
+All artifacts are local candidates; source/data stay separate from the private
+installation binding and runtime.
+
+| Artifact | Bytes | SHA-256 |
+| --- | ---: | --- |
+| Standard application | 2251392 | `9392e3c53f6be8e8e22a70d2ffe95199e582f8c3fe51c6bc7059808175448b14` |
+| Selected USB-mic+IMU application | 3582896 | `64068d34d470280e22031a3997fc21402c5c8a31bfa078f1455afe1d620d8e24` |
+| Packaged Companion build16 executable | 897216 | `8efec95204e0ef9d235df89a4b94147a4a5acebdd94b5a91dfe038960f669f85` |
+
 ## Deployment gate
 
 This is a source/build candidate. Live Companion replacement, hook editing,

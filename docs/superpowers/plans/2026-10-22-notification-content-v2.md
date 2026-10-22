@@ -55,7 +55,21 @@ simulator/task_notification_test.cpp, task_notification_ui_test.cpp, preview_mai
 
 ## Task 4: Reviewable candidate and deployment boundary
 
-- [ ] Update bilingual docs and native data/capability evidence, record build/hash
+- [x] Update bilingual docs and native data/capability evidence, record build/hash
   and tests. Review the fixed patch before any merge or runtime replacement.
-- [ ] Present native previews and exact remaining deployment steps. Keep the
+- [x] Present native previews and exact remaining deployment steps. Keep the
   installed working system untouched until installation/flash acceptance.
+
+
+## Candidate handoff
+
+Implementation pin: `7ec093f64390b147aa285c0be36bc2cae4b4d212` on
+`feature/notification-content-v2`. Both P2 review findings were reproduced and
+fixed; narrow re-review found no actionable regression. Final validation:42
+Python tests (2 optional skips),15 coupled bridge tests, standalone Swift,
+firmware sanitizer/main-loop regressions and actual drawScreen checks; release,
+standard/native and selected USB-mic+IMU builds passed. Native preview opened.
+
+Candidate installation, opt-in activation, exact connected-port flashing and
+physical acceptance remain pending user review. Existing installed services,
+hooks, queue and firmware remain untouched. No merge/push was requested here.
