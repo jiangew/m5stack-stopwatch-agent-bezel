@@ -7,10 +7,10 @@ final class TaskNotificationRuntime {
     private var timer: Timer?
     private var delivery = TaskNotificationWriteSchedule()
     private let log: (String) -> Void
-    init(directory: String, identifier: UUID, muteLegacyCodex: Bool = false, log: @escaping (String) -> Void) throws {
+    init(directory: String, identifier: UUID, muteLegacyCodex: Bool = false, richContent: Bool = false, log: @escaping (String) -> Void) throws {
         self.log = log
         store = try TaskNotificationStore(directory: directory)
-        broker = try TaskNotificationBroker(store: store, muteLegacyCodex: muteLegacyCodex)
+        broker = try TaskNotificationBroker(store: store, muteLegacyCodex: muteLegacyCodex, richContent: richContent)
         transport = TaskNotificationTransport(identifier: identifier, receive: { [weak self] action in
             guard let self else { return }
             do { try self.broker.handle(action, now: Self.now) }

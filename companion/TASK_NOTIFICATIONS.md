@@ -153,3 +153,30 @@ This explicit flag mutes only the old vendor-HID completion chime/banner while
 private-channel heartbeats are fresh (15 seconds). Status LEDs keep updating;
 stale/disconnected private channels restore legacy completion alerts. Default is
 o suppression. Installing an adapter alone does not change the running Companion.
+
+
+## Optional read-only content V2
+
+`--notification-content-v2` requires the existing real `--watch --device-id ...
+--notifications-dir ...` mode and matching firmware. Default remains legacy.
+Only non-capable `done`/`failed` records use this presentation. Approval/input and
+any native capability keep the existing complete ASCII scope path; no scope is
+shortened into an actionable card.
+
+Private events accept optional `project` (<=64 UTF-8 bytes) and `excerpted` (bool).
+Both are part of immutable event content for the same revision. Durable event
+text stays unchanged by wire projection. Wire JSON remains `v:1` and <=512 UTF-8
+bytes, with `layout:2`, `pos:1..count`, optional `project` (<=32 UTF-8 bytes),
+`time` (local HH:mm), and `excerpted`. Title is <=32 characters /96 UTF-8 bytes
+with explicit ellipsis when shortened. Detail is at most128 UTF-8 bytes and can
+be shorter to fit JSON escaping/metadata; `MORE ON MAC` identifies clipping.
+The budget reserves maximum ack/count/position widths so normal acknowledgement
+or inbox growth does not mutate a card's immutable excerpt. Frames are not
+fragmented. Firmware rejects malformed UTF-8 and rich deciding cards. Devices
+on old firmware must keep the Companion V2 flag off.
+
+Host verification includes actual Swift-generated Unicode wire fixtures parsed
+by the firmware C++ parser. Native framebuffer previews share the device renderer.
+Neither establishes installed/live/physical acceptance. Roll back by disabling
+both opt-ins before restoring older firmware or Companion; preserved original
+queue records remain readable by the old decoder.

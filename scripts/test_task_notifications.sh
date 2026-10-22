@@ -16,6 +16,16 @@ swiftc -parse-as-library \
   companion/Sources/CodexWatchCompanion/TaskNotificationModel.swift \
   companion/Sources/CodexWatchCompanion/TaskNotificationStore.swift \
   companion/Sources/CodexWatchCompanion/TaskNotificationBroker.swift \
+  companion/StandaloneTests/TaskNotificationContentRegression.swift -o "$output/content-regression"
+"$output/content-regression"
+"$output/content-regression" --emit-wire > "$output/rich-wire.jsonl"
+c++ -std=c++17 -fsanitize=address,undefined -Iinclude -isystem .pio/libdeps/m5stack-stopwatch/ArduinoJson/src \
+  simulator/task_notification_content_test.cpp -o "$output/content-parser"
+"$output/content-parser" "$output/rich-wire.jsonl"
+swiftc -parse-as-library \
+  companion/Sources/CodexWatchCompanion/TaskNotificationModel.swift \
+  companion/Sources/CodexWatchCompanion/TaskNotificationStore.swift \
+  companion/Sources/CodexWatchCompanion/TaskNotificationBroker.swift \
   companion/StandaloneTests/TaskNotificationReviewRegression.swift -o "$output/review-regression"
 "$output/review-regression"
 # Compile the real transport against a narrow CoreBluetooth double; this

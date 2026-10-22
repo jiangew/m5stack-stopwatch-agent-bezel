@@ -623,6 +623,11 @@ The [2026-10-20 integration record](docs/TASK_NOTIFICATIONS_RELEASE_20261020.md)
 summarizes the final Home badge, centered notification text, regression checks
 and separately recorded physical acceptance.
 
+The [notification content V2 candidate](docs/NOTIFICATION_CONTENT_V2_20261022.md)
+adds opt-in native Codex task names (including Chinese), position, project/time
+and bounded last-reply excerpts. It requires coordinated firmware, Companion and
+hook updates; it is not automatically installed or physically accepted.
+
 ## Troubleshooting
 
 ### The C152 does not appear as a serial device

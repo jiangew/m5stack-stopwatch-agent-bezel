@@ -14,6 +14,8 @@ struct Canvas {
   const std::uint8_t* font=nullptr;
   void loadFont(const std::uint8_t* f){font=f;}
   void unloadFont(){font=nullptr;}
+  void setFont(const lgfx::IFont* f){font=reinterpret_cast<const std::uint8_t*>(f);}
+  int textWidth(const char* s){int width=0;for(std::size_t i=0;i<std::strlen(s);){unsigned n=task_notification::utf8Length(static_cast<unsigned char>(s[i]));width+=n>1?24:15;i+=n;}return width;}
   float textSize=1;
   textdatum_t datum=middle_center;
   void fillScreen(unsigned){} void setTextFont(int){} void setTextSize(float size){textSize=size;}
@@ -112,5 +114,20 @@ int main(){
   Canvas modeledFrame;render(modeledFrame,modelRow,120);
   assert(modeledFrame.texts[1].value==modeled.model);
   assert(modeledFrame.texts[1].font==dashboard::font_data::kSpaceMono18Vlw);
+  Card rich=c;rich.decide=false;rich.rich=true;rich.position=2;rich.count=6;rich.excerpted=true;
+  std::strcpy(rich.kind,"done");std::strcpy(rich.title,"优化通知页布局");std::strcpy(rich.detail,"Result excerpt");std::strcpy(rich.project,"stopwatch");std::strcpy(rich.time,"14:32");
+  Controller richUi;richUi.receive(rich,200);richUi.openInbox(210);Canvas richFrame;render(richFrame,richUi,220);
+  assert(richFrame.strings[0]=="Codex   2/6");
+  assert(std::find(richFrame.strings.begin(),richFrame.strings.end(),"TURN ENDED")!=richFrame.strings.end());
+  assert(std::find(richFrame.strings.begin(),richFrame.strings.end(),"MORE ON MAC")!=richFrame.strings.end());
+  assert(std::find(richFrame.strings.begin(),richFrame.strings.end(),"pending")==richFrame.strings.end());
+  Canvas dense;assert(richWrapped(dense,"abcdefghijklmnopqrs abcdefghijklmnopqrs abcdefghijklmnopqrs abcdefghijklmnopqrs abcdefghijklmnopqrs abcdefghijklmnopqrs abcdefghi",201,6));
+  assert(dense.texts.size()==6&&dense.texts.back().value.find("...")!=std::string::npos);
+  Canvas words;richWrapped(words,"Alpha bravo charlie delta echo foxtrot",195,6);
+  assert(words.texts.size()==2&&words.texts[0].value=="Alpha bravo charlie");
+  for(const auto& line:words.texts)assert(words.textWidth(line.value.c_str())<=360);
+  Canvas mixed;richWrapped(mixed,"优化 Codex 通知 / UI 2026",124,2);
+  std::string combined;for(const auto& line:mixed.texts)combined+=line.value;
+  assert(combined=="优化 Codex 通知 / UI 2026");
   std::puts("PASS full decision scope rendered and offline decision controls removed");
 }

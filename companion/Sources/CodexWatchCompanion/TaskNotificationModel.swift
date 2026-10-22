@@ -34,6 +34,8 @@ struct TaskNotificationEvent: Codable, Equatable {
     var options: [String]?
     var optionIds: [String]?
     var outcome: String?
+    var project: String? = nil
+    var excerpted: Bool? = nil
     var identity: [String] { [source, sessionId, runId, requestId] }
 
     func validate() throws {
@@ -43,6 +45,7 @@ struct TaskNotificationEvent: Codable, Equatable {
               [eventId, sessionId, runId, requestId].allSatisfy({ !$0.isEmpty && $0.utf8.count <= 256 && !$0.contains("\0") }),
               [title, model, detail].allSatisfy({ $0.utf8.count <= 4096 && !$0.contains("\0") }),
               try JSONEncoder().encode(self).count <= 8192 else { throw TaskNotificationError.invalid }
+        if let project { guard project.utf8.count <= 64, !project.contains("\0") else { throw TaskNotificationError.invalid } }
         if let outcome {
             guard state == "resolved", ["allowed", "declined", "answered", "cancelled"].contains(outcome) else { throw TaskNotificationError.invalid }
         }
@@ -77,6 +80,11 @@ struct TaskNotificationCard: Codable, Equatable {
     var ack: UInt32 = 0
     var outcome: String?
     var muteLegacyCodex: Bool? = nil
+    var layout: Int? = nil
+    var pos: Int? = nil
+    var project: String? = nil
+    var time: String? = nil
+    var excerpted: Bool? = nil
 }
 struct TaskNotificationAction: Codable {
     var v: Int
@@ -113,4 +121,54 @@ struct TaskNotificationSnapshot: Codable {
     var v = 1
     var nextID: UInt32 = 1
     var records: [TaskNotificationRecord] = []
+}
+
+/// Presentation only. Native routing and the durable original remain unchanged.
+enum TaskNotificationPresentation {
+    static func prefix(_ text: String, bytes: Int) -> String {
+        var result="", used=0
+        for scalar in text.unicodeScalars {
+            let part=String(scalar), size=part.utf8.count
+            if used+size>bytes { break }
+            result+=part;used+=size
+        }
+        return result
+    }
+    static func plain(_ text: String) -> String {
+        text.components(separatedBy:.whitespacesAndNewlines).filter { !$0.isEmpty }.joined(separator:" ")
+            .unicodeScalars.filter { !CharacterSet.controlCharacters.contains($0) }.map(String.init).joined()
+    }
+    static func card(_ original: TaskNotificationCard, event: TaskNotificationEvent, position: Int) throws -> TaskNotificationCard {
+        var card=original
+        card.layout=2;card.pos=position
+        if !TaskNotificationEvent.ascii(card.model,max:32) {card.model=""}
+        let name=plain(event.title)
+        let title = name.isEmpty ? "未命名任务 #\(card.id)" : name
+        card.title=prefix(String(title.prefix(32)),bytes:96)
+        if card.title != title {card.title=prefix(String(title.prefix(29)),bytes:93)+"..."}
+        card.project=prefix(plain(event.project ?? ""),bytes:32)
+        if card.project?.isEmpty == true {card.project=nil}
+        let formatter=DateFormatter();formatter.locale=Locale(identifier:"en_US_POSIX");formatter.dateFormat="HH:mm"
+        card.time=formatter.string(from:Date(timeIntervalSince1970:Double(event.createdAt)/1000))
+        let full=plain(event.detail)
+        var budget=128
+        while true {
+            card.detail=prefix(full,bytes:budget)
+            if card.detail.utf8.count<full.utf8.count && budget>=3 {
+                card.detail=prefix(full,bytes:budget-3)
+                if let end=card.detail.last, end.isASCII && end.isLetter,
+                   let space=card.detail.lastIndex(of:" "), card.detail[..<space].utf8.count>budget/2 {
+                    card.detail=String(card.detail[..<space])
+                }
+                card.detail+="..."
+            }
+            card.excerpted=(event.excerpted == true || card.detail.utf8.count<full.utf8.count) ? true : nil
+            var ceiling=card;ceiling.count=64;ceiling.pos=64;ceiling.ack=UInt32.max
+            if try JSONEncoder().encode(ceiling).count<=512 {return card}
+            if budget>0 {budget=max(0,budget-8);continue}
+            if card.project != nil {card.project=nil;continue}
+            if !card.model.isEmpty {card.model="";continue}
+            throw TaskNotificationError.invalid
+        }
+    }
 }

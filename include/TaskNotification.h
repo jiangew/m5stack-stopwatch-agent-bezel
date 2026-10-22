@@ -14,9 +14,11 @@ constexpr int kBadgeCenterX=378,kBadgeCenterY=233,kBadgeRadius=40,kBadgeHitRadiu
 
 struct Card {
   uint32_t g=0,id=0,r=0,ttl=0,ack=0;
-  uint8_t count=0,alert=0,optionCount=0;
+  uint8_t count=0,alert=0,optionCount=0,position=0;
+  bool rich=false,excerpted=false;
+  char project[33]={},time[6]={};
   bool decide=false,muteLegacyCodex=false;
-  char src[9]={},kind[9]={},title[49]={},model[33]={},detail[193]={},state[11]={};
+  char src[9]={},kind[9]={},title[97]={},model[33]={},detail[193]={},state[11]={};
   char outcome[10]={};
   char options[3][25]={};
 };
@@ -26,6 +28,22 @@ inline bool ownsLegacyCodexCompletion(const Snapshot& snapshot,uint32_t now) {
 }
 inline bool oneOf(const char* s,const char* a,const char* b,const char* c,const char* d) {
   return !std::strcmp(s,a)||!std::strcmp(s,b)||!std::strcmp(s,c)||!std::strcmp(s,d);
+}
+inline unsigned utf8Length(unsigned char c){return c<0x80?1:c>=0xc2&&c<=0xdf?2:c>=0xe0&&c<=0xef?3:c>=0xf0&&c<=0xf4?4:0;}
+inline bool validUtf8(const char* data,std::size_t length){
+  for(std::size_t i=0;i<length;){
+    const auto c=static_cast<unsigned char>(data[i]);const unsigned n=utf8Length(c);
+    if(!n||i+n>length||c<32||c==127)return false;
+    for(unsigned j=1;j<n;++j)if((static_cast<unsigned char>(data[i+j])&0xc0)!=0x80)return false;
+    const auto second=n>1?static_cast<unsigned char>(data[i+1]):0;
+    if((c==0xe0&&second<0xa0)||(c==0xed&&second>=0xa0)||(c==0xf0&&second<0x90)||(c==0xf4&&second>=0x90))return false;
+    i+=n;
+  }return true;
+}
+template<std::size_t N> bool utf8Text(JsonVariantConst value,char (&out)[N]){
+  if(!value.is<const char*>())return false;const auto str=value.as<JsonString>();
+  if(str.size()>=N||!validUtf8(str.c_str(),str.size()))return false;
+  std::memcpy(out,str.c_str(),str.size());out[str.size()]=0;return true;
 }
 template<std::size_t N> bool text(JsonVariantConst value,char (&out)[N]) {
   if(!value.is<const char*>())return false;
@@ -49,8 +67,19 @@ inline bool parse(JsonObjectConst value,Card& output) {
     if(!value["muteLegacyCodex"].is<bool>())return false;c.muteLegacyCodex=value["muteLegacyCodex"];
   }
   if(value.containsKey("ack")) {if(!value["ack"].is<uint32_t>())return false;c.ack=value["ack"];}
-  if(!text(value["src"],c.src)||!text(value["kind"],c.kind)||!text(value["title"],c.title)||
-     !text(value["model"],c.model)||!text(value["detail"],c.detail)||!text(value["state"],c.state))return false;
+  if(value.containsKey("layout")){
+    if(!value["layout"].is<unsigned>()||value["layout"].as<unsigned>()!=2||c.decide)return false;
+    c.rich=true;
+    if(!value["pos"].is<unsigned>())return false;const unsigned pos=value["pos"];
+    if(!pos||pos>count)return false;c.position=pos;
+    if(!value["project"].isNull()&&!utf8Text(value["project"],c.project))return false;
+    if(!value["time"].isNull()&&!text(value["time"],c.time))return false;
+    if(value.containsKey("excerpted")){if(!value["excerpted"].is<bool>())return false;c.excerpted=value["excerpted"];}
+  }
+  if(!text(value["src"],c.src)||!text(value["kind"],c.kind)||!text(value["model"],c.model)||!text(value["state"],c.state))return false;
+  if(c.rich){
+    if((std::strcmp(c.kind,"done")&&std::strcmp(c.kind,"failed"))||!utf8Text(value["title"],c.title)||!utf8Text(value["detail"],c.detail))return false;
+  }else if(!text(value["title"],c.title)||std::strlen(c.title)>48||!text(value["detail"],c.detail))return false;
   if(!oneOf(c.src,"codex","deepseek","super","hermes")||
      !oneOf(c.kind,"done","approval","input","failed")||
      !(oneOf(c.state,"pending","submitting","resolved","unknown")||!std::strcmp(c.state,"expired")))return false;
@@ -69,6 +98,7 @@ inline bool parse(JsonObjectConst value,Card& output) {
 }
 inline bool sameRequest(const Card& a,const Card& b){return a.g==b.g&&a.id==b.id&&a.r==b.r;}
 inline bool sameContext(const Card& a,const Card& b){
+  if(a.rich!=b.rich||std::strcmp(a.project,b.project)||a.excerpted!=b.excerpted)return false;
   if(std::strcmp(a.src,b.src)||std::strcmp(a.kind,b.kind)||std::strcmp(a.title,b.title)||
      std::strcmp(a.model,b.model)||std::strcmp(a.detail,b.detail)||a.optionCount!=b.optionCount)return false;
   for(unsigned i=0;i<a.optionCount;++i)if(std::strcmp(a.options[i],b.options[i]))return false;

@@ -4,6 +4,7 @@ import Foundation
 final class TaskNotificationBroker {
     private let store: TaskNotificationStore
     private let muteLegacyCodex: Bool
+    private let richContent: Bool
     private var snapshot: TaskNotificationSnapshot
     private var fresh: Set<UInt32> = []
     private var selected: UInt32?
@@ -18,7 +19,8 @@ final class TaskNotificationBroker {
         clock = now
     }
     var count: Int { snapshot.records.filter { !$0.dismissed }.count }
-    init(store: TaskNotificationStore, muteLegacyCodex: Bool = false) throws {
+    init(store: TaskNotificationStore, muteLegacyCodex: Bool = false, richContent: Bool = false) throws {
+        self.richContent = richContent
         self.muteLegacyCodex = muteLegacyCodex
         self.store = store; snapshot = try store.load()
         // Persisted dispatch is never retried, even if publication crashed. Native resolution must reconcile it.
@@ -61,7 +63,7 @@ final class TaskNotificationBroker {
             guard event.revision >= old.event.revision else { return }
             if event.revision == old.event.revision {
                 guard event.kind == old.event.kind, event.title == old.event.title, event.model == old.event.model,
-                      event.detail == old.event.detail, event.options == old.event.options, event.optionIds == old.event.optionIds else { throw TaskNotificationError.invalid }
+                      event.detail == old.event.detail, event.project == old.event.project, event.excerpted == old.event.excerpted, event.options == old.event.options, event.optionIds == old.event.optionIds else { throw TaskNotificationError.invalid }
                 if old.state == "resolved" {
                     guard event.state == "resolved", old.event.outcome == nil, event.outcome != nil else { return }
                 }
@@ -131,6 +133,10 @@ final class TaskNotificationBroker {
             count: count, ttl: Int(remaining), alert: alerts[record.id] ?? 0,
             decide: displayable && fresh.contains(record.id) && capable && record.state == "pending" && record.dispatchId == nil && remaining > 0 && event.createdAt <= now && now - event.createdAt <= 15_000 && event.leaseDeadline <= event.createdAt + 15_000,
             options: event.options, ack: lastActionSequence, outcome: record.state == "resolved" ? event.outcome : nil, muteLegacyCodex: muteLegacyCodex ? true : nil)
+        if richContent, !capable, ["done", "failed"].contains(event.kind) {
+            let position=(orderedVisibleRecords().firstIndex(where: {$0.id==record.id}) ?? 0)+1
+            return try TaskNotificationPresentation.card(card,event:event,position:position)
+        }
         if try !displayable || JSONEncoder().encode(card).count > 512 {
             card.title = "Open on Mac"; card.model = ""; card.detail = "Full scope available on Mac"; card.decide = false; card.options = nil
         }

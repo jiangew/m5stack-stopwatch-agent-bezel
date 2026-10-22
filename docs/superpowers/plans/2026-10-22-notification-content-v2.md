@@ -35,22 +35,22 @@ notifications/tests/test_adapters.py, scripts/tests/test_stopwatch_notify.py.
 Files: TaskNotificationModel.swift, TaskNotificationBroker.swift,
 TaskNotificationRuntime.swift, main.swift, standalone regression files.
 
-- [ ] Add failing Swift cases for optional-field queue compatibility, Chinese
+- [x] Add failing Swift cases for optional-field queue compatibility, Chinese
   titles, stable untitled serial, all visible positions and <=512-byte fitting.
-- [ ] Add --notification-content-v2 (default off), opt-in broker projection and
+- [x] Add --notification-content-v2 (default off), opt-in broker projection and
   immutable metadata comparisons. Preserve the legacy complete deciding path.
-- [ ] Run host/coupled notification suites with Unicode and long-content fixtures.
+- [x] Run host/coupled notification suites with Unicode and long-content fixtures.
 
 ## Task 3: UTF-8 firmware and native preview
 
 Files: include/TaskNotification.h, include/TaskNotificationUi.h,
 simulator/task_notification_test.cpp, task_notification_ui_test.cpp, preview_main.cpp.
 
-- [ ] Add failing tests for valid/invalid UTF-8, bounded title wrapping, indexed
+- [x] Add failing tests for valid/invalid UTF-8, bounded title wrapping, indexed
   navigation, CJK font selection, semantic status and untouched legacy scope.
-- [ ] Render rich title/project/excerpt with native CJK fallback and measured
+- [x] Render rich title/project/excerpt with native CJK fallback and measured
   wrapping; keep every legacy action/hit region and footer unchanged.
-- [ ] Build standard, native and USB-mic+IMU candidates; inspect short/long/mixed
+- [x] Build standard, native and USB-mic+IMU candidates; inspect short/long/mixed
   Chinese frames and verify circle/footer clearance. Run relevant regressions.
 
 ## Task 4: Reviewable candidate and deployment boundary

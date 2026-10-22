@@ -39,11 +39,42 @@ notify = ["python3", "/ABSOLUTE/CHECKOUT/notifications/adapters/codex_notify.py"
 
 Codex appends the JSON callback argument. Each callback queries only that exact thread through a short local App Server metadata connection: `initialize`, `initialized`, then `thread/read {threadId,includeTurns:false}`. Known root sources (`cli`, `vscode`, `exec`, `appServer`) with no parent and no turns are accepted automatically, so future simultaneous root tasks do not need permanent per-task IDs. Native subAgent sources are rejected. This read neither resumes/starts a thread nor subscribes to/controls the desktop runtime; it issues no account or model request.
 
-The native metadata response also contains a preview (usually the first user message). It is transiently received and immediately discarded; no preview/title/cwd is logged, displayed or persisted. For environments that prohibit even that local metadata transfer, add `--no-metadata-query` and repeat `--root-session NATIVE_ROOT_THREAD_ID` for independently verified roots instead. Unknown sources, query failure, unsupported schema or absent persisted thread metadata require an explicit root fallback; otherwise that completion is skipped. A known child cannot be overridden by the allowlist. The metadata route is source/schema and fixture verified, not yet observed on an installed notify hook.
+The native metadata response also contains a preview (usually the first user message). It is transiently received and immediately discarded; without the rich-content opt-in, no preview/title/cwd is logged, displayed or persisted. For environments that prohibit even that local metadata transfer, add `--no-metadata-query` and repeat `--root-session NATIVE_ROOT_THREAD_ID` for independently verified roots instead. Unknown sources, query failure, unsupported schema or absent persisted thread metadata require an explicit root fallback; otherwise that completion is skipped. A known child cannot be overridden by the allowlist. The metadata route is source/schema and fixture verified, not yet observed on an installed notify hook.
 
 Loading/reloading notify into already open desktop threads still needs live acceptance. There is no wrapper that starts a new task. Once opting into this native Codex route, start Companion with `--native-codex-notifications` as well as `--watch --notifications-dir ...`: the dedicated fresh channel then suppresses duplicate legacy vendor-HID Codex completion alerts while preserving status LEDs. The option defaults off; stale/disconnected dedicated delivery falls back after 15 seconds. Source/build tests do not establish physical duplicate-alert acceptance.
 
-The handler discards `input-messages`, `last-assistant-message`, metadata preview, working directory and other task content. It emits only generic completion display text and exact native IDs. `Stop` is not used as final completion because other Stop hooks can continue a turn. `notify` does not provide approvals, input, failed or interrupted outcomes. See [official notify configuration](https://learn.chatgpt.com/docs/config-file/config-advanced).
+By default the handler discards `input-messages`, `last-assistant-message`, metadata preview, working directory and other task content. It emits only generic completion display text and exact native IDs. `Stop` is not used as final completion because other Stop hooks can continue a turn. `notify` does not provide approvals, input, failed or interrupted outcomes. See [official notify configuration](https://learn.chatgpt.com/docs/config-file/config-advanced).
+
+
+### Optional rich Codex content (candidate V2)
+
+Add `--rich-content` to the existing native notify command only after installing
+matching V2 firmware and a Companion started with `--notification-content-v2`.
+Both switches default off. Keep `--native-codex-notifications`, directory binding
+and the existing OPEN relay settings. These switches do not install themselves.
+
+The metadata-only `thread/read` (`includeTurns:false`) supplies the exact native
+thread `name` and a short `cwd` basename. Installed CLI schema and an exact local
+metadata probe confirmed those fields on 2026-10-22; no turn history was read.
+Missing names become a stable device-local `未命名任务 #N`, never the thread
+preview or the user's prompt. No model name is invented. A callback's last reply
+is normalized to plain text and bounded to 4096 UTF-8 bytes in the private bridge;
+only a smaller wire excerpt reaches the watch. This opt-in therefore allows real
+task names, project basenames and reply text into the private runtime and watch.
+It sends no inference/translation requests. Full replies remain in the native app.
+
+The display shows source, selected position/count, project/time, a two-line task
+name, `TURN ENDED` for a Codex round end, and an excerpt with `MORE ON MAC` when
+clipped. Other done sources show `COMPLETED`; a `failed` event shows `FAILED`.
+This is event reporting, not a claim that all project work succeeded. Existing
+queued generic Codex records cannot retroactively recover titles/replies; new
+opted-in callback events provide them. Other adapters keep their current ingress.
+Chinese glyph coverage is the bundled M5GFX efontCN set, not arbitrary Unicode
+or emoji coverage. The existing Latin Space Mono text and gesture controls remain.
+
+A candidate build or fixture pass does not establish live delivery, native OPEN,
+or physical C152 acceptance. See the [candidate record](../docs/NOTIFICATION_CONTENT_V2_20261022.md)
+for coordinated deployment and rollback boundaries.
 
 ## DeepSeek Harness Host plugin
 
