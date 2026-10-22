@@ -73,3 +73,20 @@ standard/native and selected USB-mic+IMU builds passed. Native preview opened.
 Candidate installation, opt-in activation, exact connected-port flashing and
 physical acceptance remain pending user review. Existing installed services,
 hooks, queue and firmware remain untouched. No merge/push was requested here.
+
+
+## Deployment follow-up —2026-10-22
+
+- [x] User accepted native previews and explicitly confirmed the exact flash port.
+- [x] Full app0/protected backup, app-only update, independent readback and
+  protected-area equality passed for the pinned USB-mic+IMU candidate.
+- [x] Installed build16, compatible OPEN relay and rich Codex hook; preserved
+  outer callback and other collectors. Current permissions re-added and checked.
+- [x] USB capture, HID/IMU, quota writes and physical synthetic Chinese UI/navigation
+  acceptance passed; recorded private receipts and deleted temporary audio.
+- [x] Installed exact-thread metadata-only lookup verified root/name/cwd availability.
+- [ ] Observe the next genuine automatic Codex callback; do not substitute a
+  synthetic notice or metadata lookup for native completion delivery evidence.
+
+See `docs/NOTIFICATION_CONTENT_V2_UPDATE_20261022.md`. No extra inference task,
+merge or push was performed. Existing generic notices retain their old content.

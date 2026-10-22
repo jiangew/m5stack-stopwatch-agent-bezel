@@ -1,5 +1,7 @@
 # Notification content V2 candidate — 2026-10-22
 
+Deployment follow-up: see the [installation and physical acceptance record](NOTIFICATION_CONTENT_V2_UPDATE_20261022.md). The deployment gate below records the earlier candidate handoff.
+
 ## Behavior
 
 Codex is the first richer native content source. Explicit `--rich-content` on the
