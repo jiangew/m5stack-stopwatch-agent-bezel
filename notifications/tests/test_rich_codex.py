@@ -1,4 +1,8 @@
 import unittest
+import json
+import tempfile
+from pathlib import Path
+from notifications.adapters.runtime import Publisher
 from notifications.adapters.codex_notify import handle_notify
 from scripts.stopwatch_notify import validate_event
 
@@ -34,6 +38,18 @@ class RichCodexTests(unittest.TestCase):
         p=Capture();r={'type':'agent-turn-complete','thread-id':'root','turn-id':'turn','last-assistant-message':'中'*3000+'\x00\u202e'}
         handle_notify(r,p,{'root'},rich_content=True)
         args,kw=p.calls[0];self.assertLessEqual(len(args[6].encode()),4096);self.assertTrue(kw['excerpted']);self.assertNotIn('\x00',args[6]);self.assertNotIn('\u202e',args[6])
+
+    def test_escaped_reply_fits_real_event_and_route_envelopes(self):
+        with tempfile.TemporaryDirectory(dir='/private/tmp') as directory:
+            publisher=Publisher(directory,now=lambda:1000)
+            record={'type':'agent-turn-complete','thread-id':'r'*128,'turn-id':'t'*128,'last-assistant-message':'"'*4096}
+            metadata=lambda _:dict(root=True,name='"'*512,cwd='/synthetic/'+('\\'*64))
+            self.assertTrue(handle_notify(record,publisher,set(),metadata,rich_content=True))
+            routes=list(publisher.routes.records());self.assertEqual(len(routes),1)
+            event,_=routes[0];self.assertTrue(event['excerpted']);self.assertLess(len(event['detail'].encode()),4096)
+            inbox=list((Path(directory)/'inbox').glob('*.json'));self.assertEqual(len(inbox),1)
+            self.assertEqual(json.loads(inbox[0].read_text())['detail'],event['detail'])
+            for path in (Path(directory)/'adapter-routes').glob('*.json'):self.assertLessEqual(path.stat().st_size,8192)
 
     def test_optional_metadata_has_strict_types(self):
         base=dict(v=1,eventId='event',source='codex',sessionId='s',runId='r',requestId='q',revision=1,createdAt=1,leaseDeadline=2,kind='done',title='中文',model='',detail='摘录',canDecide=False,state='resolved')

@@ -121,6 +121,10 @@ int main(){
   assert(std::find(richFrame.strings.begin(),richFrame.strings.end(),"TURN ENDED")!=richFrame.strings.end());
   assert(std::find(richFrame.strings.begin(),richFrame.strings.end(),"MORE ON MAC")!=richFrame.strings.end());
   assert(std::find(richFrame.strings.begin(),richFrame.strings.end(),"pending")==richFrame.strings.end());
+  Card wide=rich;std::strcpy(wide.project,"abcdefghijklmnopqrstuvwxyz123456");
+  Controller wideUi;wideUi.receive(wide,200);wideUi.openInbox(210);Canvas wideFrame;render(wideFrame,wideUi,220);
+  const auto& context=wideFrame.texts[1];assert(context.y==97&&wideFrame.textWidth(context.value.c_str())<=360);
+  assert(context.value.find("...")!=std::string::npos&&context.value.find("14:32")!=std::string::npos);
   Canvas dense;assert(richWrapped(dense,"abcdefghijklmnopqrs abcdefghijklmnopqrs abcdefghijklmnopqrs abcdefghijklmnopqrs abcdefghijklmnopqrs abcdefghijklmnopqrs abcdefghi",201,6));
   assert(dense.texts.size()==6&&dense.texts.back().value.find("...")!=std::string::npos);
   Canvas words;richWrapped(words,"Alpha bravo charlie delta echo foxtrot",195,6);

@@ -77,6 +77,19 @@ class NotifyTests(unittest.TestCase):
             directory.symlink_to(Path(root) / 'elsewhere')
             with self.assertRaises((ValueError, OSError)): notify.emit(directory, self.fixture())
     @unittest.skipUnless(os.environ.get('TASK_NOTIFICATION_TEST_BINARY'), 'standalone Swift bridge binary required')
+    @unittest.skipUnless(os.environ.get('TASK_NOTIFICATION_PROBE_BINARY'), 'production Swift Store probe required')
+    def test_rich_codex_escaped_reply_reaches_swift(self):
+        from notifications.adapters.codex_notify import handle_notify
+        from notifications.adapters.runtime import Publisher
+        for character in ['"', '/', '\\']:
+            with self.subTest(character=character), tempfile.TemporaryDirectory(dir='/private/tmp') as root:
+                directory=Path(root)/'notifications'
+                record={'type':'agent-turn-complete','thread-id':'r'*128,'turn-id':'t'*128,'last-assistant-message':character*4096}
+                metadata=lambda _:dict(root=True,name='"'*512,cwd='/synthetic/project')
+                self.assertTrue(handle_notify(record,Publisher(directory,now=lambda:1000),set(),metadata,rich_content=True))
+                result=subprocess.run([os.environ['TASK_NOTIFICATION_PROBE_BINARY'],'--consume',str(directory)],check=True,capture_output=True,text=True)
+                self.assertEqual(json.loads(result.stdout.splitlines()[-1]),{'consumed':1,'rejected':0})
+
     def test_real_swift_bridge_roundtrip(self):
         with tempfile.TemporaryDirectory(dir='/private/tmp') as root:
             directory = Path(root) / 'notifications'

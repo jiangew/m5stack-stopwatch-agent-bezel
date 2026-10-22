@@ -197,7 +197,7 @@ class Publisher:
         self._times = {}
 
     def publish(self, source, session, run, request, kind, title, detail, *, model='', state='pending',
-                revision=1, outcome=None, stored_session=None, project=None, excerpted=None):
+                revision=1, outcome=None, stored_session=None, project=None, excerpted=None, fit_excerpt=False):
         identity = (source, session, run, request, revision)
         timestamp = max(self.now(), self._times.get(identity, -1) + 1)
         event = dict(v=1, eventId=str(uuid.uuid4()), source=source, sessionId=session, runId=run,
@@ -206,6 +206,19 @@ class Publisher:
         if project is not None: event['project'] = project
         if excerpted is not None: event['excerpted'] = excerpted
         if outcome is not None: event['outcome'] = outcome
+        if fit_excerpt:
+            if kind not in {'done', 'failed'}: raise ValueError('excerpt fitting requires read-only result')
+            # Reserve the exact route envelope, which is larger than the event.
+            # Never trim native approval/input scope or mutate an existing record.
+            while True:
+                payload = bridge._encode({'event': event, 'storedSession': stored_session})
+                # Foundation's validation re-encodes '/' as '\/', unlike Python.
+                overflow = len(payload) + payload.count(b'/') - bridge.MAX_EVENT
+                if overflow <= 0: break
+                raw = event['detail'].encode('utf-8')
+                if not raw: raise ValueError('route metadata too large')
+                event['detail'] = raw[:max(0, len(raw) - overflow)].decode('utf-8', errors='ignore')
+                event['excerpted'] = True
         result = self.forward(event, stored_session=stored_session)
         if len(self._times) < 256 or identity in self._times: self._times[identity] = timestamp
         return result

@@ -27,7 +27,8 @@ existing Space Mono assets. Full reply scrolling is outside this candidate.
 - Installed Codex CLI schema contains native `Thread.name` and `cwd`. One exact
   metadata-only local probe confirmed both fields and root lineage, with empty
   `turns`. Its actual values/IDs were not logged or tracked.
-- The callback's last reply is capped at4096 UTF-8 bytes in the owner-only private
+- The callback's last reply is capped at4096 UTF-8 bytes, with further fitting to
+  the8192-byte encoded event/route envelope (including Swift slash escaping), in the owner-only private
   bridge; wire title<=32 characters/96 UTF-8 bytes, detail<=128 UTF-8 bytes and
   project<=32 UTF-8 bytes. JSON fitting can reduce the excerpt further. It reserves
   maximum count/position/ack widths to keep the excerpt stable on acknowledgement.
@@ -42,8 +43,8 @@ existing Space Mono assets. Full reply scrolling is outside this candidate.
 
 The following run locally against the candidate source, without hardware I/O:
 
-- Python rich-content/adapter regressions:41 tests,2 optional native tests skipped.
-- Standalone Swift broker/content/reconnect/transport regressions;14 ingress and
+- Python rich-content/adapter regressions:42 tests,2 optional native tests skipped.
+- Standalone Swift broker/content/reconnect/transport regressions;15 ingress and
   Python→Swift private-file tests. Six actual Swift-produced rich wire fixtures
   parsed by the real firmware C++ parser under sanitizers.
 - Firmware parser/controller/UI regressions with ASan/UBSan, root main-loop input
@@ -58,6 +59,16 @@ SwiftPM needs a writable task-local Clang/module cache and `--disable-sandbox` i
 this agent environment (nested sandbox-exec is denied). No global toolchain or
 cache permissions were changed. The pre-existing M5GFX VLA extension warning is
 separate from candidate source validation.
+
+## Fixed review findings
+
+The read-only fixed-range review found two P2 boundary defects. Both were
+reproduced by failing regressions before repair: a32-byte project overran the
+round screen, and quote-heavy4096-byte replies exceeded the encoded local record
+limit. Project/time now uses pixel-measured ellipsis while retaining the time.
+Rich read-only publication fits the assembled route envelope before filesystem
+writes and marks shortened excerpts. A real Python→Swift ingress test also covers
+Foundation's slash escaping; no approval/input scope uses this fitting path.
 
 ## Deployment gate
 

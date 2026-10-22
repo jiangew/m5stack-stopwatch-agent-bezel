@@ -59,7 +59,7 @@ metadata probe confirmed those fields on 2026-10-22; no turn history was read.
 Missing names become a stable device-local `未命名任务 #N`, never the thread
 preview or the user's prompt. No model name is invented. A callback's last reply
 is normalized to plain text and bounded to 4096 UTF-8 bytes in the private bridge;
-only a smaller wire excerpt reaches the watch. This opt-in therefore allows real
+further encoded event/route fitting can shorten it, and only a smaller wire excerpt reaches the watch. This opt-in therefore allows real
 task names, project basenames and reply text into the private runtime and watch.
 It sends no inference/translation requests. Full replies remain in the native app.
 

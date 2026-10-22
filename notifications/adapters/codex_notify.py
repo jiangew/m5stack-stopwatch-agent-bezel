@@ -103,7 +103,7 @@ def handle_notify(record, publisher, roots, root_resolver=None, rich_content=Fal
         project = Path(cwd).name if isinstance(cwd, str) and cwd.startswith('/') and Path(cwd) != Path.home() else ''
         project, _ = plain_text(project, 64)
         publisher.publish('codex', session, turn, 'turn-complete', 'done', title, detail or 'Reply available on Mac',
-                          state='resolved', stored_session=session, project=project, excerpted=clipped)
+                          state='resolved', stored_session=session, project=project, excerpted=clipped, fit_excerpt=True)
     else:
         publisher.publish('codex', session, turn, 'turn-complete', 'done', 'Codex completed', 'Turn completed',
                           stored_session=session)

@@ -20,6 +20,19 @@ template<class Surface> void selectFont(Surface& s,float size,bool cjk){
 template<class Surface> void label(Surface& s,const char* text,int x,int y,uint16_t color=kInk,float size=2,textdatum_t datum=middle_center){
   selectFont(s,size,hasUnicode(text));s.setTextDatum(datum);s.setTextColor(color);s.drawString(text,x,y);s.unloadFont();
 }
+// Preserve event time while fitting the project to the circular screen chord.
+template<class Surface> void richContext(Surface& s,const char* project,const char* time,int y){
+  const bool cjk=hasUnicode(project);selectFont(s,1.75f,cjk);
+  char name[33],line[48];std::snprintf(name,sizeof(name),"%s",project);
+  std::size_t used=std::strlen(name);bool clipped=false;
+  while(true){
+    std::snprintf(line,sizeof(line),"%s%s%s%s",name,clipped?"...":"",used&&time[0]?" / ":"",time);
+    if(s.textWidth(line)<=360||!used)break;
+    do {--used;}while(used&&(static_cast<unsigned char>(name[used])&0xc0)==0x80);
+    name[used]=0;clipped=true;
+  }
+  s.setTextDatum(middle_center);s.setTextColor(kDim);s.drawString(line,233,y);s.unloadFont();
+}
 // Pixel-measured UTF-8 wrapping, only for read-only rich presentation.
 template<class Surface> bool richWrapped(Surface& s,const char* text,int y,unsigned rows){
   const bool cjk=hasUnicode(text);const auto n=std::strlen(text);std::size_t at=0;
@@ -105,8 +118,7 @@ template<class Surface> void render(Surface& s,const Controller& ui,uint32_t now
   const int offset=reading?30:0;
   label(s,heading,233,45+offset,color,reading?2.5f:2.f);
   if(c.rich){
-    char context[48];std::snprintf(context,sizeof(context),"%s%s%s",c.project,c.project[0]&&c.time[0]?" / ":"",c.time);
-    if(context[0])label(s,context,233,67+offset,kDim,1.75f);
+    if(c.project[0]||c.time[0])richContext(s,c.project,c.time,67+offset);
     richWrapped(s,c.title,90+offset,2);
   }else{
     if(c.model[0])label(s,c.model,233,67+offset,kDim,reading?1.75f:1.5f);
