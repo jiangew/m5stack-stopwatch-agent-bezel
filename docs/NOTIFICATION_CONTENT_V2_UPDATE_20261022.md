@@ -46,13 +46,17 @@ availability, without turn history or logged content values. A sandboxed probe
 was denied; the normal host-context probe passed. The installed hook runs in
 that normal host context.
 
-A genuine automatic Codex turn-complete callback after the update has **not yet
-been observed** at this acceptance checkpoint. It is expected on the next
-natural completion; no extra model task was started for validation. The local
-receipt keeps this distinct from physical synthetic delivery. Existing generic
-queue records do not retroactively gain task names or result excerpts; new
-opted-in callback events carry the richer content. Other harness content
-collection remains unchanged.
+At the physical acceptance checkpoint, a genuine automatic callback was still
+pending. During merge preparation, one natural current-thread Codex turn-complete
+callback was observed and persisted by the installed real broker. Its native
+name, project and reply excerpt were present and its state was resolved. Exact
+identity and content values were not logged or tracked; no extra inference task
+was started. This proves automatic ingestion, while physical viewing of this
+particular real notice was not separately reported.
+
+Existing generic queue records do not retroactively gain task names or result
+excerpts; new opted-in callback events carry the richer content. Other harness
+content collection remains unchanged.
 
 Device binding, native IDs, actual task names, audio and private installation
 paths are omitted here. Private firmware/App/config backups and receipts remain

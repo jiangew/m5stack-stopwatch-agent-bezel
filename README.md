@@ -627,7 +627,7 @@ The [notification content V2 update](docs/NOTIFICATION_CONTENT_V2_UPDATE_2026102
 adds opt-in native Codex task names (including Chinese), position, project/time
 and bounded last-reply excerpts. It requires coordinated firmware, Companion and
 hook updates; it is not automatically installed. The update record distinguishes
-physical synthetic acceptance from the next genuine automatic callback.
+physical synthetic acceptance from separately observed genuine callback ingestion.
 
 ## Troubleshooting
 

@@ -85,8 +85,9 @@ hooks, queue and firmware remain untouched. No merge/push was requested here.
 - [x] USB capture, HID/IMU, quota writes and physical synthetic Chinese UI/navigation
   acceptance passed; recorded private receipts and deleted temporary audio.
 - [x] Installed exact-thread metadata-only lookup verified root/name/cwd availability.
-- [ ] Observe the next genuine automatic Codex callback; do not substitute a
-  synthetic notice or metadata lookup for native completion delivery evidence.
+- [x] Observed a natural current-thread Codex completion callback in the installed
+  real broker, with native name/project/excerpt and resolved state; physical
+  viewing of this particular real notice remains separate from ingestion.
 
 See `docs/NOTIFICATION_CONTENT_V2_UPDATE_20261022.md`. No extra inference task,
 merge or push was performed. Existing generic notices retain their old content.
