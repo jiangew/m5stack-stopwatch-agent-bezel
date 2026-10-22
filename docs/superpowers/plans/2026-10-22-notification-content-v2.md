@@ -1,0 +1,61 @@
+# Notification Content V2 Implementation Plan
+
+> **For agentic workers:** Execute this authorized plan inline task by task.
+
+**Goal:** Ship a tested Codex-first rich read-only notification candidate with
+Chinese task names, position, project/time, truthful status and bounded excerpts.
+
+**Architecture:** Add optional display metadata at local ingress and derive bounded
+wire presentation in the Mac broker. Preserve legacy/approval paths. Extend only
+notification firmware parsing and rendering; use existing M5GFX CJK assets.
+
+**Tech Stack:** Python, Swift/Foundation, C++17, M5GFX, PlatformIO.
+
+## Global Constraints
+
+No inference request, transcript scan, fabricated model/title/result, new native
+approval path, live runtime replacement, or unconfirmed device flashing. UTF-8
+wire <=512 bytes. Preserve task identity, navigation, original complete approval
+scope, current fonts for Latin text, footer and previous accepted artifacts.
+
+## Task 1: Rich Codex callback and compatible local events
+
+Files: notifications/adapters/codex_notify.py, runtime.py, scripts/stopwatch_notify.py,
+notifications/tests/test_adapters.py, scripts/tests/test_stopwatch_notify.py.
+
+- [ ] Add failing fixtures for native Chinese name/project, actual last reply,
+  root exclusion, missing metadata fallback, opt-out privacy, bounded UTF-8 and
+  no captured input/preview. Keep old resolver and ingress fixtures compatible.
+- [ ] Add optional project/excerpted metadata, explicit --rich-content opt-in,
+  exact metadata lineage wrapper and plain-text excerpt normalization.
+- [ ] Run Python ingress/adapter regressions and commit this independently tested slice.
+
+## Task 2: Native model and bounded wire presentation
+
+Files: TaskNotificationModel.swift, TaskNotificationBroker.swift,
+TaskNotificationRuntime.swift, CLI.swift, standalone regression files.
+
+- [ ] Add failing Swift cases for optional-field queue compatibility, Chinese
+  titles, stable untitled serial, all visible positions and <=512-byte fitting.
+- [ ] Add --notification-content-v2 (default off), opt-in broker projection and
+  immutable metadata comparisons. Preserve the legacy complete deciding path.
+- [ ] Run host/coupled notification suites with Unicode and long-content fixtures.
+
+## Task 3: UTF-8 firmware and native preview
+
+Files: include/TaskNotification.h, include/TaskNotificationUi.h,
+simulator/task_notification_test.cpp, task_notification_ui_test.cpp, preview_main.cpp.
+
+- [ ] Add failing tests for valid/invalid UTF-8, bounded title wrapping, indexed
+  navigation, CJK font selection, semantic status and untouched legacy scope.
+- [ ] Render rich title/project/excerpt with native CJK fallback and measured
+  wrapping; keep every legacy action/hit region and footer unchanged.
+- [ ] Build standard, native and USB-mic+IMU candidates; inspect short/long/mixed
+  Chinese frames and verify circle/footer clearance. Run relevant regressions.
+
+## Task 4: Reviewable candidate and deployment boundary
+
+- [ ] Update bilingual docs and native data/capability evidence, record build/hash
+  and tests. Review the fixed patch before any merge or runtime replacement.
+- [ ] Present native previews and exact remaining deployment steps. Keep the
+  installed working system untouched until installation/flash acceptance.
