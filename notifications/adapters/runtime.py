@@ -197,12 +197,14 @@ class Publisher:
         self._times = {}
 
     def publish(self, source, session, run, request, kind, title, detail, *, model='', state='pending',
-                revision=1, outcome=None, stored_session=None):
+                revision=1, outcome=None, stored_session=None, project=None, excerpted=None):
         identity = (source, session, run, request, revision)
         timestamp = max(self.now(), self._times.get(identity, -1) + 1)
         event = dict(v=1, eventId=str(uuid.uuid4()), source=source, sessionId=session, runId=run,
                      requestId=request, revision=revision, createdAt=timestamp, leaseDeadline=timestamp + 15000,
                      kind=kind, title=title, model=model, detail=detail, canDecide=False, state=state)
+        if project is not None: event['project'] = project
+        if excerpted is not None: event['excerpted'] = excerpted
         if outcome is not None: event['outcome'] = outcome
         result = self.forward(event, stored_session=stored_session)
         if len(self._times) < 256 or identity in self._times: self._times[identity] = timestamp

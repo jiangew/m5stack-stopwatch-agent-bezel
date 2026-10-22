@@ -7,6 +7,8 @@ import os
 import selectors
 import subprocess
 import time
+import re
+import unicodedata
 
 if __package__ in (None, ''):
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
@@ -16,7 +18,7 @@ from notifications.adapters.runtime import Publisher, target
 CODEX_CLI = '/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex'
 
 
-def metadata_root(session, codex=CODEX_CLI, timeout=3):
+def metadata_root(session, codex=CODEX_CLI, timeout=3, display=False):
     """Read one exact thread's lineage metadata, never resume or request turn history.
 
     App Server metadata includes a preview; it stays transient and is never logged,
@@ -63,7 +65,9 @@ def metadata_root(session, codex=CODEX_CLI, timeout=3):
         if not isinstance(thread, dict) or thread.get('id') != session or thread.get('turns') != []: return None
         source = thread.get('source')
         if thread.get('parentThreadId') is not None or isinstance(source, dict) and 'subAgent' in source: return False
-        return True if isinstance(source, str) and source in {'cli', 'vscode', 'exec', 'appServer'} else None
+        root = True if isinstance(source, str) and source in {'cli', 'vscode', 'exec', 'appServer'} else None
+        if display: return dict(root=root, name=thread.get('name'), cwd=thread.get('cwd'))
+        return root
     except (OSError, ValueError, TypeError, subprocess.SubprocessError):
         return None
     finally:
@@ -76,14 +80,33 @@ def metadata_root(session, codex=CODEX_CLI, timeout=3):
             proc.stdin.close(); proc.stdout.close()
 
 
-def handle_notify(record, publisher, roots, root_resolver=None):
+def plain_text(value, limit):
+    if not isinstance(value, str): return '', False
+    cleaned = '\n'.join(re.sub(r'^\s*(?:#{1,6}\s+|[-*]\s+)', '', line) for line in value.splitlines())
+    cleaned = ' '.join(''.join(c for c in cleaned if not unicodedata.category(c).startswith('C') or c.isspace()).split())
+    encoded = cleaned.encode('utf-8')
+    return encoded[:limit].decode('utf-8', errors='ignore'), len(encoded)>limit
+
+
+def handle_notify(record, publisher, roots, root_resolver=None, rich_content=False):
     if not isinstance(record, dict) or record.get('type') != 'agent-turn-complete': return False
     session, turn = record.get('thread-id'), record.get('turn-id')
     target(session); target(turn)
-    native_root = root_resolver(session) if root_resolver is not None else None
+    metadata = root_resolver(session) if root_resolver is not None else None
+    info = metadata if isinstance(metadata, dict) else {}
+    native_root = info.get('root') if isinstance(metadata, dict) else metadata
     if native_root is False or native_root is not True and session not in roots: return False
-    publisher.publish('codex', session, turn, 'turn-complete', 'done', 'Codex completed', 'Turn completed',
-                      stored_session=session)
+    if rich_content:
+        title, _ = plain_text(info.get('name'), 512)
+        detail, clipped = plain_text(record.get('last-assistant-message'), 4096)
+        cwd = info.get('cwd')
+        project = Path(cwd).name if isinstance(cwd, str) and cwd.startswith('/') and Path(cwd) != Path.home() else ''
+        project, _ = plain_text(project, 64)
+        publisher.publish('codex', session, turn, 'turn-complete', 'done', title, detail or 'Reply available on Mac',
+                          state='resolved', stored_session=session, project=project, excerpted=clipped)
+    else:
+        publisher.publish('codex', session, turn, 'turn-complete', 'done', 'Codex completed', 'Turn completed',
+                          stored_session=session)
     return True
 
 
@@ -91,13 +114,14 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--directory', required=True)
     parser.add_argument('--root-session', action='append', default=[], help='fallback verified root id on metadata failure')
+    parser.add_argument('--rich-content', action='store_true', help='opt in to native name, project basename and last-reply excerpt')
     parser.add_argument('--no-metadata-query', action='store_true', help='strict privacy: require explicit roots')
     parser.add_argument('--codex', default=CODEX_CLI)
     parser.add_argument('notification', help='JSON argument supplied by native Codex notify')
     args = parser.parse_args()
     if len(args.notification.encode()) > 1024 * 1024: raise ValueError('native callback too large')
-    resolver = None if args.no_metadata_query else lambda session: metadata_root(session, codex=args.codex)
-    handle_notify(json.loads(args.notification), Publisher(args.directory), set(args.root_session), resolver)
+    resolver = None if args.no_metadata_query else lambda session: metadata_root(session, codex=args.codex, display=args.rich_content)
+    handle_notify(json.loads(args.notification), Publisher(args.directory), set(args.root_session), resolver, rich_content=args.rich_content)
 
 
 if __name__ == '__main__':

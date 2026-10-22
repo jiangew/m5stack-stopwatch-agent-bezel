@@ -23,17 +23,17 @@ scope, current fonts for Latin text, footer and previous accepted artifacts.
 Files: notifications/adapters/codex_notify.py, runtime.py, scripts/stopwatch_notify.py,
 notifications/tests/test_adapters.py, scripts/tests/test_stopwatch_notify.py.
 
-- [ ] Add failing fixtures for native Chinese name/project, actual last reply,
+- [x] Add failing fixtures for native Chinese name/project, actual last reply,
   root exclusion, missing metadata fallback, opt-out privacy, bounded UTF-8 and
   no captured input/preview. Keep old resolver and ingress fixtures compatible.
-- [ ] Add optional project/excerpted metadata, explicit --rich-content opt-in,
+- [x] Add optional project/excerpted metadata, explicit --rich-content opt-in,
   exact metadata lineage wrapper and plain-text excerpt normalization.
-- [ ] Run Python ingress/adapter regressions and commit this independently tested slice.
+- [x] Run Python ingress/adapter regressions and commit this independently tested slice.
 
 ## Task 2: Native model and bounded wire presentation
 
 Files: TaskNotificationModel.swift, TaskNotificationBroker.swift,
-TaskNotificationRuntime.swift, CLI.swift, standalone regression files.
+TaskNotificationRuntime.swift, main.swift, standalone regression files.
 
 - [ ] Add failing Swift cases for optional-field queue compatibility, Chinese
   titles, stable untitled serial, all visible positions and <=512-byte fitting.
