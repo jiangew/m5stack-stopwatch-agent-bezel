@@ -70,6 +70,19 @@ read-only revision cannot gain capability without a new revision. Regression
 covers withdrawal, restart, resolution, rejected same-revision promotion and
 accepted higher-revision transition.
 
+## Reviewed artifact pins
+
+Implementation source: `052677538e50b3713ddbe36edc3eecd9bdafd850`. Narrow re-review found
+no remaining actionable issues. Candidates are signed/hashed local artifacts;
+this record does not establish installation. USB-mic uses the explicit
+`m5stack-stopwatch-home-imu` environment, not the USB project's default target.
+
+| Artifact | Bytes | SHA-256 |
+| --- | ---: | --- |
+| standard-application.bin | 2252000 | `e662f367a8db7e54049b616c3bdf5b6e8112d14d54f1344b98340f24e392eeee` |
+| usb-mic-imu-application.bin | 3583744 | `28f61a0c6bd6043f153b76815984eeef3cf52be8c84d49929e0505504291d41b` |
+| companion-executable | 897696 | `bb1931c36e2731b8509562b9878c485fd177e6ef74ceba72dc5580c65e48ce28` |
+
 ## Deployment and rollback gate
 
 1. Review the four native previews and immutable patch; pin source and artifacts.

@@ -37,6 +37,6 @@ Preserve footer, controls, existing installed baseline and recovery artifacts.
   with synthetic native events and inert generation; no live tasks/models.
 - [x] Build release Companion and native/default/selected USB-mic+IMU firmware;
   inspect completed/approval/input/resolved native DSH previews.
-- [ ] Update docs, review immutable patch, package pinned candidates and present
+- [x] Update docs, review immutable patch, package pinned candidates and present
   the existing-design preview. Record remaining profile reload/firmware/live
   acceptance gates. No merge/push unless requested.
