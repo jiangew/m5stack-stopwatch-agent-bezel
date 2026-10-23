@@ -32,11 +32,10 @@ assistant contract fixture and firmware UI/controller regressions remain separat
 from live callback and physical acceptance. Companion source/executable is unchanged
 from build18; only collectors and the firmware's presentation change.
 
-No live app/profile/service/hook replacement or firmware write has occurred.
-The coordinated release still includes compatible collectors/OPEN relay, build18
-Companion and firmware; retain exact-port confirmation, app0/protected backups,
-readback and independent physical C152 acceptance. Previous candidates and backups
-remain untouched.
+The candidate was subsequently installed with user confirmation. See the
+[deployment evidence](NOTIFICATION_REPLY_MODEL_UPDATE_20261023.md) for the separate
+flash, Mac runtime and physical acceptance checkpoints. Previous candidates and
+rollback backups remain retained.
 
 ## Verified candidate
 
