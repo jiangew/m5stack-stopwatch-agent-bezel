@@ -17,6 +17,39 @@ void ack(Controller& ui,Card& c,uint32_t now) {
   assert(ui.receive(c,now));
 }
 int main() {
+  // Read-only notices must not trap browsing behind a redundant Detail page.
+  {
+    Card notice=approval();notice.decide=false;notice.alert=0;
+    Controller page;page.receive(notice,100);page.openInbox(110);ack(page,notice,120);
+    page.release(233,233,125);
+    page.press(233,233,130,true);page.release(233,233,140);
+    assert(page.view()==View::Inbox);
+    Action emitted;assert(!page.takeAction(emitted));
+    page.press(326,376,150,true);page.release(326,376,160);
+    assert(page.takeAction(emitted)&&emitted.action==ActionKind::Open);
+    notice.ack=emitted.seq;page.receive(notice,170);
+    // A tap outside the visible button must not open a task on Mac.
+    page.press(180,376,180,true);page.release(180,376,190);
+    assert(!page.takeAction(emitted));
+    page.press(326,376,200,true);page.release(326,300,210);
+    assert(page.takeAction(emitted)&&emitted.action==ActionKind::Next);
+    notice.id++;notice.ack=emitted.seq;page.receive(notice,220);
+    page.press(326,280,230,true);page.release(326,376,240);
+    assert(page.takeAction(emitted)&&emitted.action==ActionKind::Previous);
+    notice.id--;notice.ack=emitted.seq;page.receive(notice,250);
+    page.press(233,430,260,true);page.release(233,430,270);
+    assert(!page.visible());
+    assert(page.takeAction(emitted)&&emitted.action==ActionKind::Close);
+    Controller toast;notice.alert=1;notice.ack=0;toast.receive(notice,300);
+    assert(toast.present(300,true));
+    toast.press(233,233,310,true);toast.release(233,233,320);
+    assert(toast.view()==View::Inbox);
+    assert(toast.takeAction(emitted)&&emitted.action==ActionKind::Read); // pin host selection too
+    notice.ack=emitted.seq;toast.receive(notice,330);
+    toast.press(233,233,340,true);toast.release(233,233,350);
+    assert(!toast.takeAction(emitted));
+    toast.tick(6000);assert(toast.view()==View::Inbox);
+  }
   Card c=approval();
   StaticJsonDocument<1536> d;
   auto e=deserializeJson(d,R"({"v":1,"g":12,"id":7,"r":3,"src":"deepseek","kind":"approval","title":"Synthetic task","model":"Model","detail":"Scope: once","state":"pending","count":2,"ttl":15000,"alert":2,"decide":true})");

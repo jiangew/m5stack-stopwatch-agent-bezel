@@ -7,7 +7,8 @@ All stock canDecide=false notices use Inbox/Toast as their only reading page.
 Body taps stay on that page and do not emit OPEN or a second READ. A clearly
 labelled OPEN ON MAC button invokes the existing identity-bound OPEN action.
 UP/DOWN browse, LEFT dismisses, RIGHT/BACK return Home. A tap on a transient
-Toast pins it as Inbox, without introducing another layer or hiding after5s.
+Toast pins it as Inbox and sends its first READ to pin the host selection,
+without introducing another layer or hiding after5s.
 Native decision-capable cards retain their complete scope, detail/hold gate and
 confirmation protocol. They are not enabled by this change.
 

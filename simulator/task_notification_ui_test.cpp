@@ -24,7 +24,7 @@ struct Canvas {
   void drawRoundRect(int,int,int,int,int,unsigned){}
   void fillRect(int,int,int,int,unsigned){}
   void fillSmoothCircle(int x,int y,int r,unsigned){circles.push_back({x,y,r});}
-  void drawString(const char* s,int x,int y){strings.emplace_back(s);assert(font&&textSize==1);texts.push_back({s,x,y,textSize,datum,font});}
+  void drawString(const char* s,int x,int y){strings.emplace_back(s);assert(font&&textSize>0);texts.push_back({s,x,y,textSize,datum,font});}
 };
 int main(){
   using namespace task_notification;
@@ -83,8 +83,8 @@ int main(){
   std::string readable;
   for(const auto& text:largeDetail.texts){
     readable+=text.value;
-    if(text.y>=195&&text.y<=363)assert(text.datum==middle_center&&text.x==233&&text.font==font_data::kSpaceMono24Vlw);
-    if(text.value=="OPEN ON MAC")assert(text.y==392&&text.font==font_data::kSpaceMono24Vlw);
+    if(text.y>=201&&text.y<=339)assert(text.datum==middle_center&&text.x==233&&text.font==font_data::kSpaceMono22Vlw);
+    if(text.value=="OPEN ON MAC")assert(text.y==376&&text.font==font_data::kSpaceMono15Vlw);
   }
   assert(readable.find(c.detail)!=std::string::npos);
   Controller ui;ui.receive(c,100);ui.present(100,true);
@@ -118,6 +118,29 @@ int main(){
   std::strcpy(rich.kind,"done");std::strcpy(rich.title,"优化通知页布局");std::strcpy(rich.detail,"Result excerpt");std::strcpy(rich.project,"stopwatch");std::strcpy(rich.time,"14:32");
   Controller richUi;richUi.receive(rich,200);richUi.openInbox(210);Canvas richFrame;render(richFrame,richUi,220);
   assert(richFrame.strings[0]=="Codex   2/6");
+  // The actual read-only page exposes OPEN and keeps body clear of its footer.
+  assert(std::find(richFrame.strings.begin(),richFrame.strings.end(),"OPEN ON MAC")!=richFrame.strings.end());
+  bool nativeBody=false,openButton=false;
+  for(const auto& text:richFrame.texts){
+    if(text.value=="Result excerpt")nativeBody=text.font==font_data::kSpaceMono22Vlw&&text.size==1;
+    assert(text.value!="TAP: DETAILS");
+  }
+  for(const auto& rect:richFrame.rectangles)if(rect.x==256&&rect.y==360&&rect.w==140&&rect.h==32)openButton=true;
+  assert(nativeBody&&openButton);
+  Card chinese=rich;std::string body;for(int i=0;i<60;++i)body+="中";
+  std::strcpy(chinese.detail,body.c_str());
+  Controller chineseUi;chineseUi.receive(chinese,200);chineseUi.openInbox(210);
+  Canvas chineseFrame;render(chineseFrame,chineseUi,220);
+  int lastY=0;unsigned bodyRows=0;
+  for(const auto& text:chineseFrame.texts)if(text.y>=201&&text.y<=333){
+    assert(text.x==233&&text.datum==middle_center);
+    assert(text.size>0.91f&&text.size<0.92f);
+    if(lastY)assert(text.y-lastY==28);
+    lastY=text.y;++bodyRows;
+    assert(text.y+11<340); // clear of MORE ON MAC and the OPEN button
+  }
+  assert(bodyRows>1);
+
   assert(std::find(richFrame.strings.begin(),richFrame.strings.end(),"TURN ENDED")!=richFrame.strings.end());
   assert(std::find(richFrame.strings.begin(),richFrame.strings.end(),"MORE ON MAC")!=richFrame.strings.end());
   assert(std::find(richFrame.strings.begin(),richFrame.strings.end(),"pending")==richFrame.strings.end());

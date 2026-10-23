@@ -11,6 +11,7 @@ namespace task_notification {
 constexpr uint32_t kLeaseMs=15000, kToastMs=5000, kConfirmMs=800;
 constexpr std::size_t kMaximumBytes=512;
 constexpr int kBadgeCenterX=378,kBadgeCenterY=233,kBadgeRadius=40,kBadgeHitRadius=48;
+constexpr int kReadOnlyOpenX=256,kReadOnlyOpenY=360,kReadOnlyOpenWidth=140,kReadOnlyOpenHeight=32;
 
 struct Card {
   uint32_t g=0,id=0,r=0,ttl=0,ack=0;
@@ -192,7 +193,17 @@ class Controller {
       if(std::abs(dy)>=52&&std::abs(dy)>std::abs(dx))issue(dy<0?ActionKind::Next:ActionKind::Previous,now);
       else if(dx>52){close(now);return;}
       else if(dx < -52)issue(ActionKind::Dismiss,now);
-      else if(std::abs(dx)<20&&std::abs(dy)<20){view_=View::Detail;issue(ActionKind::Read,now);}
+      else if(std::abs(dx)<20&&std::abs(dy)<20){
+        if(card_.decide){view_=View::Detail;issue(ActionKind::Read,now);}
+        else {
+          // A body tap pins a transient notice; only the visible button opens Mac.
+          const bool wasToast=view_==View::Toast;
+          view_=View::Inbox;pendingToast_=false;
+          if(x>=kReadOnlyOpenX&&x<kReadOnlyOpenX+kReadOnlyOpenWidth&&
+             y>=kReadOnlyOpenY&&y<kReadOnlyOpenY+kReadOnlyOpenHeight)issue(ActionKind::Open,now);
+          else if(wasToast)issue(ActionKind::Read,now); // pin the host's selected notice
+        }
+      }
       dirty_=true;return;
     }
     if(std::abs(dx)>=20||std::abs(dy)>=20)return;

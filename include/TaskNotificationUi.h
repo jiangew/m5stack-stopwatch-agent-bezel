@@ -34,9 +34,11 @@ template<class Surface> void richContext(Surface& s,const char* project,const ch
   s.setTextDatum(middle_center);s.setTextColor(kDim);s.drawString(line,233,y);s.unloadFont();
 }
 // Pixel-measured UTF-8 wrapping, only for read-only rich presentation.
-template<class Surface> bool richWrapped(Surface& s,const char* text,int y,unsigned rows){
+template<class Surface> bool richWrapped(Surface& s,const char* text,int y,unsigned rows,float size=2.5f,int lineStep=26){
   const bool cjk=hasUnicode(text);const auto n=std::strlen(text);std::size_t at=0;
-  selectFont(s,2.5f,cjk);s.setTextDatum(middle_center);s.setTextColor(kInk);
+  selectFont(s,size,cjk);
+  if(cjk&&size==2.f)s.setTextSize(22.f/24.f);
+  s.setTextDatum(middle_center);s.setTextColor(kInk);
   for(unsigned row=0;row<rows&&at<n;++row){
     char line[193]={};std::size_t used=0;
     while(at+used<n){
@@ -60,7 +62,7 @@ template<class Surface> bool richWrapped(Surface& s,const char* text,int y,unsig
     }
     s.drawString(line,233,y);at+=consumed;
     while(at<n&&text[at]==' ')++at;
-    y+=26;
+    y+=lineStep;
   }
   s.unloadFont();return at<n;
 }
@@ -135,6 +137,7 @@ template<class Surface> void render(Surface& s,const Controller& ui,uint32_t now
   else std::snprintf(heading,sizeof(heading),"%s   %u NOTICES",sourceName(c.src),c.count);
   const bool browsing=ui.view()==View::Inbox||ui.view()==View::Toast;
   const bool reading=browsing||(ui.view()==View::Detail&&!c.decide);
+  const bool singleLayer=browsing&&!c.decide;
   const int offset=reading?30:0;
   label(s,heading,233,45+offset,color,reading?2.5f:2.f);
   if(c.rich){
@@ -151,13 +154,12 @@ template<class Surface> void render(Surface& s,const Controller& ui,uint32_t now
   if(!std::strcmp(c.state,"pending")&&c.decide&&!ui.canDecide(now)&&!ui.holdElapsed(now))state="WAITING / EXPIRED";
   if(c.rich&&ui.linked())state=richStatus(c);
   label(s,state,233,(c.rich?145:139)+offset,color,reading?2.f:1.5f);
-  // Keep all 192 ASCII bytes visible at the larger reading size: eight rows
-  // of 24 columns, with dedicated space below for controls.
-  // Browsing keeps all eight rows clear of the raised compact hints.
+  // Read-only excerpts leave a dedicated footer; native decision scope stays complete.
   if(c.rich){
-    const bool clipped=richWrapped(s,c.detail,171+offset,6);
-    if(c.excerpted||clipped)label(s,"MORE ON MAC",233,355,kDim,1.5f);
-  }else wrapped(s,c.detail,165+offset,reading?24:36,reading?2.5f:1.5f,reading?8:6,-1,browsing?23:0);
+    const bool clipped=singleLayer?richWrapped(s,c.detail,171+offset,5,2.f,28):richWrapped(s,c.detail,171+offset,6);
+    if(c.excerpted||clipped)label(s,"MORE ON MAC",233,singleLayer?343:355,kDim,1.5f);
+  }else if(singleLayer)wrapped(s,c.detail,201,28,2.f,7,-1,23);
+  else wrapped(s,c.detail,165+offset,reading?24:36,reading?2.5f:1.5f,reading?8:6,-1,browsing?23:0);
   if(ui.view()==View::Confirm){
     const char* selected=ui.selection();
     if(!std::strcmp(selected,"allow_once"))selected="ALLOW ONCE";
@@ -175,6 +177,11 @@ template<class Surface> void render(Surface& s,const Controller& ui,uint32_t now
       else{button(s,"ALLOW ONCE",60,290,167,kGreen);button(s,"DECLINE",239,290,167,kRed);}
     }else if(!reading)label(s,!std::strcmp(c.state,"unknown")?"RESULT UNKNOWN":"Review on Mac",233,301,kDim);
     button(s,"OPEN ON MAC",100,376,266,kDim,reading?2.5f:2.f);
+  }else if(singleLayer){
+    label(s,"UP/DOWN: BROWSE",88,376,kDim,1.5f,middle_left);
+    button(s,"OPEN ON MAC",kReadOnlyOpenX,kReadOnlyOpenY,kReadOnlyOpenWidth,kDim,1.5f);
+    label(s,"LEFT: DISMISS",88,402,kDim,1.5f,middle_left);
+    label(s,"RIGHT: BACK",256,402,kDim,1.5f,middle_left);
   }else{
     // Align each column independently while retaining the compact two-row footer.
     label(s,"UP/DOWN: BROWSE",88,378,kDim,1.5f,middle_left);
