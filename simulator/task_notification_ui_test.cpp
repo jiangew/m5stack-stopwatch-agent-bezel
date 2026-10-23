@@ -40,17 +40,18 @@ int main(){
     Canvas badge;task_notification::badge(badge,inbox);
     assert(badge.texts.size()==1&&badge.texts[0].value==std::to_string(count));
     assert(badge.texts[0].x==388&&badge.texts[0].y==232&&badge.texts[0].datum==middle_center);
-    assert(badge.circles.size()==2&&badge.circles[0].r==52&&badge.circles[1].r==49);
+    assert(badge.circles.size()==2&&badge.circles[0].r==48&&badge.circles[1].r==45);
     for(auto circle:badge.circles)assert(circle.x==388&&circle.y==232);
-    assert(badge.circles[1].color==workspace_palette::kInitialColors[0]);
-    assert(badge.texts[0].color==0&&badge.texts[0].font==dashboard::font_data::kSpaceMono46Vlw);
+    assert(badge.circles[1].color==workspace_palette::rgb565(0xFFE3D9));
+    assert(badge.texts[0].color==workspace_palette::rgb565(0x713B31));
+    assert(badge.texts[0].size==1&&badge.texts[0].font[11]==36); // native36px VLW, no scaling
   }
-  for(int x:{328,388,448})for(int y:{172,232,292}) {
+  for(int x:{332,388,444})for(int y:{176,232,288}) {
     assert(inbox.badge(x,y));
     assert((x-233)*(x-233)+(y-233)*(y-233)<233*233);
   }
-  assert(!inbox.badge(327,232)&&!inbox.badge(449,232));
-  assert(!inbox.badge(388,171)&&!inbox.badge(388,293));
+  assert(!inbox.badge(331,232)&&!inbox.badge(445,232));
+  assert(!inbox.badge(388,175)&&!inbox.badge(388,289));
   Controller empty;Canvas hidden;task_notification::badge(hidden,empty);
   assert(!empty.badge(378,233)&&hidden.texts.empty()&&hidden.circles.empty());
   for(bool toast:{false,true}){
