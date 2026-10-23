@@ -103,3 +103,22 @@ No live DSH callback, Mac native outcome delivery or physical acceptance is
 claimed from these fixtures. Disable DSH richContent and restore the saved DSH
 node/relay/Companion when rolling back; old attention layout needs the prior
 matching firmware. Preserve original private queue and the accepted V2 artifacts.
+
+
+## Merge review: replaced Session isolation
+
+Final merge review reproduced a boundary defect: a replacement root Session
+could reuse the same ID/turn and inherit an old rich reply without an observed
+turn start. Rich turn/reply lookup now uses the existing model cache's exact
+Session-object binding; heartbeat clears all related caches when that object
+leaves the live roots. The legacy string turn-map contract used by the separate
+opt-in owner remains intact.
+
+A regression first failed against the old behavior, then passed before and after
+heartbeat; a genuinely observed replacement turn still publishes its own reply.
+All45 Python adapter tests,32 Node observer/owner tests,15 Swift/Python bridge
+tests, firmware notification regressions and actual main-loop/dashboard draw
+gates passed. The installed DSH0.2.1-rc.2 native Session contract runner also
+passed with synthetic in-memory sessions, zero model calls and no profile writes.
+This is a source-level merge correction; the installed collector release was
+not replaced during Git integration. Firmware and accepted device UI are unchanged.

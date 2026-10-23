@@ -93,6 +93,24 @@ test('last reply model has priority over later config; missing reply model falls
  f.send('turn/start',{turn:2});f.send('assistant/message',{turn:2,message:{role:'assistant',content:[{type:'text',text:'Model: explicit-reply-model'}]}});f.send('turn/end',{turn:2,reason:{kind:'completed'}});assert.equal(f.output.at(-1).model,'explicit-reply-model');
  f.send('turn/start',{turn:3});f.send('assistant/message',{turn:3,message:{role:'assistant',content:[{type:'text',text:'No model marker'}]}});f.send('turn/end',{turn:3,reason:{kind:'completed'}});assert.equal(f.output.at(-1).model,'next-config');
 });
+test('replacement root Session cannot inherit an observed turn or reply, before or after heartbeat',()=>{
+ for(const heartbeat of [false,true]){
+  const f=fixture();f.start();f.message('OLD SESSION REPLY');
+  const replacement={id:f.session.id,header:{}};
+  f.ctx.agents.roots=()=>[{id:replacement.id,session:replacement}];
+  if(heartbeat)f.observer.heartbeat();
+  const before=f.output.length;
+  f.send('approval/asked',{id:'replacement-request'},2,replacement);
+  assert.equal(f.output.length,before,'replacement has no observed turn');
+  f.send('assistant/message',{turn:1,message:{role:'assistant',content:[{type:'text',text:'UNOBSERVED REPLACEMENT REPLY'}]}},3,replacement);
+  f.send('turn/end',{turn:1,reason:{kind:'completed'}},4,replacement);
+  assert.equal(f.output.at(-1).detail,'Reply available on Mac');
+  f.send('turn/start',{turn:2},5,replacement);
+  f.send('assistant/message',{turn:2,message:{role:'assistant',content:[{type:'text',text:'CURRENT REPLY'}]}},6,replacement);
+  f.send('turn/end',{turn:2,reason:{kind:'completed'}},7,replacement);
+  assert.equal(f.output.at(-1).detail,'CURRENT REPLY');
+ }
+});
 test('session-config cache stays bounded and cannot cross a replaced root Session',()=>{
  const f=fixture();f.start();f.send('request/header',{header:{config:{model:'old-config'}}});f.send('turn/end',{turn:1,reason:{kind:'completed'}});
  const replacement={id:f.session.id,header:{}};f.ctx.agents.roots=()=>[{id:replacement.id,session:replacement}];

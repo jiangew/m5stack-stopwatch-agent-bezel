@@ -19,6 +19,12 @@ export class AuditObserver {
   root(session) {
     return this.ctx.agents.roots().find(agent => agent.session === session && agent.id === session.id);
   }
+  currentTurn(session) {
+    // Rich turn/reply state shares the model cache's exact live Session binding.
+    // Keep the legacy turn map's string contract used by the opt-in owner.
+    return !this.richContent || this.models.get(session.id)?.session === session
+      ? this.turns.get(session.id) : undefined;
+  }
   frame(sessionId, runId, requestId, kind, title, detail, previous = null, resolution = null) {
     const createdAt = Math.max(this.now(), previous ? previous.createdAt + 1 : 0);
     const event = { v: 1, eventId: randomUUID(), source: 'deepseek', sessionId, runId, requestId,
@@ -63,12 +69,12 @@ export class AuditObserver {
       return;
     }
     if (this.richContent && event.type === 'request/header') {
-      const run = this.turns.get(session.id);
+      const run = this.currentTurn(session);
       if (run && this.models.get(session.id)?.session === session) this.models.set(session.id, {...this.models.get(session.id), configured: modelVersion(data.header?.config?.model)});
       return;
     }
     if (this.richContent && event.type === 'assistant/message') {
-      if (this.turns.get(session.id) === String(data.turn)) {
+      if (this.currentTurn(session) === String(data.turn)) {
         if (this.models.get(session.id)?.session === session) this.models.set(session.id, {...this.models.get(session.id), reply: modelVersion(data.message?.source?.model) || replyModel(data.message)});
         const reply = visibleReply(data.message);
         // A tool-bearing step supersedes earlier visible text; never reuse it as the final reply.
@@ -89,18 +95,18 @@ export class AuditObserver {
       }
       const record = this.frame(session.id, String(data.turn), 'turn-complete', reason === 'completed' ? 'done' : 'failed', 'DeepSeek task', detail);
       if (this.richContent) {
-        const reply = this.turns.get(session.id) === String(data.turn) && reason === 'completed' ? this.replies.get(session.id) : null;
+        const reply = this.currentTurn(session) === String(data.turn) && reason === 'completed' ? this.replies.get(session.id) : null;
         record.detail = reply?.detail ?? (reason === 'completed' ? 'Reply available on Mac' : detail);
         record.excerpted = reply?.excerpted ?? false;
         record.state = 'resolved'; record.terminalReason = reason;
         fit(record);
       }
       this.send(record);
-      if (this.turns.get(session.id)===String(data.turn)) { this.turns.delete(session.id); this.replies.delete(session.id); const current = this.models.get(session.id); if (current?.session === session) this.models.set(session.id, {...current, run: null, reply: ''}); }
+      if (this.currentTurn(session)===String(data.turn)) { this.turns.delete(session.id); this.replies.delete(session.id); const current = this.models.get(session.id); if (current?.session === session) this.models.set(session.id, {...current, run: null, reply: ''}); }
       return;
     }
     if (event.type === 'approval/asked') {
-      const run = this.turns.get(session.id);
+      const run = this.currentTurn(session);
       if (!run || !id(data.id) || this.pending.size >= 64 || this.pending.has(key(session.id, data.id))) return;
       const record = this.frame(session.id, run, data.id, 'approval', 'DeepSeek approval', 'Open on Mac: native approval pending');
       this.pending.set(key(session.id, data.id), { session, record });
@@ -118,7 +124,7 @@ export class AuditObserver {
     try { questions = this.ctx.sessionProjections?.stateOf(session, 'userQuestions')?.questions; }
     catch { return; } // Optional projection unavailable: other native events remain usable.
     if (!questions || !Array.isArray(questions.active) || !Array.isArray(questions.settled)) return;
-    const run = this.turns.get(session.id);
+    const run = this.currentTurn(session);
     for (const question of questions.active) {
       const identity = key(session.id, question.callId);
       if (!run || !id(question.callId) || this.inputs.has(identity) || this.inputs.size >= 64) continue;
@@ -136,7 +142,9 @@ export class AuditObserver {
   }
   heartbeat() {
     for (const [sessionId, observed] of this.models) {
-      if (!this.ctx.agents.roots().some(agent => agent.id === sessionId && agent.session === observed.session)) this.models.delete(sessionId);
+      if (!this.ctx.agents.roots().some(agent => agent.id === sessionId && agent.session === observed.session)) {
+        this.models.delete(sessionId); this.turns.delete(sessionId); this.replies.delete(sessionId);
+      }
     }
     for (const sessionId of this.turns.keys()) {
       if (!this.ctx.agents.roots().some(agent => agent.id === sessionId && agent.session.id === sessionId)) {
