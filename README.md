@@ -631,9 +631,10 @@ physical synthetic acceptance from separately observed genuine callback ingestio
 
 The [DSH content parity candidate](docs/DSH_NOTIFICATION_CONTENT_20261023.md)
 adds opt-in native Chinese task names, project and reply excerpts for DSH, plus
-shared read-only approval/input presentation. Confirmation remains on Mac. Source,
-native-contract tests and candidate builds are separate from installation and
-physical acceptance; current installed behavior is not changed by this checkout.
+shared read-only approval/input presentation. Confirmation remains on Mac. It was
+included in the subsequently installed [reply-model release](docs/NOTIFICATION_REPLY_MODEL_UPDATE_20261023.md);
+observer reload, synthetic physical acceptance and fresh native callback evidence
+are recorded separately.
 
 ## Troubleshooting
 
@@ -728,8 +729,14 @@ Names and marks are used only to identify compatibility. See [NOTICE.md](NOTICE.
 for attribution, protocol, security, warranty, and trademark notices.
 
 The [model/time row follow-up](docs/NOTIFICATION_MODEL_ROW_20261023.md) replaces
-Codex/DSH project labels with model versions, using exact Codex thread configuration when no reply model is available. This build18 candidate has not been installed.
+Codex/DSH project labels with model versions, using exact Codex thread configuration when no reply model is available. This historical candidate was superseded by the installed reply-model release.
 
 The [reply-model priority update](docs/NOTIFICATION_REPLY_MODEL_20261023.md)
 prefers the latest assistant result, falls back to session configuration and
-displays only the model version. It remains an uninstalled candidate.
+displays only the model version. The [deployment record](docs/NOTIFICATION_REPLY_MODEL_UPDATE_20261023.md)
+records build18 installation and user acceptance of model display and controls.
+
+The [single-layer notification candidate](docs/NOTIFICATION_SINGLE_LAYER_20261023.md)
+removes the redundant read-only Detail page, exposes a separate OPEN ON MAC button
+and adjusts body typography. Native preview was accepted; physical deployment and
+acceptance are separate gates.

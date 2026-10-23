@@ -33,5 +33,9 @@ Only firmware needs updating. Installed Companion/collectors remain compatible;
 no App replacement or renewed macOS permission setup is required. Private update
 scripts retain the exact-port confirmation, known C152 identity, complete app0 /
 first64KiB backups, accepted-baseline comparison, app-only write, independent
-readback and protected-area check. No flash or service replacement has occurred
-for this candidate. Physical acceptance remains required after a later update.
+readback and protected-area check. With exact-port user confirmation, the selected USB-mic+Home-IMU image was
+written to app0 on the known C152. Full previous app0 and protected first64KiB
+backups passed; the baseline matched the accepted reply-model image. Write hash,
+independent application readback and protected-area comparison passed. No Mac
+service or application replacement occurred. Reboot, USB/HID/IMU probes and user
+acceptance of the newly installed single-layer page remain pending.
