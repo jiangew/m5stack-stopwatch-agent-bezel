@@ -121,6 +121,22 @@ int main(){
   assert(std::find(richFrame.strings.begin(),richFrame.strings.end(),"TURN ENDED")!=richFrame.strings.end());
   assert(std::find(richFrame.strings.begin(),richFrame.strings.end(),"MORE ON MAC")!=richFrame.strings.end());
   assert(std::find(richFrame.strings.begin(),richFrame.strings.end(),"pending")==richFrame.strings.end());
+  for(const auto& item:std::vector<std::pair<const char*,const char*>>{{"approval","WAITING ON MAC"},{"input","WAITING FOR INPUT"},{"done","TURN ENDED"}}){
+    Card dsh=rich;std::strcpy(dsh.src,"deepseek");std::strcpy(dsh.kind,item.first);std::strcpy(dsh.state,"pending");
+    Controller dshUi;dshUi.receive(dsh,200);dshUi.openInbox(210);Canvas frame;render(frame,dshUi,220);
+    assert(frame.strings[0]=="DSH   2/6");
+    assert(std::find(frame.strings.begin(),frame.strings.end(),item.second)!=frame.strings.end());
+    assert(std::find(frame.strings.begin(),frame.strings.end(),"ALLOW ONCE")==frame.strings.end());
+    for(const char* verdict:{"allowed","declined","answered","cancelled"}){
+      std::strcpy(dsh.state,"resolved");std::strcpy(dsh.outcome,verdict);
+      if(std::strcmp(dsh.kind,"done"))assert(std::strcmp(richStatus(dsh),"CLEARED"));
+    }
+    dsh.outcome[0]=0;
+    if(std::strcmp(dsh.kind,"done"))assert(!std::strcmp(richStatus(dsh),"CLEARED"));
+  }
+  Card stopped=rich;std::strcpy(stopped.kind,"failed");std::strcpy(stopped.terminalReason,"aborted");assert(!std::strcmp(richStatus(stopped),"INTERRUPTED"));
+  std::strcpy(stopped.terminalReason,"blocked");assert(!std::strcmp(richStatus(stopped),"BLOCKED"));
+  std::strcpy(stopped.terminalReason,"max-tokens");assert(!std::strcmp(richStatus(stopped),"LIMIT REACHED"));
   Card wide=rich;std::strcpy(wide.project,"abcdefghijklmnopqrstuvwxyz123456");
   Controller wideUi;wideUi.receive(wide,200);wideUi.openInbox(210);Canvas wideFrame;render(wideFrame,wideUi,220);
   const auto& context=wideFrame.texts[1];assert(context.y==97&&wideFrame.textWidth(context.value.c_str())<=360);

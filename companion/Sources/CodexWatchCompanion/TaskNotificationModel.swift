@@ -36,6 +36,7 @@ struct TaskNotificationEvent: Codable, Equatable {
     var outcome: String?
     var project: String? = nil
     var excerpted: Bool? = nil
+    var terminalReason: String? = nil
     var identity: [String] { [source, sessionId, runId, requestId] }
 
     func validate() throws {
@@ -46,6 +47,10 @@ struct TaskNotificationEvent: Codable, Equatable {
               [title, model, detail].allSatisfy({ $0.utf8.count <= 4096 && !$0.contains("\0") }),
               try JSONEncoder().encode(self).count <= 8192 else { throw TaskNotificationError.invalid }
         if let project { guard project.utf8.count <= 64, !project.contains("\0") else { throw TaskNotificationError.invalid } }
+        if let terminalReason {
+            guard ["completed", "error", "aborted", "blocked", "max-tokens"].contains(terminalReason),
+                  kind == (terminalReason == "completed" ? "done" : "failed"), state == "resolved", canDecide != true else { throw TaskNotificationError.invalid }
+        }
         if let outcome {
             guard state == "resolved", ["allowed", "declined", "answered", "cancelled"].contains(outcome) else { throw TaskNotificationError.invalid }
         }
@@ -85,6 +90,7 @@ struct TaskNotificationCard: Codable, Equatable {
     var project: String? = nil
     var time: String? = nil
     var excerpted: Bool? = nil
+    var terminalReason: String? = nil
 }
 struct TaskNotificationAction: Codable {
     var v: Int
@@ -140,7 +146,8 @@ enum TaskNotificationPresentation {
     }
     static func card(_ original: TaskNotificationCard, event: TaskNotificationEvent, position: Int) throws -> TaskNotificationCard {
         var card=original
-        card.layout=2;card.pos=position
+        card.layout=["approval","input"].contains(event.kind) ? 3 : 2;card.pos=position
+        card.options=nil;card.terminalReason=event.terminalReason
         if !TaskNotificationEvent.ascii(card.model,max:32) {card.model=""}
         let name=plain(event.title)
         let title = name.isEmpty ? "未命名任务 #\(card.id)" : name
@@ -163,7 +170,9 @@ enum TaskNotificationPresentation {
                 card.detail+="..."
             }
             card.excerpted=(event.excerpted == true || card.detail.utf8.count<full.utf8.count) ? true : nil
-            var ceiling=card;ceiling.count=64;ceiling.pos=64;ceiling.ack=UInt32.max
+            var ceiling=card;ceiling.count=64;ceiling.pos=64;ceiling.ack=UInt32.max;ceiling.ttl=15_000
+            // The immutable excerpt must fit every renewal and authoritative outcome.
+            if card.layout==3 {ceiling.state="submitting";ceiling.outcome="cancelled"}
             if try JSONEncoder().encode(ceiling).count<=512 {return card}
             if budget>0 {budget=max(0,budget-8);continue}
             if card.project != nil {card.project=nil;continue}

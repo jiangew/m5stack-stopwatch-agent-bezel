@@ -57,4 +57,10 @@ class RichCodexTests(unittest.TestCase):
         for changes in [dict(project=12),dict(excerpted='yes'),dict(project='a'*65)]:
             with self.assertRaises(ValueError):validate_event(dict(base,**changes))
 
-if __name__=='__main__':unittest.main()
+    def test_terminal_reason_is_strict_and_agrees_with_completion(self):
+        base=dict(v=1,eventId='event',source='deepseek',sessionId='s',runId='r',requestId='q',revision=1,createdAt=1,leaseDeadline=2,kind='done',title='中文',model='',detail='摘录',canDecide=False,state='resolved')
+        self.assertEqual(validate_event(dict(base,terminalReason='completed'))['terminalReason'],'completed')
+        for changes in [dict(terminalReason='unknown'),dict(terminalReason=12),dict(terminalReason='error'),dict(terminalReason='completed',kind='approval'),dict(terminalReason='completed',canDecide=True),dict(terminalReason='completed',state='pending')]:
+            with self.assertRaises(ValueError):validate_event(dict(base,**changes))
+
+if __name__=='__main__' :unittest.main()

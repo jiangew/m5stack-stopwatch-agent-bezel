@@ -36,6 +36,27 @@ private func require(_ value:@autoclosure () throws -> Bool) rethrows { let ok=t
         var approval=event;approval.eventId="approval";approval.requestId="approval";approval.kind="approval";approval.title="Exact scope";approval.detail="pwd";approval.state="pending";approval.canDecide=true
         let cap=try TaskNotificationBroker(store:store,richContent:true);try cap.ingest(approval,now:1000)
         let native=try cap.card(now:1000);assert(native.decide && native.layout==nil && native.detail=="pwd")
+        // Read-only native attention shares rich layout; lease/outcome updates cannot
+        // change the visible excerpt for the same immutable request revision.
+        let attentionStore=try TaskNotificationStore(directory:dir.appendingPathComponent("attention").path)
+        let attention=try TaskNotificationBroker(store:attentionStore,richContent:true)
+        var waiting=event;waiting.source="deepseek";waiting.eventId="wait";waiting.requestId="wait";waiting.kind="approval";waiting.state="pending";waiting.canDecide=false
+        waiting.title=String(repeating:"中",count:40);waiting.detail=String(repeating:"\"/",count:1000)
+        try attention.ingest(waiting,now:1000)
+        let before=try attention.card(now:1000)
+        assert(before.layout==3 && !before.decide && before.options==nil)
+        for now:Int64 in [1001,15999,16001] {
+            let update=try attention.card(now:now)
+            assert(update.detail==before.detail && update.title==before.title)
+            try require(try JSONEncoder().encode(update).count<=512)
+        }
+        waiting.createdAt=2000;waiting.leaseDeadline=17000;waiting.eventId="resolved";waiting.state="resolved";waiting.outcome="cancelled"
+        try attention.ingest(waiting,now:2000)
+        let after=try attention.card(now:2000);assert(after.detail==before.detail && after.title==before.title && after.outcome=="cancelled")
+        if CommandLine.arguments.contains("--emit-wire") {print(String(decoding:try JSONEncoder().encode(after),as:UTF8.self))}
+        var ended=event;ended.source="deepseek";ended.terminalReason="completed"
+        try ended.validate();ended.terminalReason="error"
+        do {try ended.validate();assert(false)} catch TaskNotificationError.invalid {}
         if CommandLine.arguments.contains("--emit-wire") {return}
         print("PASS rich content: Unicode, old queue/legacy opt-out, position, 512-byte budget, unmodified original body and complete approval scope")
     }

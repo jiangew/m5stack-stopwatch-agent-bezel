@@ -5,21 +5,29 @@
   "sources": {
     "codex": {
       "pin": "CLI 0.163.0-alpha.10.2; desktop 26.1013.40934",
-      "events": ["agent-turn-complete"],
+      "events": [
+        "agent-turn-complete"
+      ],
       "rootVerification": "exact metadata-only thread/read; explicit fallback on unknown",
       "approval": "unsupported",
       "input": "unsupported",
       "open": "exact thread route request",
-      "evidence": "installed schema and fixtures; notify installation and live callback unvalidated"
+      "evidence": "installed metadata schema, fixtures and separately observed native rich callback ingestion (2026-10-22)"
     },
     "deepseek": {
-      "pin": "0.2.0-rc.2",
-      "events": ["session/event turn/end", "approval/asked", "approval/decided", "userQuestions projection"],
+      "pin": "stock content 0.2.1-rc.2; optional approval extension 0.2.0-rc.2",
+      "events": [
+        "session/event turn/end",
+        "assistant/message committed visible text (richContent opt-in)",
+        "approval/asked",
+        "approval/decided",
+        "userQuestions projection"
+      ],
       "rootVerification": "native agents.roots exact Session identity",
       "approval": "stock unsupported; explicit nativeApprovals:true with pinned project extension owns only fully displayable exact Bash scope; committed audit outcome only",
       "input": "native projection observation only",
       "open": "application activation fallback",
-      "evidence": "source fixtures and actual patched Cordis/Registry/Bash/ApprovalService plus duplex relay acceptance; installed app/profile stock and Host plugin deployment unvalidated",
+      "evidence": "0.2.1-rc.2 real native Session/title/audit contract fixture plus Python relay/Swift projection; rich candidate not installed/live accepted; older patched approval extension remains separate",
       "patchedNativeApprovals": {
         "protocol": "stopwatch.dsh.native-approval.v1",
         "optIn": "nativeApprovals:true",
@@ -29,7 +37,9 @@
     },
     "super": {
       "pin": "tested lifecycle ac45e7aa; current installed 15aae8f8 requires stream revalidation",
-      "events": ["native sc agent subscribe flat lifecycle"],
+      "events": [
+        "native sc agent subscribe flat lifecycle"
+      ],
       "rootVerification": "explicit targets checked against native agents list; child targets excluded",
       "approval": "attention only; current agent answer explicitly forbids approvals",
       "input": "attention only; ordinary question answer exists but content-minimized getter, runtime schema and request closure remain unvalidated",
@@ -38,7 +48,12 @@
     },
     "hermes": {
       "pin": "desktop 0.17.6; source 74f726c17675642c2eff3033632e812f5f0e6614",
-      "events": ["on_session_end", "subagent_start", "pre_approval_request", "post_approval_response"],
+      "events": [
+        "on_session_end",
+        "subagent_start",
+        "pre_approval_request",
+        "post_approval_response"
+      ],
       "rootVerification": "native finalized-turn callback; observed child IDs excluded",
       "approval": "observer-local identity; unique native session/turn/tool correlation; no accepted verdict",
       "input": "unsupported",

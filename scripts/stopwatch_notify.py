@@ -32,7 +32,7 @@ def validate_event(event):
     data = dict(event)
     data.setdefault('canDecide', False)
     required = {'v', 'eventId', 'source', 'sessionId', 'runId', 'requestId', 'revision', 'createdAt', 'leaseDeadline', 'kind', 'title', 'model', 'detail', 'canDecide', 'state'}
-    if not required.issubset(data) or set(data) - required - {'options', 'optionIds', 'outcome', 'project', 'excerpted'}:
+    if not required.issubset(data) or set(data) - required - {'options', 'optionIds', 'outcome', 'project', 'excerpted', 'terminalReason'}:
         raise ValueError('invalid event fields')
     if (type(data['v']) is not int or data['v'] != 1 or data['source'] not in SOURCES
             or data['kind'] not in {'done', 'approval', 'input', 'failed'} or data['state'] not in {'pending', 'resolved'}
@@ -43,6 +43,12 @@ def validate_event(event):
         raise ValueError('invalid event')
     if 'project' in data and not _string(data['project'], 64): raise ValueError('invalid project')
     if 'excerpted' in data and type(data['excerpted']) is not bool: raise ValueError('invalid excerpt flag')
+    if 'terminalReason' in data:
+        reason = data['terminalReason']
+        if (not isinstance(reason, str) or reason not in {'completed', 'error', 'aborted', 'blocked', 'max-tokens'}
+                or data['kind'] != ('done' if reason == 'completed' else 'failed')
+                or data['state'] != 'resolved' or data['canDecide']):
+            raise ValueError('invalid terminal reason')
     if 'outcome' in data and (data['state'] != 'resolved' or data['outcome'] not in {'allowed', 'declined', 'answered', 'cancelled'}):
         raise ValueError('outcome requires authoritative resolution')
     if 'options' in data or 'optionIds' in data:

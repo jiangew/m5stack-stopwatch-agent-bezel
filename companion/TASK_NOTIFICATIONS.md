@@ -180,3 +180,27 @@ by the firmware C++ parser. Native framebuffer previews share the device rendere
 Neither establishes installed/live/physical acceptance. Roll back by disabling
 both opt-ins before restoring older firmware or Companion; preserved original
 queue records remain readable by the old decoder.
+
+
+## DSH read-only content candidate
+
+Optional local `terminalReason` is completed/error/aborted/blocked/max-tokens,
+valid only for a resolved nondeciding done/failed event with matching kind. It
+is immutable within a native revision, like project/excerpted. Native DSH
+completion means a round ended; it does not prove the whole task succeeded.
+
+With `--notification-content-v2`, non-capable approval/input cards use layout3;
+non-capable done/failed cards retain layout2. Both use bounded UTF-8 title/body,
+position, project/time and optional excerpted fields. Layout3 requires
+`decide:false` and no options; it has OPEN ON MAC only. All capable requests keep
+the complete ASCII scope path, including after expiry. A rich presentation
+never enables or truncates native decision scope.
+
+The same excerpt reserves maximum count/position/ack/TTL widths and attention
+state/outcome widths, so lease countdown and native resolution cannot change
+immutable wire context. Optional wire terminalReason has the same strict
+kind/state/nondeciding constraints as the local event. This needs matching new
+firmware: the accepted prior firmware deliberately rejects layout3. Stage the
+new source and generic OPEN relay, then coordinate Companion and firmware updates
+before enabling DSH richContent. Existing native routes, IDs and action semantics
+are unchanged. See [candidate evidence](../docs/DSH_NOTIFICATION_CONTENT_20261023.md).

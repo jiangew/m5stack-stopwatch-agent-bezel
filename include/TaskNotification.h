@@ -19,7 +19,7 @@ struct Card {
   char project[33]={},time[6]={};
   bool decide=false,muteLegacyCodex=false;
   char src[9]={},kind[9]={},title[97]={},model[33]={},detail[193]={},state[11]={};
-  char outcome[10]={};
+  char outcome[10]={},terminalReason[11]={};
   char options[3][25]={};
 };
 struct Snapshot {Card card;uint32_t version=0,receivedAt=0;bool ready=false;};
@@ -68,7 +68,7 @@ inline bool parse(JsonObjectConst value,Card& output) {
   }
   if(value.containsKey("ack")) {if(!value["ack"].is<uint32_t>())return false;c.ack=value["ack"];}
   if(value.containsKey("layout")){
-    if(!value["layout"].is<unsigned>()||value["layout"].as<unsigned>()!=2||c.decide)return false;
+    if(!value["layout"].is<unsigned>()||(value["layout"].as<unsigned>()!=2&&value["layout"].as<unsigned>()!=3)||c.decide)return false;
     c.rich=true;
     if(!value["pos"].is<unsigned>())return false;const unsigned pos=value["pos"];
     if(!pos||pos>count)return false;c.position=pos;
@@ -78,13 +78,20 @@ inline bool parse(JsonObjectConst value,Card& output) {
   }
   if(!text(value["src"],c.src)||!text(value["kind"],c.kind)||!text(value["model"],c.model)||!text(value["state"],c.state))return false;
   if(c.rich){
-    if((std::strcmp(c.kind,"done")&&std::strcmp(c.kind,"failed"))||!utf8Text(value["title"],c.title)||!utf8Text(value["detail"],c.detail))return false;
+    const bool attention=!std::strcmp(c.kind,"approval")||!std::strcmp(c.kind,"input");
+    if(value["layout"].as<unsigned>()!=(attention?3:2)||!utf8Text(value["title"],c.title)||!utf8Text(value["detail"],c.detail))return false;
   }else if(!text(value["title"],c.title)||std::strlen(c.title)>48||!text(value["detail"],c.detail))return false;
   if(!oneOf(c.src,"codex","deepseek","super","hermes")||
      !oneOf(c.kind,"done","approval","input","failed")||
      !(oneOf(c.state,"pending","submitting","resolved","unknown")||!std::strcmp(c.state,"expired")))return false;
   if(!value["outcome"].isNull()&&(!text(value["outcome"],c.outcome)||
       !oneOf(c.outcome,"allowed","declined","answered","cancelled")||std::strcmp(c.state,"resolved")))return false;
+  if(!value["terminalReason"].isNull()) {
+    if(!text(value["terminalReason"],c.terminalReason)||
+       (!oneOf(c.terminalReason,"completed","error","aborted","blocked")&&std::strcmp(c.terminalReason,"max-tokens"))||
+       std::strcmp(c.kind,!std::strcmp(c.terminalReason,"completed")?"done":"failed")||std::strcmp(c.state,"resolved")||c.decide)return false;
+  }
+  if(c.rich&&!value["options"].isNull())return false;
   if(!value["options"].isNull()) {
     if(!value["options"].is<JsonArrayConst>())return false;
     const auto options=value["options"].as<JsonArrayConst>();
@@ -98,7 +105,7 @@ inline bool parse(JsonObjectConst value,Card& output) {
 }
 inline bool sameRequest(const Card& a,const Card& b){return a.g==b.g&&a.id==b.id&&a.r==b.r;}
 inline bool sameContext(const Card& a,const Card& b){
-  if(a.rich!=b.rich||std::strcmp(a.project,b.project)||a.excerpted!=b.excerpted)return false;
+  if(std::strcmp(a.terminalReason,b.terminalReason)||a.rich!=b.rich||std::strcmp(a.project,b.project)||a.excerpted!=b.excerpted)return false;
   if(std::strcmp(a.src,b.src)||std::strcmp(a.kind,b.kind)||std::strcmp(a.title,b.title)||
      std::strcmp(a.model,b.model)||std::strcmp(a.detail,b.detail)||a.optionCount!=b.optionCount)return false;
   for(unsigned i=0;i<a.optionCount;++i)if(std::strcmp(a.options[i],b.options[i]))return false;

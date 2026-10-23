@@ -106,6 +106,26 @@ inline const char* displayTitle(const Card& card){
   }
   return card.title;
 }
+inline const char* richStatus(const Card& c){
+  if(!std::strcmp(c.kind,"done"))return (!std::strcmp(c.src,"codex")||!std::strcmp(c.src,"deepseek"))?"TURN ENDED":"COMPLETED";
+  if(!std::strcmp(c.kind,"failed")){
+    if(!std::strcmp(c.terminalReason,"aborted"))return "INTERRUPTED";
+    if(!std::strcmp(c.terminalReason,"blocked"))return "BLOCKED";
+    if(!std::strcmp(c.terminalReason,"max-tokens"))return "LIMIT REACHED";
+    return "FAILED";
+  }
+  if(!std::strcmp(c.state,"resolved")){
+    if(!std::strcmp(c.outcome,"allowed"))return "ALLOWED";
+    if(!std::strcmp(c.outcome,"declined"))return "DECLINED";
+    if(!std::strcmp(c.outcome,"answered"))return "ANSWERED";
+    if(!std::strcmp(c.outcome,"cancelled"))return "CANCELLED";
+    return "CLEARED";
+  }
+  if(!std::strcmp(c.state,"unknown"))return "RESULT UNKNOWN";
+  if(!std::strcmp(c.state,"expired"))return "EXPIRED";
+  if(!std::strcmp(c.state,"submitting"))return "SUBMITTING";
+  return !std::strcmp(c.kind,"input")?"WAITING FOR INPUT":"WAITING ON MAC";
+}
 template<class Surface> void render(Surface& s,const Controller& ui,uint32_t now){
   const auto& c=ui.card();s.fillScreen(0x0000);
   const uint16_t color=!std::strcmp(c.kind,"failed")?kRed:
@@ -127,7 +147,7 @@ template<class Surface> void render(Surface& s,const Controller& ui,uint32_t now
   const char* state=!ui.linked()?"OFFLINE":c.state;
   if(ui.linked()&&!std::strcmp(c.state,"resolved")&&c.outcome[0])state=c.outcome;
   if(!std::strcmp(c.state,"pending")&&c.decide&&!ui.canDecide(now)&&!ui.holdElapsed(now))state="WAITING / EXPIRED";
-  if(c.rich&&ui.linked())state=!std::strcmp(c.kind,"done")?(!std::strcmp(c.src,"codex")?"TURN ENDED":"COMPLETED"):"FAILED";
+  if(c.rich&&ui.linked())state=richStatus(c);
   label(s,state,233,(c.rich?145:139)+offset,color,reading?2.f:1.5f);
   // Keep all 192 ASCII bytes visible at the larger reading size: eight rows
   // of 24 columns, with dedicated space below for controls.

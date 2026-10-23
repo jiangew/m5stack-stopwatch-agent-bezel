@@ -629,6 +629,12 @@ and bounded last-reply excerpts. It requires coordinated firmware, Companion and
 hook updates; it is not automatically installed. The update record distinguishes
 physical synthetic acceptance from separately observed genuine callback ingestion.
 
+The [DSH content parity candidate](docs/DSH_NOTIFICATION_CONTENT_20261023.md)
+adds opt-in native Chinese task names, project and reply excerpts for DSH, plus
+shared read-only approval/input presentation. Confirmation remains on Mac. Source,
+native-contract tests and candidate builds are separate from installation and
+physical acceptance; current installed behavior is not changed by this checkout.
+
 ## Troubleshooting
 
 ### The C152 does not appear as a serial device

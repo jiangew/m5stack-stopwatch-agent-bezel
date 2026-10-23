@@ -9,7 +9,7 @@ Installed stock native approval/choice support remains **false**. Default adapte
 | Source | Native event entry point | Request/resolution identity | OPEN | Evidence / remaining limit |
 | --- | --- | --- | --- | --- |
 | Codex | `notify` JSON argument, `agent-turn-complete` only | Exact thread + turn; exact read-only native metadata verifies roots, explicit allowlist fallback | `codex://threads/<thread-id>` | CLI 0.163.0-alpha.10.2 / desktop 26.1013.40934 source + fixtures; notify not installed or observed live. Failure, input and approval events unsupported. |
-| DeepSeek | Independent Host Cordis `session/event`; native userQuestions projection | Exact root Session + turn + approval audit UUID; `approval/decided` supplies allowed/declined/cancelled; input projection supplies cleared/answered | App activation only | 0.2.0-rc.2 installed source + fixtures; Host plugin not installed/live tested. Default observer does not own approvals; explicit patched extension is separately module-tested. |
+| DeepSeek | Independent Host Cordis `session/event`; native userQuestions projection | Exact root Session + turn + approval audit UUID; `approval/decided` supplies allowed/declined/cancelled; input projection supplies cleared/answered | App activation only | 0.2.1-rc.2 rich content native-contract fixture; this content candidate is not installed/live tested. Default observer does not own approvals; explicit patched extension is separately module-tested. |
 | SUPER | Native `sc agent subscribe` for explicitly selected root stable target IDs | Native lifecycle sequence identifies observed attention; no native approval request ID; current ordinary-question API explicitly forbids approvals | `sc chat select` only with explicit verified Chat UI session binding; otherwise activation | ac45e7aa actual ready/target_closed envelopes captured using isolated no-model QA terminal. Other event variants are source-backed fixtures, not live model-run acceptance. |
 | Hermes | Agent plugin `on_session_end`, `subagent_start`, approval observer hooks | Completion session/turn; approval observer-local ID, matched only on unique native session/turn/tool-call tuple; cleared without an accepted verdict | `hermes://open/<stored-session-id>`; never infer a stored ID from runtime sid | Desktop 0.17.6, source 74f726c17675642c2eff3033632e812f5f0e6614 + fixtures; plugin not installed/live tested; built ASAR/source equality unproven. Gateway hooks do not cover Desktop. |
 
@@ -65,10 +65,10 @@ It sends no inference/translation requests. Full replies remain in the native ap
 
 The display shows source, selected position/count, project/time, a two-line task
 name, `TURN ENDED` for a Codex round end, and an excerpt with `MORE ON MAC` when
-clipped. Other done sources show `COMPLETED`; a `failed` event shows `FAILED`.
+clipped. DSH round ends also show `TURN ENDED`; its interruptions/blocks/limits retain their native meaning. Other done sources show `COMPLETED`.
 This is event reporting, not a claim that all project work succeeded. Existing
 queued generic Codex records cannot retroactively recover titles/replies; new
-opted-in callback events provide them. Other adapters keep their current ingress.
+opted-in callback events provide them. DSH has a separately opt-in native content collector described below; the other collectors keep their current ingress.
 Chinese glyph coverage is the bundled M5GFX efontCN set, not arbitrary Unicode
 or emoji coverage. The existing Latin Space Mono text and gesture controls remain.
 
@@ -95,6 +95,29 @@ No app bundle should be edited. Fully reload the intended Host according to that
 The plugin requires native `agents` and `sessionProjections` services, accepts only exact runtime roots, and listens to committed `turn/end` and approval audit pairs. A step/tool/child completion is not a parent DONE. Failed, blocked, token-limited and aborted turns are not successes. Pending audit observations refresh every five seconds while that same root remains live; a matching native `approval/decided` withdraws the same immutable card and alone supplies the outcome. A terminal native turn can also clear that turn's unresolved audit observations without supplying an accepted/declined verdict. An unavailable answerer is cleared without an accepted/declined label.
 
 Native input projection entries stay pending when their tool continues after a timeout; only the native projection dropping/settling the exact call clears them. Question text/options/answers are not copied. Requests whose start was missed at plugin load are not reconstructed from task text; pending approval before loading is unsupported. Default configuration registers no approval answerer. Explicit patched ownership is described below. See [native approval subsystem](https://deepseek-harness.github.io/deepseek-harness/en/reference/subsystems/approval).
+
+### DSH content parity candidate (0.2.1-rc.2)
+
+Explicit `richContent: true` on the Host observer reads the native `title`
+projection and immutable header cwd basename. It keeps one bounded visible
+committed assistant reply per observed live root/turn and consumes it only on a
+matching completed turn. Tool-call-bearing messages, reasoning, images, child
+agents and unobserved turns cannot supply the reply. Missing text points to Mac;
+there is no history scan, title generation or model call. Titles<=512 UTF-8 bytes,
+reply<=4096 with encoded event/route fitting; full content remains on Mac.
+
+Keep `nativeApprovals: false`: rich observation and the separate decision owner
+cannot be enabled together. Same-request task metadata stays fixed across
+heartbeats and native resolution. Approval/input question bodies and answers
+remain private. The shared read-only attention layout uses `WAITING ON MAC` /
+`WAITING FOR INPUT`, and only native outcomes yield `ALLOWED`, `DECLINED`,
+`ANSWERED` or `CANCELLED`; clearing alone shows `CLEARED`.
+
+This candidate requires matching firmware, Companion build17, DSH collector and
+generic OPEN relay. A fully reloaded intended desktop Host is required to load
+its new module/config; installation and live acceptance have not happened.
+The unrelated global CLI and navigation plugin must remain untouched. See
+[DSH candidate validation](../docs/DSH_NOTIFICATION_CONTENT_20261023.md).
 
 ## Patched DSH approval owner (source-only)
 
