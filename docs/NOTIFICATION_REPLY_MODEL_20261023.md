@@ -37,3 +37,18 @@ The coordinated release still includes compatible collectors/OPEN relay, build18
 Companion and firmware; retain exact-port confirmation, app0/protected backups,
 readback and independent physical C152 acceptance. Previous candidates and backups
 remain untouched.
+
+## Verified candidate
+
+Implementation: `ded3a065a7a86d488812e3a3a0f232c7cd0b88a0`. Independent review found no actionable issue.
+31 Node and45 Python/real-Swift-bridge tests pass; native DSH fixture and
+firmware UI/controller regressions pass. Native/default/selected USB-mic+IMU
+firmware builds pass. Repackaged Companion build18 code is byte-identical after
+signature removal; its signed executable hash changes with the new provenance
+Info.plist. All14 staged collector/relay file hashes match source.
+
+| Artifact | Bytes | SHA-256 |
+| --- | ---: | --- |
+| standard-application.bin | 2252320 | `b5b2e796f8a44d2c3026b47a03a4ee15764796ae2d50d142bdf258b141b6ab84` |
+| usb-mic-imu-application.bin | 3583904 | `1da50ef0bfdce161d6de335a988a725e969ad52558910c6b61af6a27ea80f55d` |
+| CodexWatchCompanion.app/Contents/MacOS/codex-watch-companion | 897840 | `4b9328df6ef0cf0cec84e8bb9f619d1494267c0eea9850cdc6d041497163cabc` |
