@@ -11,7 +11,7 @@ swiftc -parse-as-library companion/Sources/CodexWatchCompanion/TaskNotificationM
   companion/Sources/CodexWatchCompanion/TaskNotificationBroker.swift \
   companion/StandaloneTests/TaskNotificationRegression.swift -o "$output/bridge"
 TASK_NOTIFICATION_TEST_BINARY="$output/bridge" python3 -m unittest discover -s notifications/tests -p 'test_*.py' -v
-node --test notifications/tests/deepseek.test.mjs
+node --test notifications/tests/deepseek.test.mjs notifications/tests/deepseek-content.test.mjs
 if [ -n "${DSH_NATIVE_MODULES:-}" ]; then
   node scripts/test_deepseek_native.mjs "$DSH_NATIVE_MODULES" patched
 else

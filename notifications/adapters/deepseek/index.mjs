@@ -4,14 +4,16 @@ import { ApprovalOwner } from './approval.mjs';
 import { randomUUID } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { isAbsolute } from 'node:path';
+import { metadata, visibleReply, fit } from './content.mjs';
 
 const id = value => typeof value === 'string' && value.length > 0 && Buffer.byteLength(value) <= 256 && !value.includes('\0');
 const key = (session, request) => JSON.stringify([session, request]);
 const outcome = { 'allowed-once': 'allowed', rejected: 'declined', cancelled: 'cancelled' };
 
 export class AuditObserver {
-  constructor(ctx, send, now = Date.now) {
+  constructor(ctx, send, now = Date.now, { richContent = false } = {}) {
     this.ctx = ctx; this.send = send; this.now = now;
+    this.richContent = richContent; this.replies = new Map();
     this.turns = new Map(); this.pending = new Map(); this.inputs = new Map();
   }
   root(session) {
@@ -23,7 +25,17 @@ export class AuditObserver {
       revision: previous?.revision ?? 1, createdAt, leaseDeadline: createdAt + 15000, kind, title, model: '', detail,
       state: resolution ? 'resolved' : 'pending', canDecide: resolution ? false : (previous?.canDecide ?? false) };
     if (resolution && outcome[resolution]) event.outcome = outcome[resolution];
-    return event;
+    if (this.richContent) {
+      if (previous) {
+        event.title = previous.title; event.project = previous.project;
+        event.excerpted = previous.excerpted ?? false;
+      } else {
+        const session = this.ctx.agents.roots().find(agent => agent.id === sessionId && agent.session.id === sessionId)?.session;
+        if (session) Object.assign(event, metadata(this.ctx, session));
+        event.excerpted = false;
+      }
+    }
+    return this.richContent ? fit(event) : event;
   }
   observe(session, event) {
     if (!session || !id(session.id) || !this.root(session) || !event || !Number.isSafeInteger(event.seq)) return;
@@ -31,7 +43,17 @@ export class AuditObserver {
     const data = event.data;
     if (!data || typeof data !== 'object') return;
     if (event.type === 'turn/start') {
-      if (Number.isSafeInteger(data.turn) && data.turn > 0 && (this.turns.has(session.id) || this.turns.size < 64)) this.turns.set(session.id, String(data.turn));
+      if (Number.isSafeInteger(data.turn) && data.turn > 0 && (this.turns.has(session.id) || this.turns.size < 64)) {
+        this.turns.set(session.id, String(data.turn)); this.replies.delete(session.id);
+      }
+      return;
+    }
+    if (this.richContent && event.type === 'assistant/message') {
+      if (this.turns.get(session.id) === String(data.turn)) {
+        const reply = visibleReply(data.message);
+        // A tool-bearing step supersedes earlier visible text; never reuse it as the final reply.
+        if (reply) this.replies.set(session.id, reply); else this.replies.delete(session.id);
+      }
       return;
     }
     if (event.type === 'turn/end') {
@@ -45,8 +67,16 @@ export class AuditObserver {
         this.pending.delete(identity);
         this.send(this.frame(p.sessionId, p.runId, p.requestId, p.kind, p.title, p.detail, p, 'cleared'));
       }
-      this.send(this.frame(session.id, String(data.turn), 'turn-complete', reason === 'completed' ? 'done' : 'failed', 'DeepSeek task', detail));
-      if (this.turns.get(session.id)===String(data.turn)) this.turns.delete(session.id);
+      const record = this.frame(session.id, String(data.turn), 'turn-complete', reason === 'completed' ? 'done' : 'failed', 'DeepSeek task', detail);
+      if (this.richContent) {
+        const reply = this.turns.get(session.id) === String(data.turn) && reason === 'completed' ? this.replies.get(session.id) : null;
+        record.detail = reply?.detail ?? (reason === 'completed' ? 'Reply available on Mac' : detail);
+        record.excerpted = reply?.excerpted ?? false;
+        record.state = 'resolved'; record.terminalReason = reason;
+        fit(record);
+      }
+      this.send(record);
+      if (this.turns.get(session.id)===String(data.turn)) { this.turns.delete(session.id); this.replies.delete(session.id); }
       return;
     }
     if (event.type === 'approval/asked') {
@@ -85,6 +115,11 @@ export class AuditObserver {
     }
   }
   heartbeat() {
+    for (const sessionId of this.turns.keys()) {
+      if (!this.ctx.agents.roots().some(agent => agent.id === sessionId && agent.session.id === sessionId)) {
+        this.turns.delete(sessionId); this.replies.delete(sessionId);
+      }
+    }
     for (const session of new Set([...this.inputs.values()].map(x => x.session))) {
       if (this.root(session)) this.syncInputs(session);
     }
@@ -111,6 +146,7 @@ export function apply(ctx, config = {}) {
   if (!isAbsolute(config.directory ?? '') || !isAbsolute(config.relayScript ?? ''))
     throw new Error('absolute private directory and relayScript are required');
   const native = config.nativeApprovals === true;
+  if (native && config.richContent === true) throw new Error('rich content is read-only; native approval ownership must remain disabled');
   const child = spawn(config.python ?? 'python3', [config.relayScript, '--directory', config.directory, ...(native ? ['--native'] : [])],
     { stdio: ['pipe', native ? 'pipe' : 'ignore', 'ignore'] });
   let failed = false, owner, timer, buffered = Buffer.alloc(0);
@@ -132,7 +168,7 @@ export function apply(ctx, config = {}) {
     send: record => send(native ? {type:'event', event:record} : record),
     open: record => send({type:'open', event:record})
   };
-  const observer = new AuditObserver(ctx, record => transport.send(record));
+  const observer = new AuditObserver(ctx, record => transport.send(record), Date.now, {richContent: config.richContent === true});
   if (native) owner = new ApprovalOwner(observer, transport);
   child.on('error', fail); child.on('exit', fail); child.stdin.on('error', fail);
   if (native) {
