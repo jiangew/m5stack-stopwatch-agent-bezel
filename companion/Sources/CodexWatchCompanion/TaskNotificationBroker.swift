@@ -25,6 +25,9 @@ final class TaskNotificationBroker {
         self.store = store; snapshot = try store.load()
         // Persisted dispatch is never retried, even if publication crashed. Native resolution must reconcile it.
         for i in snapshot.records.indices where snapshot.records[i].state == "submitting" { snapshot.records[i].state = "unknown" }
+        for i in snapshot.records.indices where snapshot.records[i].completeScope == nil {
+            snapshot.records[i].completeScope = snapshot.records[i].event.requiresCompleteScope || snapshot.records[i].dispatchId != nil
+        }
         try store.save(snapshot)
         selected = preferredID()
     }
@@ -62,6 +65,8 @@ final class TaskNotificationBroker {
             let old = next.records[existing]
             guard event.revision >= old.event.revision else { return }
             if event.revision == old.event.revision {
+                // A readonly rich revision cannot later gain a deciding scope.
+                if richContent, old.completeScope == false, event.requiresCompleteScope { throw TaskNotificationError.invalid }
                 guard event.kind == old.event.kind, event.title == old.event.title, event.model == old.event.model,
                       event.detail == old.event.detail, event.project == old.event.project, event.excerpted == old.event.excerpted, event.terminalReason == old.event.terminalReason, event.options == old.event.options, event.optionIds == old.event.optionIds else { throw TaskNotificationError.invalid }
                 if old.state == "resolved" {
@@ -71,9 +76,10 @@ final class TaskNotificationBroker {
             }
             index = existing
             if event.revision > old.event.revision {
-                next.records[index] = TaskNotificationRecord(id: old.id, event: event, state: event.state, firstSeen: now)
+                next.records[index] = TaskNotificationRecord(id: old.id, event: event, state: event.state, firstSeen: now, completeScope: event.requiresCompleteScope)
                 newRevision = true
             } else {
+                next.records[index].completeScope = old.completeScope == true || old.event.requiresCompleteScope || event.requiresCompleteScope
                 next.records[index].event = event
                 if event.state == "resolved" { next.records[index].state = "resolved" }
             }
@@ -84,7 +90,7 @@ final class TaskNotificationBroker {
             }
             guard next.nextID < UInt32.max else { throw TaskNotificationError.invalid }
             index = next.records.count
-            next.records.append(TaskNotificationRecord(id: next.nextID, event: event, state: event.state, firstSeen: now)); next.nextID += 1; newRevision = true
+            next.records.append(TaskNotificationRecord(id: next.nextID, event: event, state: event.state, firstSeen: now, completeScope: event.requiresCompleteScope)); next.nextID += 1; newRevision = true
         }
         try store.save(next); snapshot = next
         let id = snapshot.records[index].id
@@ -126,14 +132,14 @@ final class TaskNotificationBroker {
         let event = record.event
         let remaining = max(Int64(0), min(Int64(15_000), event.leaseDeadline - now))
         let displayable = !event.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !event.detail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && TaskNotificationEvent.ascii(event.title, max: 48) && TaskNotificationEvent.ascii(event.model, max: 32) && TaskNotificationEvent.ascii(event.detail, max: 192)
-        let capable = event.canDecide == true && (event.kind == "approval" || (event.kind == "input" && event.options != nil))
+        let capable = event.requiresCompleteScope
         var card = TaskNotificationCard(g: generation, id: record.id, r: event.revision, src: event.source, kind: event.kind,
             title: event.title, model: event.model, detail: event.detail,
             state: record.state == "pending" && remaining == 0 && capable ? "expired" : record.state,
             count: count, ttl: Int(remaining), alert: alerts[record.id] ?? 0,
             decide: displayable && fresh.contains(record.id) && capable && record.state == "pending" && record.dispatchId == nil && remaining > 0 && event.createdAt <= now && now - event.createdAt <= 15_000 && event.leaseDeadline <= event.createdAt + 15_000,
             options: event.options, ack: lastActionSequence, outcome: record.state == "resolved" ? event.outcome : nil, muteLegacyCodex: muteLegacyCodex ? true : nil)
-        if richContent, !capable {
+        if richContent, !capable, record.completeScope != true {
             let position=(orderedVisibleRecords().firstIndex(where: {$0.id==record.id}) ?? 0)+1
             return try TaskNotificationPresentation.card(card,event:event,position:position)
         }

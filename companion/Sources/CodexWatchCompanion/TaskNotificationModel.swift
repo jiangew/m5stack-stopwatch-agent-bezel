@@ -37,6 +37,7 @@ struct TaskNotificationEvent: Codable, Equatable {
     var project: String? = nil
     var excerpted: Bool? = nil
     var terminalReason: String? = nil
+    var requiresCompleteScope: Bool { canDecide == true && (kind == "approval" || (kind == "input" && options != nil)) }
     var identity: [String] { [source, sessionId, runId, requestId] }
 
     func validate() throws {
@@ -122,6 +123,8 @@ struct TaskNotificationRecord: Codable {
     var dispatchId: String?
     var dispatchedAt: Int64?
     var reminded = false
+    // Persist presentation ownership through same-revision authority withdrawal.
+    var completeScope: Bool? = nil
 }
 struct TaskNotificationSnapshot: Codable {
     var v = 1

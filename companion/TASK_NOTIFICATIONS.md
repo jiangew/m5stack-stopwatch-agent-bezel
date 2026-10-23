@@ -159,9 +159,11 @@ o suppression. Installing an adapter alone does not change the running Companion
 
 `--notification-content-v2` requires the existing real `--watch --device-id ...
 --notifications-dir ...` mode and matching firmware. Default remains legacy.
-Only non-capable `done`/`failed` records use this presentation. Approval/input and
-any native capability keep the existing complete ASCII scope path; no scope is
-shortened into an actionable card.
+Non-capable done/failed use layout2; read-only approval/input use layout3 as
+described below. Any revision with native capability keeps the complete ASCII
+scope path after authority withdrawal or resolution. No scope is shortened into
+an actionable card, and a rich read-only revision needs a new native revision
+before gaining capability.
 
 Private events accept optional `project` (<=64 UTF-8 bytes) and `excerpted` (bool).
 Both are part of immutable event content for the same revision. Durable event
@@ -170,7 +172,7 @@ bytes, with `layout:2`, `pos:1..count`, optional `project` (<=32 UTF-8 bytes),
 `time` (local HH:mm), and `excerpted`. Title is <=32 characters /96 UTF-8 bytes
 with explicit ellipsis when shortened. Detail is at most128 UTF-8 bytes and can
 be shorter to fit JSON escaping/metadata; `MORE ON MAC` identifies clipping.
-The budget reserves maximum ack/count/position widths so normal acknowledgement
+The budget reserves maximum ack/count/position/TTL and attention state/outcome widths so normal acknowledgement
 or inbox growth does not mutate a card's immutable excerpt. Frames are not
 fragmented. Firmware rejects malformed UTF-8 and rich deciding cards. Devices
 on old firmware must keep the Companion V2 flag off.

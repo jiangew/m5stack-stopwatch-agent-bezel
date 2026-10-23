@@ -59,6 +59,17 @@ path. It checks native versions and emits actual module hashes. Its optional
 second argument writes synthetic events only. It does not weaken or replace the
 older separately pinned0.2.0 native-approval extension tests.
 
+## Review correction
+
+The fixed-range review found a same-revision compatibility defect: withdrawing
+native decision capability could change complete ASCII scope into a rich
+excerpt, causing firmware context rejection. A failing production broker test
+reproduced it. A persisted per-revision complete-scope marker now keeps layout
+and full scope through release, submission, native outcome and restart. A rich
+read-only revision cannot gain capability without a new revision. Regression
+covers withdrawal, restart, resolution, rejected same-revision promotion and
+accepted higher-revision transition.
+
 ## Deployment and rollback gate
 
 1. Review the four native previews and immutable patch; pin source and artifacts.

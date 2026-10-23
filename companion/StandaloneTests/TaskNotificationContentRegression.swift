@@ -36,6 +36,19 @@ private func require(_ value:@autoclosure () throws -> Bool) rethrows { let ok=t
         var approval=event;approval.eventId="approval";approval.requestId="approval";approval.kind="approval";approval.title="Exact scope";approval.detail="pwd";approval.state="pending";approval.canDecide=true
         let cap=try TaskNotificationBroker(store:store,richContent:true);try cap.ingest(approval,now:1000)
         let native=try cap.card(now:1000);assert(native.decide && native.layout==nil && native.detail=="pwd")
+        let ownerStore=try TaskNotificationStore(directory:dir.appendingPathComponent("owner").path)
+        let owner=try TaskNotificationBroker(store:ownerStore,richContent:true)
+        var owned=approval;owned.detail=String(repeating:"x",count:192)
+        try owner.ingest(owned,now:1000);let ownedCard=try owner.card(now:1000)
+        assert(ownedCard.layout==nil && ownedCard.detail==owned.detail && ownedCard.decide)
+        owned.eventId="released";owned.createdAt=2000;owned.leaseDeadline=17000;owned.canDecide=false
+        try owner.ingest(owned,now:2000);let released=try owner.card(now:2000)
+        assert(released.layout==nil && released.detail==ownedCard.detail && !released.decide)
+        let restoredOwner=try TaskNotificationBroker(store:ownerStore,richContent:true)
+        try require(try restoredOwner.card(now:2000).layout==nil)
+        owned.eventId="native-resolved";owned.createdAt=2001;owned.state="resolved";owned.outcome="allowed"
+        try owner.ingest(owned,now:2001);let verdict=try owner.card(now:2001)
+        assert(verdict.layout==nil && verdict.detail==ownedCard.detail && verdict.outcome=="allowed")
         // Read-only native attention shares rich layout; lease/outcome updates cannot
         // change the visible excerpt for the same immutable request revision.
         let attentionStore=try TaskNotificationStore(directory:dir.appendingPathComponent("attention").path)
@@ -54,6 +67,10 @@ private func require(_ value:@autoclosure () throws -> Bool) rethrows { let ok=t
         try attention.ingest(waiting,now:2000)
         let after=try attention.card(now:2000);assert(after.detail==before.detail && after.title==before.title && after.outcome=="cancelled")
         if CommandLine.arguments.contains("--emit-wire") {print(String(decoding:try JSONEncoder().encode(after),as:UTF8.self))}
+        var promote=waiting;promote.eventId="promote";promote.createdAt=2002;promote.state="pending";promote.outcome=nil;promote.canDecide=true
+        do {try attention.ingest(promote,now:2002);assert(false)} catch TaskNotificationError.invalid {}
+        promote.revision=2;try attention.ingest(promote,now:2002)
+        try require(try attention.card(now:2002).layout==nil)
         var ended=event;ended.source="deepseek";ended.terminalReason="completed"
         try ended.validate();ended.terminalReason="error"
         do {try ended.validate();assert(false)} catch TaskNotificationError.invalid {}

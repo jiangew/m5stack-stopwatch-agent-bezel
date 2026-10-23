@@ -26,6 +26,8 @@ export class AuditObserver {
       state: resolution ? 'resolved' : 'pending', canDecide: resolution ? false : (previous?.canDecide ?? false) };
     if (resolution && outcome[resolution]) event.outcome = outcome[resolution];
     if (this.richContent) {
+      if (!previous && kind === 'approval') event.detail = 'Review this request on Mac';
+      if (!previous && kind === 'input') event.detail = 'Review this question on Mac';
       if (previous) {
         event.title = previous.title; event.project = previous.project;
         event.excerpted = previous.excerpted ?? false;
