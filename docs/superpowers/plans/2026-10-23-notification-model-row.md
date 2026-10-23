@@ -11,5 +11,5 @@ layout adjustment; preserve the accepted design and native authority boundaries.
   fallback based on user response or retain explicit missing execution model.
 - [x] Run targeted collector, Swift-wire and firmware/UI regressions; native
   contract fixture; rebuild native/default/selected USB-mic+IMU and Companion.
-- [ ] Update preview and candidate pins, record source-versus-live evidence;
+- [x] Update preview and candidate pins, record source-versus-live evidence;
   preserve current installation and previous reviewed candidate.
