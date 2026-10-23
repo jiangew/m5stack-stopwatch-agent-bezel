@@ -9,6 +9,7 @@
 
 namespace task_notification {
 constexpr uint16_t kInk=0xF7DF,kDim=0x9CF3,kPanel=0x1082,kAmber=0xFD20,kGreen=0x47F2,kRed=0xFA8A;
+constexpr int kReadOnlyLineStep=28;
 inline bool hasUnicode(const char* text){for(;*text;++text)if(static_cast<unsigned char>(*text)>=128)return true;return false;}
 template<class Surface> void selectFont(Surface& s,float size,bool cjk){
   if(cjk)s.setFont(size>=2 ? &lgfx::fonts::efontCN_24 : &lgfx::fonts::efontCN_16);
@@ -147,15 +148,18 @@ template<class Surface> void render(Surface& s,const Controller& ui,uint32_t now
   const bool reading=browsing||(ui.view()==View::Detail&&!c.decide);
   const bool singleLayer=browsing&&!c.decide;
   const int offset=reading?30:0;
-  label(s,heading,233,45+offset,color,reading?2.5f:2.f);
+  const int headingY=singleLayer?64:45+offset;
+  const int contextY=singleLayer?headingY+kReadOnlyLineStep:67+offset;
+  const int titleY=singleLayer?contextY+kReadOnlyLineStep:(c.rich?90:94)+offset;
+  label(s,heading,233,headingY,color,reading?2.5f:2.f);
   if(c.rich){
     const bool modelContext=!std::strcmp(c.src,"codex")||!std::strcmp(c.src,"deepseek");
     const char* context=modelContext?(c.model[0]?c.model:"模型未提供"):c.project;
-    if(context[0]||c.time[0])richContext(s,context,c.time,67+offset);
-    richWrapped(s,c.title,90+offset,2);
+    if(context[0]||c.time[0])richContext(s,context,c.time,contextY);
+    richWrapped(s,c.title,titleY,2,2.5f,singleLayer?kReadOnlyLineStep:26);
   }else{
-    if(c.model[0])label(s,c.model,233,67+offset,kDim,reading?1.75f:1.5f);
-    wrapped(s,displayTitle(c),94+offset,24,reading?2.5f:2.f,2);
+    if(c.model[0])label(s,c.model,233,contextY,kDim,reading?1.75f:1.5f);
+    wrapped(s,displayTitle(c),titleY,24,reading?2.5f:2.f,2,-1,singleLayer?kReadOnlyLineStep:0);
   }
   const char* state=!ui.linked()?"OFFLINE":c.state;
   if(ui.linked()&&!std::strcmp(c.state,"resolved")&&c.outcome[0])state=c.outcome;
@@ -163,7 +167,7 @@ template<class Surface> void render(Surface& s,const Controller& ui,uint32_t now
   if(c.rich&&ui.linked())state=richStatus(c);
   label(s,state,233,(c.rich?145:139)+offset,color,reading?2.f:1.5f);
   // Read-only text is an excerpt; keep all native decision scope on its existing path.
-  if(singleLayer)richWrapped(s,c.detail,171+offset,5,2.f,28);
+  if(singleLayer)richWrapped(s,c.detail,171+offset,5,2.f,kReadOnlyLineStep);
   else if(c.rich)richWrapped(s,c.detail,171+offset,6);
   else wrapped(s,c.detail,165+offset,reading?24:36,reading?2.5f:1.5f,reading?8:6,-1,browsing?23:0);
   if(ui.view()==View::Confirm){

@@ -45,3 +45,5 @@ Latest user correction applied: all roles use fixed center(388,232), diameter104
 User preview revision: diameter96px, pale coral#FFE3D9, dark brown-red#713B31 digits, native36px regular font from existing TTF; position and enlarged footer targets unchanged. Rebuild/render the revised candidate before delivery.
 
 Latest user preview revision: diameter90px, agent-selected bright amber#FFC857 and deep indigo#172554;36px Regular digits retained. Keep the existing112px touch target even though the visible circle shrinks. This supersedes the96px coral preview; fixed center and role geometry remain unchanged.
+
+Header spacing revision: update the actual renderer regression for uniform28px intervals, then position the reading header at64/92/120 while preserving state/body/footer. Check long model/time fit and wrapped Chinese title, run notification host regressions and native/standard/USB-mic+IMU builds; refresh reading-page PNGs only. No flashing.

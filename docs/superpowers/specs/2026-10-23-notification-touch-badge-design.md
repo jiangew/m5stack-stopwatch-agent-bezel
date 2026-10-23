@@ -29,3 +29,14 @@ wide roles and tilt, plus Chinese/English notification pages. Compare portrait
 pixels against the current renderer and check circle clearances. Run focused
 firmware host regressions and native/default/USB-mic+IMU builds. Physical input
 sensitivity requires a later separately confirmed firmware update and retest.
+
+## Header spacing follow-up
+
+User requests the three reading-page header groups to use the same28px line
+step as the body: harness/count at y64, model/time at y92, session title at
+y120. Anchor the existing title/body/status/footer positions; move the first
+two header rows upward rather than push content toward the buttons. A wrapped
+read-only title also uses28px. Native deciding/confirmation layouts retain
+their previous coordinates. The header and read-only body share one line-step
+constant. Verify Chinese titles, long context truncation and two-line titles
+in the native preview before any later update.

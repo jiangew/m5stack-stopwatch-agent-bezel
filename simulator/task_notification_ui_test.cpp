@@ -142,6 +142,8 @@ int main(){
   std::strcpy(rich.kind,"done");std::strcpy(rich.title,"优化通知页布局");std::strcpy(rich.detail,"Result excerpt");std::strcpy(rich.project,"stopwatch");std::strcpy(rich.time,"14:32");
   Controller richUi;richUi.receive(rich,200);richUi.openInbox(210);Canvas richFrame;render(richFrame,richUi,220);
   assert(richFrame.strings[0]=="Codex   2/6");
+  assert(richFrame.texts[1].y-richFrame.texts[0].y==28);
+  assert(richFrame.texts[2].y-richFrame.texts[1].y==28);
   checkFooter(richFrame);
   bool nativeBody=false;
   for(const auto& text:richFrame.texts)if(text.value=="Result excerpt")nativeBody=text.font==font_data::kSpaceMono22Vlw&&text.size==1;
@@ -192,7 +194,7 @@ int main(){
   }
   Card wide=rich;std::strcpy(wide.src,"super");std::strcpy(wide.project,"abcdefghijklmnopqrstuvwxyz123456");
   Controller wideUi;wideUi.receive(wide,200);wideUi.openInbox(210);Canvas wideFrame;render(wideFrame,wideUi,220);
-  const auto& context=wideFrame.texts[1];assert(context.y==97&&wideFrame.textWidth(context.value.c_str())<=360);
+  const auto& context=wideFrame.texts[1];assert(context.y==92&&wideFrame.textWidth(context.value.c_str())<=360);
   assert(context.value.find("...")!=std::string::npos&&context.value.find("14:32")!=std::string::npos);
   Canvas dense;assert(richWrapped(dense,"abcdefghijklmnopqrs abcdefghijklmnopqrs abcdefghijklmnopqrs abcdefghijklmnopqrs abcdefghijklmnopqrs abcdefghijklmnopqrs abcdefghi",201,6));
   assert(dense.texts.size()==6&&dense.texts.back().value.find("...")!=std::string::npos);

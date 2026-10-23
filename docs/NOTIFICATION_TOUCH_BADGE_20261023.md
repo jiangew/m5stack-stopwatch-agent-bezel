@@ -37,8 +37,8 @@ were inspected in the native gallery; optional overlays show touch bounds only.
 
 | Artifact | Bytes | SHA-256 |
 | --- | ---: | --- |
-| standard-application.bin | 2263968 | `666ba70594dedad781c3f2c15208691fa22e470ac353d3566cbae3f65f8673c8` |
-| usb-mic-imu-application.bin | 3648000 | `3f1ddd0a3444c0bd2db894915b01c3b0012fb31a99e4d83d5bdf21d18edf6f95` |
+| standard-application.bin | 2264000 | `87517bfed3e42bc6abff4c7d50e6a116928a81aa927ed319c805a9c189d48681` |
+| usb-mic-imu-application.bin | 3648032 | `81ddd03d532971ebe54cb50c882a0be9ba3e591b242454f34deaf5cc5301d07c` |
 
 Candidates are prepared only. No image was uploaded, Mac app replaced, branch
 merged or remote pushed. Physical click sensitivity remains unverified until a
@@ -47,3 +47,5 @@ later separately confirmed app-only update and real-device acceptance.
 The96px coral preview supersedes the104px cyan candidate, which was never flashed. Its renderer expectation failed against the previous radius, then passed with the new layout and font. The existing expanded BACK/OPEN hit regions remain unchanged.
 
 Latest preview revision:90px amber/indigo badge, fixed center(388,232),36px Regular digits. The96px coral candidate was not flashed and is superseded. The112px square hit target is deliberately retained for easier taps, while the visible diameter shrinks. Notification UI regressions and all three builds passed;51 portrait-only native samples remain byte-identical.
+
+Header spacing follow-up: the three read-only header groups now share the body's28px line step, centered at y64/92/120. Wrapped read-only titles also use28px. First/second rows move upward; title/status/body/footer anchors and native deciding controls retain their prior positions. The actual renderer regression failed on the old spacing, then passed. Notification host regressions and native/standard/USB-mic+IMU builds passed; Chinese short/long, English long and synthetic long-model/two-line-title previews were inspected without overlap. This is a prepared candidate only; not flashed.
