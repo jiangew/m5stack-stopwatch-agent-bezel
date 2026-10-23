@@ -37,5 +37,9 @@ readback and protected-area check. With exact-port user confirmation, the select
 written to app0 on the known C152. Full previous app0 and protected first64KiB
 backups passed; the baseline matched the accepted reply-model image. Write hash,
 independent application readback and protected-area comparison passed. No Mac
-service or application replacement occurred. Reboot, USB/HID/IMU probes and user
-acceptance of the newly installed single-layer page remain pending.
+service or application replacement occurred. The user reported a light RESET;
+normal USB microphone enumeration, HID device-status and IMU RPC passed. A short
+input-only capture yielded96256 frames, mono48kHz16-bit PCM,2.005333333 seconds;
+the WAV was deleted. This validates format/continuity rather than acoustic quality.
+Two synthetic single-layer notices were sent through the installed bridge. User
+acceptance of display/controls and OPEN ON MAC from a real task remains pending.
