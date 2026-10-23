@@ -40,10 +40,10 @@ int main(){
     Canvas badge;task_notification::badge(badge,inbox);
     assert(badge.texts.size()==1&&badge.texts[0].value==std::to_string(count));
     assert(badge.texts[0].x==388&&badge.texts[0].y==232&&badge.texts[0].datum==middle_center);
-    assert(badge.circles.size()==2&&badge.circles[0].r==48&&badge.circles[1].r==45);
+    assert(badge.circles.size()==2&&badge.circles[0].r==45&&badge.circles[1].r==42);
     for(auto circle:badge.circles)assert(circle.x==388&&circle.y==232);
-    assert(badge.circles[1].color==workspace_palette::rgb565(0xFFE3D9));
-    assert(badge.texts[0].color==workspace_palette::rgb565(0x713B31));
+    assert(badge.circles[1].color==workspace_palette::rgb565(0xFFC857));
+    assert(badge.texts[0].color==workspace_palette::rgb565(0x172554));
     assert(badge.texts[0].size==1&&badge.texts[0].font[11]==36); // native36px VLW, no scaling
   }
   for(int x:{332,388,444})for(int y:{176,232,288}) {

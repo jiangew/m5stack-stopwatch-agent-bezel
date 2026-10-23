@@ -88,10 +88,10 @@ template<class Surface> void footerButton(Surface& s,const FooterButton& b,const
   s.fillRoundRect(b.x,b.y,b.width,b.height,12,fill);
   label(s,text,b.x+b.width/2,b.y+b.height/2,ink,2.f);
 }
-// Pale coral with a quiet rim and contrasting regular-weight count digits.
-constexpr uint16_t kBadgeFill=workspace_palette::rgb565(0xFFE3D9);
+// Bright amber against Home's black, with deep indigo regular-weight digits.
+constexpr uint16_t kBadgeFill=workspace_palette::rgb565(0xFFC857);
 constexpr uint16_t kBadgeEdge=workspace_palette::shade565(kBadgeFill,.88f);
-constexpr uint16_t kBadgeText=workspace_palette::rgb565(0x713B31);
+constexpr uint16_t kBadgeText=workspace_palette::rgb565(0x172554);
 template<class Surface> void badge(Surface& s,const Controller& ui){
   if(!ui.card().count)return;
   char text[8];std::snprintf(text,sizeof(text),"%u",ui.card().count);

@@ -13,7 +13,7 @@ badge constants; role drawing and host notification routing stay unchanged.
 ## Global Constraints
 
 - Button rectangles remain140×48px; only upper hit padding changes8→28px.
-- Badge center388,232; visible radius48; hit radius56; Space Mono Regular36px digits.
+- Badge center388,232; visible radius45; hit radius56; Space Mono Regular36px digits.
 - No firmware flash, protocol/host change or role transform change in this task.
 
 ## Task 1: Target behavior and badge rendering
@@ -43,3 +43,5 @@ badge constants; role drawing and host notification routing stay unchanged.
 Latest user correction applied: all roles use fixed center(388,232), diameter104px. The51-frame native comparison and fixed-position gallery supersede the initial112px proposal. Physical acceptance remains pending a later update.
 
 User preview revision: diameter96px, pale coral#FFE3D9, dark brown-red#713B31 digits, native36px regular font from existing TTF; position and enlarged footer targets unchanged. Rebuild/render the revised candidate before delivery.
+
+Latest user preview revision: diameter90px, agent-selected bright amber#FFC857 and deep indigo#172554;36px Regular digits retained. Keep the existing112px touch target even though the visible circle shrinks. This supersedes the96px coral preview; fixed center and role geometry remain unchanged.
