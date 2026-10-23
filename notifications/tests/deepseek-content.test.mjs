@@ -66,3 +66,21 @@ test('read-only input freezes metadata through continued and native answered pro
  active=[];settled=[{callId:'question',answers:[{answer:'PRIVATE ANSWER'}]}];f.send('user/message',{});
  const final=f.output.at(-1);assert.equal(final.outcome,'answered');assert.equal(final.title,first.title);assert.equal(final.detail,first.detail);assert.equal(final.canDecide,false);assert.ok(!JSON.stringify(f.output).includes('PRIVATE'));
 });
+
+test('execution model comes from exact current native request/message and freezes on attention',()=>{
+ const f=fixture();f.start();f.send('request/header',{header:{config:{provider:'synthetic',model:'deepseek-v4-pro'}}});
+ f.send('assistant/message',{turn:1,message:{role:'assistant',source:{model:'deepseek-v4-pro-202610'},content:[{type:'tool-call',id:'tool'}]}});
+ f.send('approval/asked',{id:'request'});const initial=f.output.at(-1);assert.equal(initial.model,'deepseek-v4-pro-202610');
+ f.send('request/header',{header:{config:{model:'different-model'}}});f.observer.heartbeat();assert.equal(f.output.at(-1).model,initial.model);
+ f.send('approval/decided',{id:'request',outcome:'rejected'});assert.equal(f.output.at(-1).model,initial.model);
+ f.send('assistant/message',{turn:1,message:{role:'assistant',source:{model:'deepseek-v4-pro-final'},content:[{type:'text',text:'Done'}]}});
+ f.send('turn/end',{turn:1,reason:{kind:'completed'}});assert.equal(f.output.at(-1).model,'deepseek-v4-pro-final');
+ f.send('turn/start',{turn:2});f.send('approval/asked',{id:'second'});assert.equal(f.output.at(-1).model,'');
+});
+test('unobserved, stale and child model events cannot supply a model; legacy stays empty',()=>{
+ for(const kind of ['unobserved','stale','child','legacy']){
+  const f=fixture(kind!=='legacy');if(kind!=='unobserved')f.start();
+  f.send('assistant/message',{turn:kind==='stale'?2:1,message:{role:'assistant',source:{model:'PRIVATE-MODEL'},content:[]}},2,kind==='child'?{id:'child'}:f.session);
+  f.send('turn/end',{turn:1,reason:{kind:'completed'}});assert.equal(f.output.at(-1).model,'',kind);
+ }
+});

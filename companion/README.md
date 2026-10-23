@@ -31,7 +31,7 @@ then run from the repository root:
 bash scripts/package_companion.sh companion/.build/release/codex-watch-companion /private/tmp/CodexWatchCompanion-candidate.app
 ```
 
-The output must not already exist. This packages version **0.1.4**, build **17**,
+The output must not already exist. This packages version **0.1.4**, build **18**,
 with `AgentBezelSourceCommit` and UTC `AgentBezelBuildTimestamp` in Info.plist,
 then ad-hoc signs and verifies the candidate. It does not install or restart it.
 The caller must supply the release executable built from the recorded checkout;

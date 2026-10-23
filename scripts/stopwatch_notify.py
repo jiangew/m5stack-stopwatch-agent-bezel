@@ -32,7 +32,7 @@ def validate_event(event):
     data = dict(event)
     data.setdefault('canDecide', False)
     required = {'v', 'eventId', 'source', 'sessionId', 'runId', 'requestId', 'revision', 'createdAt', 'leaseDeadline', 'kind', 'title', 'model', 'detail', 'canDecide', 'state'}
-    if not required.issubset(data) or set(data) - required - {'options', 'optionIds', 'outcome', 'project', 'excerpted', 'terminalReason'}:
+    if not required.issubset(data) or set(data) - required - {'options', 'optionIds', 'outcome', 'project', 'excerpted', 'terminalReason', 'modelConfigured'}:
         raise ValueError('invalid event fields')
     if (type(data['v']) is not int or data['v'] != 1 or data['source'] not in SOURCES
             or data['kind'] not in {'done', 'approval', 'input', 'failed'} or data['state'] not in {'pending', 'resolved'}
@@ -43,6 +43,10 @@ def validate_event(event):
         raise ValueError('invalid event')
     if 'project' in data and not _string(data['project'], 64): raise ValueError('invalid project')
     if 'excerpted' in data and type(data['excerpted']) is not bool: raise ValueError('invalid excerpt flag')
+    if 'modelConfigured' in data:
+        if (type(data['modelConfigured']) is not bool or data['modelConfigured'] and
+                (data['source'] != 'codex' or not data['model'] or data['canDecide'])):
+            raise ValueError('invalid configured model provenance')
     if 'terminalReason' in data:
         reason = data['terminalReason']
         if (not isinstance(reason, str) or reason not in {'completed', 'error', 'aborted', 'blocked', 'max-tokens'}

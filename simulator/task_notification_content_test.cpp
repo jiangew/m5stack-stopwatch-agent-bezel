@@ -12,7 +12,7 @@ int main(int argc,char** argv){
      assert(parsed.rich&&parsed.position>=1&&parsed.position<=parsed.count&&!parsed.decide);
      assert(task_notification::validUtf8(parsed.title,std::strlen(parsed.title))&&task_notification::validUtf8(parsed.detail,std::strlen(parsed.detail)));++count;
    }
-   assert(count==7);puts("PASS Swift broker rich wire parsed by real firmware (7 Unicode/escaping/attention fixtures)");return 0;
+   assert(count==8);puts("PASS Swift broker rich wire parsed by real firmware (8 Unicode/escaping/attention/model fixtures)");return 0;
  }
  using namespace task_notification;
  StaticJsonDocument<2048> d;
@@ -29,6 +29,9 @@ int main(int argc,char** argv){
  d["kind"]="done";d["layout"]=2;assert(parse(d.as<JsonObjectConst>(),c));
  d["terminalReason"]="error";assert(!parse(d.as<JsonObjectConst>(),c));
  d["kind"]="failed";assert(parse(d.as<JsonObjectConst>(),c));d.remove("terminalReason");d["kind"]="done";
+ d["model"]="gpt-6.1-sol";d["modelConfigured"]=true;assert(parse(d.as<JsonObjectConst>(),c)&&c.modelConfigured);
+ d["src"]="deepseek";assert(!parse(d.as<JsonObjectConst>(),c));d["src"]="codex";
+ d["modelConfigured"]="yes";assert(!parse(d.as<JsonObjectConst>(),c));d.remove("modelConfigured");
  d.remove("layout");assert(!parse(d.as<JsonObjectConst>(),c));
  d["title"]="ASCII";d["detail"]="ASCII";assert(parse(d.as<JsonObjectConst>(),c)&&!c.rich);
  puts("PASS bounded UTF-8 rich protocol, invalid encodings, positions and legacy authority isolation");

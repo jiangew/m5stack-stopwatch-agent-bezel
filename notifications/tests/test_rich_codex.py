@@ -51,10 +51,19 @@ class RichCodexTests(unittest.TestCase):
             self.assertEqual(json.loads(inbox[0].read_text())['detail'],event['detail'])
             for path in (Path(directory)/'adapter-routes').glob('*.json'):self.assertLessEqual(path.stat().st_size,8192)
 
+    def test_model_is_exact_thread_configuration_and_explicitly_qualified(self):
+        p=Capture();metadata=lambda _:dict(root=True,name='任务',cwd='/synthetic/project',configuredModel='gpt-6.1-sol')
+        handle_notify({'type':'agent-turn-complete','thread-id':'root','turn-id':'turn','model':'UNVERIFIED CALLBACK'},p,set(),metadata,rich_content=True)
+        _,kw=p.calls[0];self.assertEqual(kw['model'],'gpt-6.1-sol');self.assertIs(kw['model_configured'],True)
+        for value in [None,123,'invalid\nmodel','x'*129]:
+            p=Capture();handle_notify({'type':'agent-turn-complete','thread-id':'root','turn-id':'turn'},p,{'root'},lambda _:dict(root=True,configuredModel=value),rich_content=True)
+            self.assertEqual(p.calls[0][1]['model'],'');self.assertNotIn('model_configured',p.calls[0][1])
+
     def test_optional_metadata_has_strict_types(self):
         base=dict(v=1,eventId='event',source='codex',sessionId='s',runId='r',requestId='q',revision=1,createdAt=1,leaseDeadline=2,kind='done',title='中文',model='',detail='摘录',canDecide=False,state='resolved')
         self.assertEqual(validate_event(dict(base,project='project',excerpted=True))['project'],'project')
-        for changes in [dict(project=12),dict(excerpted='yes'),dict(project='a'*65)]:
+        self.assertTrue(validate_event(dict(base,model='native-model',modelConfigured=True))['modelConfigured'])
+        for changes in [dict(project=12),dict(excerpted='yes'),dict(project='a'*65),dict(modelConfigured='yes'),dict(modelConfigured=True),dict(modelConfigured=True,source='deepseek',model='x')]:
             with self.assertRaises(ValueError):validate_event(dict(base,**changes))
 
     def test_terminal_reason_is_strict_and_agrees_with_completion(self):

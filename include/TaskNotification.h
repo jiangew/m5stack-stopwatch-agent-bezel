@@ -15,7 +15,7 @@ constexpr int kBadgeCenterX=378,kBadgeCenterY=233,kBadgeRadius=40,kBadgeHitRadiu
 struct Card {
   uint32_t g=0,id=0,r=0,ttl=0,ack=0;
   uint8_t count=0,alert=0,optionCount=0,position=0;
-  bool rich=false,excerpted=false;
+  bool rich=false,excerpted=false,modelConfigured=false;
   char project[33]={},time[6]={};
   bool decide=false,muteLegacyCodex=false;
   char src[9]={},kind[9]={},title[97]={},model[33]={},detail[193]={},state[11]={};
@@ -86,6 +86,10 @@ inline bool parse(JsonObjectConst value,Card& output) {
      !(oneOf(c.state,"pending","submitting","resolved","unknown")||!std::strcmp(c.state,"expired")))return false;
   if(!value["outcome"].isNull()&&(!text(value["outcome"],c.outcome)||
       !oneOf(c.outcome,"allowed","declined","answered","cancelled")||std::strcmp(c.state,"resolved")))return false;
+  if(value.containsKey("modelConfigured")) {
+    if(!value["modelConfigured"].is<bool>())return false;c.modelConfigured=value["modelConfigured"];
+    if(c.modelConfigured&&(!c.rich||c.decide||std::strcmp(c.src,"codex")||!c.model[0]))return false;
+  }
   if(!value["terminalReason"].isNull()) {
     if(!text(value["terminalReason"],c.terminalReason)||
        (!oneOf(c.terminalReason,"completed","error","aborted","blocked")&&std::strcmp(c.terminalReason,"max-tokens"))||
@@ -105,7 +109,7 @@ inline bool parse(JsonObjectConst value,Card& output) {
 }
 inline bool sameRequest(const Card& a,const Card& b){return a.g==b.g&&a.id==b.id&&a.r==b.r;}
 inline bool sameContext(const Card& a,const Card& b){
-  if(std::strcmp(a.terminalReason,b.terminalReason)||a.rich!=b.rich||std::strcmp(a.project,b.project)||a.excerpted!=b.excerpted)return false;
+  if(a.modelConfigured!=b.modelConfigured||std::strcmp(a.terminalReason,b.terminalReason)||a.rich!=b.rich||std::strcmp(a.project,b.project)||a.excerpted!=b.excerpted)return false;
   if(std::strcmp(a.src,b.src)||std::strcmp(a.kind,b.kind)||std::strcmp(a.title,b.title)||
      std::strcmp(a.model,b.model)||std::strcmp(a.detail,b.detail)||a.optionCount!=b.optionCount)return false;
   for(unsigned i=0;i<a.optionCount;++i)if(std::strcmp(a.options[i],b.options[i]))return false;

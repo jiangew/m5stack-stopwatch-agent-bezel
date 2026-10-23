@@ -37,6 +37,7 @@ struct TaskNotificationEvent: Codable, Equatable {
     var project: String? = nil
     var excerpted: Bool? = nil
     var terminalReason: String? = nil
+    var modelConfigured: Bool? = nil
     var requiresCompleteScope: Bool { canDecide == true && (kind == "approval" || (kind == "input" && options != nil)) }
     var identity: [String] { [source, sessionId, runId, requestId] }
 
@@ -48,6 +49,9 @@ struct TaskNotificationEvent: Codable, Equatable {
               [title, model, detail].allSatisfy({ $0.utf8.count <= 4096 && !$0.contains("\0") }),
               try JSONEncoder().encode(self).count <= 8192 else { throw TaskNotificationError.invalid }
         if let project { guard project.utf8.count <= 64, !project.contains("\0") else { throw TaskNotificationError.invalid } }
+        if modelConfigured == true {
+            guard source == "codex", !model.isEmpty, canDecide != true else {throw TaskNotificationError.invalid}
+        }
         if let terminalReason {
             guard ["completed", "error", "aborted", "blocked", "max-tokens"].contains(terminalReason),
                   kind == (terminalReason == "completed" ? "done" : "failed"), state == "resolved", canDecide != true else { throw TaskNotificationError.invalid }
@@ -92,6 +96,7 @@ struct TaskNotificationCard: Codable, Equatable {
     var time: String? = nil
     var excerpted: Bool? = nil
     var terminalReason: String? = nil
+    var modelConfigured: Bool? = nil
 }
 struct TaskNotificationAction: Codable {
     var v: Int
@@ -151,13 +156,15 @@ enum TaskNotificationPresentation {
         var card=original
         card.layout=["approval","input"].contains(event.kind) ? 3 : 2;card.pos=position
         card.options=nil;card.terminalReason=event.terminalReason
-        if !TaskNotificationEvent.ascii(card.model,max:32) {card.model=""}
+        card.model=TaskNotificationEvent.ascii(event.model,max:128) ? event.model : ""
+        if card.model.utf8.count>32 {card.model=prefix(card.model,bytes:29)+"..."}
+        card.modelConfigured=card.model.isEmpty ? nil : event.modelConfigured
         let name=plain(event.title)
         let title = name.isEmpty ? "未命名任务 #\(card.id)" : name
         card.title=prefix(String(title.prefix(32)),bytes:96)
         if card.title != title {card.title=prefix(String(title.prefix(29)),bytes:93)+"..."}
         card.project=prefix(plain(event.project ?? ""),bytes:32)
-        if card.project?.isEmpty == true {card.project=nil}
+        if card.project?.isEmpty == true || ["codex","deepseek"].contains(event.source) {card.project=nil}
         let formatter=DateFormatter();formatter.locale=Locale(identifier:"en_US_POSIX");formatter.dateFormat="HH:mm"
         card.time=formatter.string(from:Date(timeIntervalSince1970:Double(event.createdAt)/1000))
         let full=plain(event.detail)
@@ -179,7 +186,6 @@ enum TaskNotificationPresentation {
             if try JSONEncoder().encode(ceiling).count<=512 {return card}
             if budget>0 {budget=max(0,budget-8);continue}
             if card.project != nil {card.project=nil;continue}
-            if !card.model.isEmpty {card.model="";continue}
             throw TaskNotificationError.invalid
         }
     }

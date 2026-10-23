@@ -206,3 +206,19 @@ firmware: the accepted prior firmware deliberately rejects layout3. Stage the
 new source and generic OPEN relay, then coordinate Companion and firmware updates
 before enabling DSH richContent. Existing native routes, IDs and action semantics
 are unchanged. See [candidate evidence](../docs/DSH_NOTIFICATION_CONTENT_20261023.md).
+
+
+## Model/time row candidate
+
+`modelConfigured:boolean` is optional on private events and rich wire. True is
+valid only for Codex, a nonempty model and no native deciding capability; firmware
+also requires rich presentation. It means the model is thread configuration and
+must be visibly qualified, never represented as execution telemetry. Model and
+qualification are immutable for the same native revision. Existing legacy scope
+presentation is unaffected.
+
+Read-only Codex/DSH context uses model/time; other sources keep project/time.
+Model is bounded to128 ASCII bytes at projection admission; wire32 bytes uses an
+explicit ellipsis for long versions. Omit Codex/DSH wire project to preserve model
+space. Pixel fitting reserves the time and adds 配置 for configured versions.
+Missing model uses 模型未提供; no global defaults or historical content scans.

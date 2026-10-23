@@ -68,7 +68,7 @@ final class TaskNotificationBroker {
                 // A readonly rich revision cannot later gain a deciding scope.
                 if richContent, old.completeScope == false, event.requiresCompleteScope { throw TaskNotificationError.invalid }
                 guard event.kind == old.event.kind, event.title == old.event.title, event.model == old.event.model,
-                      event.detail == old.event.detail, event.project == old.event.project, event.excerpted == old.event.excerpted, event.terminalReason == old.event.terminalReason, event.options == old.event.options, event.optionIds == old.event.optionIds else { throw TaskNotificationError.invalid }
+                      event.detail == old.event.detail, event.project == old.event.project, event.excerpted == old.event.excerpted, event.terminalReason == old.event.terminalReason, event.modelConfigured == old.event.modelConfigured, event.options == old.event.options, event.optionIds == old.event.optionIds else { throw TaskNotificationError.invalid }
                 if old.state == "resolved" {
                     guard event.state == "resolved", old.event.outcome == nil, event.outcome != nil else { return }
                 }

@@ -197,7 +197,7 @@ class Publisher:
         self._times = {}
 
     def publish(self, source, session, run, request, kind, title, detail, *, model='', state='pending',
-                revision=1, outcome=None, stored_session=None, project=None, excerpted=None, fit_excerpt=False):
+                revision=1, outcome=None, stored_session=None, project=None, excerpted=None, fit_excerpt=False, model_configured=None):
         identity = (source, session, run, request, revision)
         timestamp = max(self.now(), self._times.get(identity, -1) + 1)
         event = dict(v=1, eventId=str(uuid.uuid4()), source=source, sessionId=session, runId=run,
@@ -205,6 +205,7 @@ class Publisher:
                      kind=kind, title=title, model=model, detail=detail, canDecide=False, state=state)
         if project is not None: event['project'] = project
         if excerpted is not None: event['excerpted'] = excerpted
+        if model_configured is not None: event['modelConfigured'] = model_configured
         if outcome is not None: event['outcome'] = outcome
         if fit_excerpt:
             if kind not in {'done', 'failed'}: raise ValueError('excerpt fitting requires read-only result')

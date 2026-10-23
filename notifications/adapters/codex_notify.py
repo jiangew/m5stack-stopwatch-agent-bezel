@@ -66,7 +66,7 @@ def metadata_root(session, codex=CODEX_CLI, timeout=3, display=False):
         source = thread.get('source')
         if thread.get('parentThreadId') is not None or isinstance(source, dict) and 'subAgent' in source: return False
         root = True if isinstance(source, str) and source in {'cli', 'vscode', 'exec', 'appServer'} else None
-        if display: return dict(root=root, name=thread.get('name'), cwd=thread.get('cwd'))
+        if display: return dict(root=root, name=thread.get('name'), cwd=thread.get('cwd'), configuredModel=thread.get('model'))
         return root
     except (OSError, ValueError, TypeError, subprocess.SubprocessError):
         return None
@@ -102,8 +102,12 @@ def handle_notify(record, publisher, roots, root_resolver=None, rich_content=Fal
         cwd = info.get('cwd')
         project = Path(cwd).name if isinstance(cwd, str) and cwd.startswith('/') and Path(cwd) != Path.home() else ''
         project, _ = plain_text(project, 64)
+        # Thread.model is native per-thread configuration, not execution telemetry.
+        configured = info.get('configuredModel')
+        model = configured if isinstance(configured, str) and re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._:/+\-]{0,127}', configured) else ''
+        provenance = {'model_configured': True} if model else {}
         publisher.publish('codex', session, turn, 'turn-complete', 'done', title, detail or 'Reply available on Mac',
-                          state='resolved', stored_session=session, project=project, excerpted=clipped, fit_excerpt=True)
+                          state='resolved', stored_session=session, project=project, excerpted=clipped, fit_excerpt=True, model=model, **provenance)
     else:
         publisher.publish('codex', session, turn, 'turn-complete', 'done', 'Codex completed', 'Turn completed',
                           stored_session=session)

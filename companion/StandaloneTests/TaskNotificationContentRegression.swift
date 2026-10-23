@@ -10,7 +10,7 @@ private func require(_ value:@autoclosure () throws -> Bool) rethrows { let ok=t
         event.project="stopwatch"
         try broker.ingest(event,now:1000)
         var card=try broker.card(now:1000)
-        assert(card.layout==2 && card.pos==1 && card.title==event.title && card.project=="stopwatch")
+        assert(card.layout==2 && card.pos==1 && card.title==event.title && card.project==nil)
         assert(card.excerpted==true && card.detail.utf8.count<=128)
         try require(try JSONEncoder().encode(card).count<=512)
         let old=try TaskNotificationBroker(store:store)
@@ -49,6 +49,14 @@ private func require(_ value:@autoclosure () throws -> Bool) rethrows { let ok=t
         owned.eventId="native-resolved";owned.createdAt=2001;owned.state="resolved";owned.outcome="allowed"
         try owner.ingest(owned,now:2001);let verdict=try owner.card(now:2001)
         assert(verdict.layout==nil && verdict.detail==ownedCard.detail && verdict.outcome=="allowed")
+        var modeled=event;modeled.model="gpt-6.1-sol";modeled.modelConfigured=true
+        let modelCard=try TaskNotificationPresentation.card(card,event:modeled,position:1)
+        assert(modelCard.model==modeled.model && modelCard.modelConfigured==true && modelCard.project==nil)
+        if CommandLine.arguments.contains("--emit-wire") {print(String(decoding:try JSONEncoder().encode(modelCard),as:UTF8.self))}
+        modeled.model=String(repeating:"a",count:80)
+        let longModel=try TaskNotificationPresentation.card(card,event:modeled,position:1)
+        assert(longModel.model.utf8.count<=32 && longModel.model.hasSuffix("..."))
+        try require(try JSONEncoder().encode(longModel).count<=512)
         // Read-only native attention shares rich layout; lease/outcome updates cannot
         // change the visible excerpt for the same immutable request revision.
         let attentionStore=try TaskNotificationStore(directory:dir.appendingPathComponent("attention").path)

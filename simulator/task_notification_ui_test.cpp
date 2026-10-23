@@ -137,7 +137,18 @@ int main(){
   Card stopped=rich;std::strcpy(stopped.kind,"failed");std::strcpy(stopped.terminalReason,"aborted");assert(!std::strcmp(richStatus(stopped),"INTERRUPTED"));
   std::strcpy(stopped.terminalReason,"blocked");assert(!std::strcmp(richStatus(stopped),"BLOCKED"));
   std::strcpy(stopped.terminalReason,"max-tokens");assert(!std::strcmp(richStatus(stopped),"LIMIT REACHED"));
-  Card wide=rich;std::strcpy(wide.project,"abcdefghijklmnopqrstuvwxyz123456");
+  for(const char* source:{"codex","deepseek"}){
+    Card model=rich;std::strcpy(model.src,source);std::strcpy(model.model,"native-model-v4");
+    Controller modelUi;modelUi.receive(model,200);modelUi.openInbox(210);Canvas frame;render(frame,modelUi,220);
+    assert(frame.texts[1].value=="native-model-v4 / 14:32");
+    if(!std::strcmp(source,"codex")){
+      model.modelConfigured=true;Controller configuredUi;configuredUi.receive(model,200);configuredUi.openInbox(210);Canvas configured;render(configured,configuredUi,220);
+      assert(configured.texts[1].value.find("配置 ")==0 && configured.texts[1].value.find("14:32")!=std::string::npos && configured.textWidth(configured.texts[1].value.c_str())<=360);model.modelConfigured=false;
+    }
+    model.model[0]=0;Controller unknownUi;unknownUi.receive(model,200);unknownUi.openInbox(210);Canvas missing;render(missing,unknownUi,220);
+    assert(missing.texts[1].value=="模型未提供 / 14:32");
+  }
+  Card wide=rich;std::strcpy(wide.src,"super");std::strcpy(wide.project,"abcdefghijklmnopqrstuvwxyz123456");
   Controller wideUi;wideUi.receive(wide,200);wideUi.openInbox(210);Canvas wideFrame;render(wideFrame,wideUi,220);
   const auto& context=wideFrame.texts[1];assert(context.y==97&&wideFrame.textWidth(context.value.c_str())<=360);
   assert(context.value.find("...")!=std::string::npos&&context.value.find("14:32")!=std::string::npos);

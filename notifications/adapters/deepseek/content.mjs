@@ -49,3 +49,7 @@ export function fit(event) {
   }
   return event;
 }
+
+export function modelVersion(value) {
+  return typeof value === 'string' && /^[A-Za-z0-9][A-Za-z0-9._:/+\-]{0,127}$/.test(value) ? value : '';
+}

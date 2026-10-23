@@ -85,7 +85,7 @@ class NotifyTests(unittest.TestCase):
             with self.subTest(character=character), tempfile.TemporaryDirectory(dir='/private/tmp') as root:
                 directory=Path(root)/'notifications'
                 record={'type':'agent-turn-complete','thread-id':'r'*128,'turn-id':'t'*128,'last-assistant-message':character*4096}
-                metadata=lambda _:dict(root=True,name='"'*512,cwd='/synthetic/project')
+                metadata=lambda _:dict(root=True,name='"'*512,cwd='/synthetic/project',configuredModel='gpt-6.1-sol')
                 self.assertTrue(handle_notify(record,Publisher(directory,now=lambda:1000),set(),metadata,rich_content=True))
                 result=subprocess.run([os.environ['TASK_NOTIFICATION_PROBE_BINARY'],'--consume',str(directory)],check=True,capture_output=True,text=True)
                 self.assertEqual(json.loads(result.stdout.splitlines()[-1]),{'consumed':1,'rejected':0})

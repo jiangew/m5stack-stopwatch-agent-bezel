@@ -109,13 +109,14 @@ for line in sys.stdin:
  with open(""" + repr(str(calls)) + """,'a') as output: output.write(json.dumps(request)+'\\n')
  if request.get('method')=='initialize': print(json.dumps({'id':1,'result':{}}),flush=True)
  if request.get('method')=='thread/read':
-  print(json.dumps({'id':2,'result':{'thread':{'id':request['params']['threadId'],'source':'appServer','parentThreadId':None,'turns':[],'preview':'synthetic private prompt'}}}),flush=True)
+  print(json.dumps({'id':2,'result':{'thread':{'id':request['params']['threadId'],'source':'appServer','parentThreadId':None,'turns':[],'model':'native-configured-model','preview':'synthetic private prompt'}}}),flush=True)
 """)
         fake.chmod(0o700)
         self.assertTrue(metadata_root('future-root', codex=str(fake)))
+        self.assertEqual(metadata_root('future-root', codex=str(fake), display=True),dict(root=True,name=None,cwd=None,configuredModel='native-configured-model'))
         text = calls.read_text().replace('\\n', '\n')
         frames = [json.loads(x) for x in text.splitlines()]
-        self.assertEqual([x['method'] for x in frames], ['initialize','initialized','thread/read'])
+        self.assertEqual([x['method'] for x in frames], ['initialize','initialized','thread/read']*2)
         self.assertEqual(frames[-1]['params'], {'threadId':'future-root','includeTurns':False})
         original = fake.read_text()
         fake.write_text(original.replace("'source':'appServer'", "'source':{'subAgent':'review'}"))

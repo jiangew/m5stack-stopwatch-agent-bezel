@@ -726,3 +726,7 @@ local client interface used by the companion is documented under
 
 Names and marks are used only to identify compatibility. See [NOTICE.md](NOTICE.md)
 for attribution, protocol, security, warranty, and trademark notices.
+
+The [model/time row follow-up](docs/NOTIFICATION_MODEL_ROW_20261023.md) replaces
+Codex/DSH project labels with model versions, qualifying Codex thread configuration
+as configured. This build18 candidate has not been installed.

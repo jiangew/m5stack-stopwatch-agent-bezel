@@ -169,3 +169,19 @@ sh scripts/test_task_notifications.sh
 Set DSH_NATIVE_MODULES to an explicit external pinned node_modules tree to include the temporary-tree patched native acceptance in notifications/test.sh (otherwise it reports that acceptance as not run). The adapter suite runs Python/Node tests plus callback→private filesystem→real Swift broker tests, including cleared native audit outcomes, monotonic resolution timestamps, child/tool exclusion, multiple sessions, no false acceptance, OPEN routing, and symlink/mode rejection. Persistent SUPER stream tests deliver batched frames before EOF and isolate partial frames across roots. Routing capacity is serialized across callback processes with an owner-only, single-link, no-follow lock; its file does not consume the 256-record capacity, and existing identities remain writable at capacity. It never installs plugins or calls a model. The source protocol and installed artifact pins are documented above; current private inspection notes stay in the ignored task work area.
 
 No C152 build/flash/pairing/encrypted GATT/button/haptic/physical notification acceptance is established by these tests. Native plugin installation, exact session opening in each app, existing-session coverage after reload, and end-to-end physical delivery require separate observed acceptance.
+
+
+### Model/time row follow-up
+
+For Codex and DSH rich cards, the context before local time now displays the
+native model version instead of project. DSH reads the current observed native
+request/header config.model and committed assistant message.source.model, bound
+to the exact root Session/turn; pending identity freezes it through resolution.
+Codex's metadata-only Thread.model is **current/latest persisted thread
+configuration, not per-turn execution telemetry**. The user chose that fallback
+with an explicit `配置` prefix; optional `modelConfigured:true` carries the
+qualification. No global default or arbitrary callback model field fills gaps.
+Missing model shows `模型未提供`; old events are not backfilled. The original
+project remains local metadata; Codex/DSH rich wire omits it. Other source rows
+retain project/time. Candidate build18 is not installed or physically accepted.
+See [model row evidence](../docs/NOTIFICATION_MODEL_ROW_20261023.md).
