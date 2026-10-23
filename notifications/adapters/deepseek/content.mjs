@@ -53,3 +53,32 @@ export function fit(event) {
 export function modelVersion(value) {
   return typeof value === 'string' && /^[A-Za-z0-9][A-Za-z0-9._:/+\-]{0,127}$/.test(value) ? value : '';
 }
+
+export function replyModel(message) {
+  if (!Array.isArray(message?.content) || message.content.some(x => x?.type === 'tool-call')) return '';
+  let text = '';
+  for (const block of message.content) {
+    if (block?.type !== 'text' || typeof block.text !== 'string') continue;
+    if (text.length + block.text.length > 1024 * 1024) return '';
+    text += '\n' + block.text;
+  }
+  const models = new Set(); let fence = null;
+  for (const line of text.split(/\r?\n/)) {
+    let stripped = line.trim();const marker = stripped.match(/^(`{3,}|~{3,})(.*)$/);
+    if (marker) {
+      if (fence === null) fence = marker[1];
+      else if (marker[1][0] === fence[0] && marker[1].length >= fence.length && !marker[2].trim()) fence = null;
+      continue;
+    }
+    if (fence || /^(?: {4}|\t)/.test(line)) continue;
+    stripped = stripped.replace(/^[-*]\s+/, '');
+    const match = stripped.match(/^(?:\*\*|__)?(?:model(?: version| used)?|(?:本次(?:使用的?)?)?模型(?:版本)?)(?:\*\*|__)?\s*[:：]\s*(.+)$/i);
+    if (!match) continue;
+    let model = match[1].trim();
+    for (const wrapper of ['`', '**', '__']) {
+      if (model.length > 2 * wrapper.length && model.startsWith(wrapper) && model.endsWith(wrapper)) {model = model.slice(wrapper.length,-wrapper.length);break;}
+    }
+    if (modelVersion(model)) models.add(model);
+  }
+  return models.size === 1 ? [...models][0] : '';
+}

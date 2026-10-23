@@ -75,7 +75,7 @@ test('execution model comes from exact current native request/message and freeze
  f.send('approval/decided',{id:'request',outcome:'rejected'});assert.equal(f.output.at(-1).model,initial.model);
  f.send('assistant/message',{turn:1,message:{role:'assistant',source:{model:'deepseek-v4-pro-final'},content:[{type:'text',text:'Done'}]}});
  f.send('turn/end',{turn:1,reason:{kind:'completed'}});assert.equal(f.output.at(-1).model,'deepseek-v4-pro-final');
- f.send('turn/start',{turn:2});f.send('approval/asked',{id:'second'});assert.equal(f.output.at(-1).model,'');
+ f.send('turn/start',{turn:2});f.send('approval/asked',{id:'second'});assert.equal(f.output.at(-1).model,'different-model');
 });
 test('unobserved, stale and child model events cannot supply a model; legacy stays empty',()=>{
  for(const kind of ['unobserved','stale','child','legacy']){
@@ -83,4 +83,24 @@ test('unobserved, stale and child model events cannot supply a model; legacy sta
   f.send('assistant/message',{turn:kind==='stale'?2:1,message:{role:'assistant',source:{model:'PRIVATE-MODEL'},content:[]}},2,kind==='child'?{id:'child'}:f.session);
   f.send('turn/end',{turn:1,reason:{kind:'completed'}});assert.equal(f.output.at(-1).model,'',kind);
  }
+});
+
+test('last reply model has priority over later config; missing reply model falls back to session config',()=>{
+ const f=fixture();f.start();f.send('request/header',{header:{config:{model:'configured-model'}}});
+ f.send('assistant/message',{turn:1,message:{role:'assistant',source:{model:'reply-model'},content:[{type:'text',text:'Done'}]}});
+ f.send('request/header',{header:{config:{model:'next-config'}}});f.send('approval/asked',{id:'a'});assert.equal(f.output.at(-1).model,'reply-model');
+ f.message('Done without model');f.send('turn/end',{turn:1,reason:{kind:'completed'}});assert.equal(f.output.at(-1).model,'next-config');
+ f.send('turn/start',{turn:2});f.send('assistant/message',{turn:2,message:{role:'assistant',content:[{type:'text',text:'Model: explicit-reply-model'}]}});f.send('turn/end',{turn:2,reason:{kind:'completed'}});assert.equal(f.output.at(-1).model,'explicit-reply-model');
+ f.send('turn/start',{turn:3});f.send('assistant/message',{turn:3,message:{role:'assistant',content:[{type:'text',text:'No model marker'}]}});f.send('turn/end',{turn:3,reason:{kind:'completed'}});assert.equal(f.output.at(-1).model,'next-config');
+});
+test('session-config cache stays bounded and cannot cross a replaced root Session',()=>{
+ const f=fixture();f.start();f.send('request/header',{header:{config:{model:'old-config'}}});f.send('turn/end',{turn:1,reason:{kind:'completed'}});
+ const replacement={id:f.session.id,header:{}};f.ctx.agents.roots=()=>[{id:replacement.id,session:replacement}];
+ f.send('turn/start',{turn:2},2,replacement);f.send('turn/end',{turn:2,reason:{kind:'completed'}},3,replacement);assert.equal(f.output.at(-1).model,'');
+ const roots=[];f.ctx.agents.roots=()=>roots;
+ for(let i=0;i<100;i++){
+  const session={id:'root-'+i,header:{}};roots.push({id:session.id,session});
+  f.send('turn/start',{turn:1},1,session);f.send('request/header',{header:{config:{model:'native-config'}}},2,session);f.send('turn/end',{turn:1,reason:{kind:'completed'}},3,session);assert.ok(f.observer.models.size<=64);
+ }
+ roots.length=0;f.observer.heartbeat();assert.equal(f.observer.models.size,0);
 });

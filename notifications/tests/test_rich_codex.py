@@ -59,6 +59,14 @@ class RichCodexTests(unittest.TestCase):
             p=Capture();handle_notify({'type':'agent-turn-complete','thread-id':'root','turn-id':'turn'},p,{'root'},lambda _:dict(root=True,configuredModel=value),rich_content=True)
             self.assertEqual(p.calls[0][1]['model'],'');self.assertNotIn('model_configured',p.calls[0][1])
 
+    def test_latest_reply_model_marker_wins_without_guessing_from_mentions(self):
+        base={'type':'agent-turn-complete','thread-id':'root','turn-id':'turn'}
+        metadata=lambda _:dict(root=True,configuredModel='configured-model')
+        for text,expected in [('Result\n模型：gpt-6.1-sol','gpt-6.1-sol'),('Done\n- **Model version**: `deepseek-v4-pro`','deepseek-v4-pro'),('Compare gpt-6.1-sol and deepseek-v4-pro.','configured-model'),('```yaml\nmodel: example-model\n```','configured-model'),('模型：first-model\n模型：second-model','configured-model')]:
+            p=Capture();handle_notify(dict(base,**{'last-assistant-message':text}),p,set(),metadata,rich_content=True)
+            kw=p.calls[0][1];self.assertEqual(kw['model'],expected)
+            self.assertEqual(kw.get('model_configured',False),expected=='configured-model')
+
     def test_optional_metadata_has_strict_types(self):
         base=dict(v=1,eventId='event',source='codex',sessionId='s',runId='r',requestId='q',revision=1,createdAt=1,leaseDeadline=2,kind='done',title='中文',model='',detail='摘录',canDecide=False,state='resolved')
         self.assertEqual(validate_event(dict(base,project='project',excerpted=True))['project'],'project')

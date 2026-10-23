@@ -21,12 +21,12 @@ template<class Surface> void label(Surface& s,const char* text,int x,int y,uint1
   selectFont(s,size,hasUnicode(text));s.setTextDatum(datum);s.setTextColor(color);s.drawString(text,x,y);s.unloadFont();
 }
 // Preserve event time while fitting the context to the circular screen chord.
-template<class Surface> void richContext(Surface& s,const char* project,const char* time,int y,bool configured=false){
-  const bool cjk=hasUnicode(project)||configured;selectFont(s,1.75f,cjk);
+template<class Surface> void richContext(Surface& s,const char* project,const char* time,int y){
+  const bool cjk=hasUnicode(project);selectFont(s,1.75f,cjk);
   char name[33],line[64];std::snprintf(name,sizeof(name),"%s",project);
   std::size_t used=std::strlen(name);bool clipped=false;
   while(true){
-    std::snprintf(line,sizeof(line),"%s%s%s%s%s",configured?"配置 ":"",name,clipped?"...":"",used&&time[0]?" / ":"",time);
+    std::snprintf(line,sizeof(line),"%s%s%s%s",name,clipped?"...":"",used&&time[0]?" / ":"",time);
     if(s.textWidth(line)<=360||!used)break;
     do {--used;}while(used&&(static_cast<unsigned char>(name[used])&0xc0)==0x80);
     name[used]=0;clipped=true;
@@ -140,7 +140,7 @@ template<class Surface> void render(Surface& s,const Controller& ui,uint32_t now
   if(c.rich){
     const bool modelContext=!std::strcmp(c.src,"codex")||!std::strcmp(c.src,"deepseek");
     const char* context=modelContext?(c.model[0]?c.model:"模型未提供"):c.project;
-    if(context[0]||c.time[0])richContext(s,context,c.time,67+offset,modelContext&&c.modelConfigured);
+    if(context[0]||c.time[0])richContext(s,context,c.time,67+offset);
     richWrapped(s,c.title,90+offset,2);
   }else{
     if(c.model[0])label(s,c.model,233,67+offset,kDim,reading?1.75f:1.5f);

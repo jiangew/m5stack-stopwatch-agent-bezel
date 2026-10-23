@@ -88,6 +88,29 @@ def plain_text(value, limit):
     return encoded[:limit].decode('utf-8', errors='ignore'), len(encoded)>limit
 
 
+def reply_model(value):
+    """Only explicit standalone model annotations outside quoted/code examples."""
+    if not isinstance(value, str) or len(value) > 1024 * 1024: return ''
+    models, fence = set(), None
+    for line in value.splitlines():
+        stripped = line.strip()
+        marker = re.match(r'^(`{3,}|~{3,})(.*)$', stripped)
+        if marker:
+            if fence is None: fence = marker[1]
+            elif marker[1][0] == fence[0] and len(marker[1]) >= len(fence) and not marker[2].strip(): fence = None
+            continue
+        if fence or line.startswith(('    ', '\t')): continue
+        stripped = re.sub(r'^[-*]\s+', '', stripped)
+        match = re.fullmatch(r'(?:\*\*|__)?(?:model(?: version| used)?|(?:本次(?:使用的?)?)?模型(?:版本)?)(?:\*\*|__)?\s*[:：]\s*(.+)', stripped, re.I)
+        if not match: continue
+        model = match[1].strip()
+        for wrapper in ('`', '**', '__'):
+            if len(model) > 2 * len(wrapper) and model.startswith(wrapper) and model.endswith(wrapper):
+                model = model[len(wrapper):-len(wrapper)]; break
+        if re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._:/+\-]{0,127}', model): models.add(model)
+    return next(iter(models)) if len(models) == 1 else ''
+
+
 def handle_notify(record, publisher, roots, root_resolver=None, rich_content=False):
     if not isinstance(record, dict) or record.get('type') != 'agent-turn-complete': return False
     session, turn = record.get('thread-id'), record.get('turn-id')
@@ -102,10 +125,12 @@ def handle_notify(record, publisher, roots, root_resolver=None, rich_content=Fal
         cwd = info.get('cwd')
         project = Path(cwd).name if isinstance(cwd, str) and cwd.startswith('/') and Path(cwd) != Path.home() else ''
         project, _ = plain_text(project, 64)
-        # Thread.model is native per-thread configuration, not execution telemetry.
+        extracted = reply_model(record.get('last-assistant-message'))
+        # Thread configuration is a fallback, never a global default.
         configured = info.get('configuredModel')
         model = configured if isinstance(configured, str) and re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._:/+\-]{0,127}', configured) else ''
-        provenance = {'model_configured': True} if model else {}
+        provenance = {'model_configured': True} if model and not extracted else {}
+        model = extracted or model
         publisher.publish('codex', session, turn, 'turn-complete', 'done', title, detail or 'Reply available on Mac',
                           state='resolved', stored_session=session, project=project, excerpted=clipped, fit_excerpt=True, model=model, **provenance)
     else:

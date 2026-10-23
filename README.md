@@ -728,5 +728,8 @@ Names and marks are used only to identify compatibility. See [NOTICE.md](NOTICE.
 for attribution, protocol, security, warranty, and trademark notices.
 
 The [model/time row follow-up](docs/NOTIFICATION_MODEL_ROW_20261023.md) replaces
-Codex/DSH project labels with model versions, qualifying Codex thread configuration
-as configured. This build18 candidate has not been installed.
+Codex/DSH project labels with model versions, using exact Codex thread configuration when no reply model is available. This build18 candidate has not been installed.
+
+The [reply-model priority update](docs/NOTIFICATION_REPLY_MODEL_20261023.md)
+prefers the latest assistant result, falls back to session configuration and
+displays only the model version. It remains an uninstalled candidate.

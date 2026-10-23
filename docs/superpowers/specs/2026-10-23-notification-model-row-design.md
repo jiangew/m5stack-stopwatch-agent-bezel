@@ -12,10 +12,14 @@ invocation. Missing native model must not be replaced with a guessed version.
 
 Installed Codex Thread.model is explicitly current configured/latest persisted
 model, not per-turn execution telemetry. Native completion callback and Turn do
-not expose execution model. User selected fallback to that exact thread configuration when execution model
-is unavailable, explicitly labeled 配置. A strict optional modelConfigured flag
-preserves that distinction; model itself remains the native version string. If
-no valid model is available, show 模型未提供. No global default fallback.
+not expose execution model. Latest user update: prefer the last assistant reply result, then exact session
+configuration. DSH prefers native reply source.model, then an explicit standalone
+model annotation. Codex callback has only reply text, so use explicit annotations
+when unambiguous; otherwise Thread.model. Ignore code/quoted examples and casual
+model mentions. Display only the version, with no 配置 prefix. Keep internal
+modelConfigured provenance for compatibility. Missing stays 模型未提供; never use
+a global default. DSH retains only bounded observed live-session configuration
+for fallback across turns; the latest reply overrides later configuration.
 
 Use the existing model field (bounded ASCII on wire, explicitly ellipsized if
 long) and pixel-fit existing context row; preserve time. Project metadata remains semantically project metadata, never repurposed; omit

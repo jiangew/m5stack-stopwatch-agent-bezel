@@ -143,7 +143,7 @@ int main(){
     assert(frame.texts[1].value=="native-model-v4 / 14:32");
     if(!std::strcmp(source,"codex")){
       model.modelConfigured=true;Controller configuredUi;configuredUi.receive(model,200);configuredUi.openInbox(210);Canvas configured;render(configured,configuredUi,220);
-      assert(configured.texts[1].value.find("配置 ")==0 && configured.texts[1].value.find("14:32")!=std::string::npos && configured.textWidth(configured.texts[1].value.c_str())<=360);model.modelConfigured=false;
+      assert(configured.texts[1].value=="native-model-v4 / 14:32");model.modelConfigured=false;
     }
     model.model[0]=0;Controller unknownUi;unknownUi.receive(model,200);unknownUi.openInbox(210);Canvas missing;render(missing,unknownUi,220);
     assert(missing.texts[1].value=="模型未提供 / 14:32");

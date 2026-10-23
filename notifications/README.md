@@ -179,9 +179,18 @@ request/header config.model and committed assistant message.source.model, bound
 to the exact root Session/turn; pending identity freezes it through resolution.
 Codex's metadata-only Thread.model is **current/latest persisted thread
 configuration, not per-turn execution telemetry**. The user chose that fallback
-with an explicit `配置` prefix; optional `modelConfigured:true` carries the
-qualification. No global default or arbitrary callback model field fills gaps.
+as a fallback; internal `modelConfigured:true` retains the provenance. The
+latest user preference displays only the model version, without a 配置 prefix. No global default or arbitrary callback model field fills gaps.
 Missing model shows `模型未提供`; old events are not backfilled. The original
 project remains local metadata; Codex/DSH rich wire omits it. Other source rows
 retain project/time. Candidate build18 is not installed or physically accepted.
 See [model row evidence](../docs/NOTIFICATION_MODEL_ROW_20261023.md).
+
+
+The [latest reply-model follow-up](../docs/NOTIFICATION_REPLY_MODEL_20261023.md)
+prioritizes the last assistant result before session configuration. DSH uses its
+native reply model; when unavailable, an unambiguous standalone model annotation
+in reply text is accepted (Codex's callback provides reply text only). Ordinary
+mentions, fenced/quoted/indented examples and conflicting model annotations do
+not provide a model. Fallback reads only exact session configuration. UI renders
+no source prefix. Native scope, queue identity and controls remain unchanged.

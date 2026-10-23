@@ -1,5 +1,9 @@
 # Codex / DSH model-time row candidate — 2026-10-23
 
+Historical build18 candidate. The [reply-model follow-up](NOTIFICATION_REPLY_MODEL_20261023.md)
+supersedes its configured-prefix UI and extraction priority; prior pins below
+remain the record of that earlier candidate.
+
 Time's left-hand context now identifies the model, replacing the project label
 for Codex and DSH rich notifications. The existing fonts, centered task/body,
 status, n/N, compact footer and all gestures remain. Other sources keep project.

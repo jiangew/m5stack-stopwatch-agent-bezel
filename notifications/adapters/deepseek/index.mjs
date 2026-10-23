@@ -4,7 +4,7 @@ import { ApprovalOwner } from './approval.mjs';
 import { randomUUID } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { isAbsolute } from 'node:path';
-import { metadata, visibleReply, fit, modelVersion } from './content.mjs';
+import { metadata, visibleReply, fit, modelVersion, replyModel } from './content.mjs';
 
 const id = value => typeof value === 'string' && value.length > 0 && Buffer.byteLength(value) <= 256 && !value.includes('\0');
 const key = (session, request) => JSON.stringify([session, request]);
@@ -36,7 +36,7 @@ export class AuditObserver {
         if (session) {
           Object.assign(event, metadata(this.ctx, session));
           const observed = this.models.get(sessionId);
-          if (observed?.session === session && observed.run === runId) event.model = observed.model;
+          if (observed?.session === session && observed.run === runId) event.model = observed.reply || observed.configured;
         }
         event.excerpted = false;
       }
@@ -51,18 +51,25 @@ export class AuditObserver {
     if (event.type === 'turn/start') {
       if (Number.isSafeInteger(data.turn) && data.turn > 0 && (this.turns.has(session.id) || this.turns.size < 64)) {
         this.turns.set(session.id, String(data.turn)); this.replies.delete(session.id);
-        if (this.richContent) this.models.set(session.id, {session, run: String(data.turn), model: ''});
+        if (this.richContent) {
+          const previous = this.models.get(session.id);
+          if (!previous && this.models.size >= 64) {
+            const removable = [...this.models.keys()].find(id => !this.turns.has(id));
+            if (removable !== undefined) this.models.delete(removable);
+          }
+          this.models.set(session.id, {session, run: String(data.turn), reply: '', configured: previous?.session === session ? previous.configured : ''});
+        }
       }
       return;
     }
     if (this.richContent && event.type === 'request/header') {
       const run = this.turns.get(session.id);
-      if (run && this.models.get(session.id)?.session === session) this.models.set(session.id, {session, run, model: modelVersion(data.header?.config?.model)});
+      if (run && this.models.get(session.id)?.session === session) this.models.set(session.id, {...this.models.get(session.id), configured: modelVersion(data.header?.config?.model)});
       return;
     }
     if (this.richContent && event.type === 'assistant/message') {
       if (this.turns.get(session.id) === String(data.turn)) {
-        if (this.models.get(session.id)?.session === session) this.models.set(session.id, {session, run: String(data.turn), model: modelVersion(data.message?.source?.model)});
+        if (this.models.get(session.id)?.session === session) this.models.set(session.id, {...this.models.get(session.id), reply: modelVersion(data.message?.source?.model) || replyModel(data.message)});
         const reply = visibleReply(data.message);
         // A tool-bearing step supersedes earlier visible text; never reuse it as the final reply.
         if (reply) this.replies.set(session.id, reply); else this.replies.delete(session.id);
@@ -89,7 +96,7 @@ export class AuditObserver {
         fit(record);
       }
       this.send(record);
-      if (this.turns.get(session.id)===String(data.turn)) { this.turns.delete(session.id); this.replies.delete(session.id); this.models.delete(session.id); }
+      if (this.turns.get(session.id)===String(data.turn)) { this.turns.delete(session.id); this.replies.delete(session.id); const current = this.models.get(session.id); if (current?.session === session) this.models.set(session.id, {...current, run: null, reply: ''}); }
       return;
     }
     if (event.type === 'approval/asked') {
@@ -128,6 +135,9 @@ export class AuditObserver {
     }
   }
   heartbeat() {
+    for (const [sessionId, observed] of this.models) {
+      if (!this.ctx.agents.roots().some(agent => agent.id === sessionId && agent.session === observed.session)) this.models.delete(sessionId);
+    }
     for (const sessionId of this.turns.keys()) {
       if (!this.ctx.agents.roots().some(agent => agent.id === sessionId && agent.session.id === sessionId)) {
         this.turns.delete(sessionId); this.replies.delete(sessionId); this.models.delete(sessionId);
