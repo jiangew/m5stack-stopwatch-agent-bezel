@@ -12,6 +12,17 @@ constexpr std::uint16_t rgb565(std::uint32_t rgb) {
                                     ((rgb >> 5) & 0x07E0) |
                                     ((rgb >> 3) & 0x001F));
 }
+constexpr std::uint16_t shade565(std::uint16_t color, float factor) {
+  return (static_cast<unsigned>(((color >> 11) & 31) * factor) << 11)
+       | (static_cast<unsigned>(((color >> 5) & 63) * factor) << 5)
+       | static_cast<unsigned>((color & 31) * factor);
+}
+// Single-expression constexpr also supports the standard firmware's C++11 core.
+constexpr std::uint16_t controlInk(std::uint16_t color) {
+  return ((((color >> 11) & 31) * 255 / 31 * 299
+         + ((color >> 5) & 63) * 255 / 63 * 587
+         + (color & 31) * 255 / 31 * 114) / 1000) > 150 ? 0x0000 : 0xEF7E;
+}
 constexpr std::array<std::uint16_t, 12> kColors = {
     rgb565(0x25D8FA), rgb565(0xFFA735), rgb565(0xEC50FF), rgb565(0x65B9FC),
     rgb565(0xFFE36A), rgb565(0x7DED93), rgb565(0xFF8397), rgb565(0xB8A0FF),

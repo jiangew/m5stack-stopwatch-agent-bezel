@@ -8,11 +8,13 @@ does not authorize flashing a new candidate.
   The inter-button gap remains inert. Press locking,20px cancellation and52px
   swipe precedence are unchanged; the added region intentionally belongs to
   the buttons rather than body taps.
-- Enlarge the Home-only badge from radius40 to56, center(388,233), hit radius64.
-  Preserve the role transform, asset, size, position, clip and animation.
-  The initial center balances visible spacing beside the default Bumblebee;
-  check wide roles and tilted poses rather than assuming equal gaps for every
-  different silhouette. No animated automatic badge positioning is introduced.
+- Latest user choice: use one fixed circle position for every role, keep its
+  anchor on the role's horizontal baseline, and reduce diameter slightly where
+  necessary rather than move or shrink the role. Enlarge the installed80px badge
+  to104px diameter: radius52, center(388,232), hit radius60. Preserve the role
+  transform, asset, size, position, clip and animation. No role-specific or
+  posture-following circle position is introduced. The initial112px candidate
+  overlapped a Starscream tilt sample; it was superseded before preview delivery.
 - Use the DSH upper directional control's initial cyan fill,55% dark outer rim
   of3px, contrast-selected dark text and Space Mono family. Keep46px digits
   legible for1..64 rather than reducing them to the small directional labels.

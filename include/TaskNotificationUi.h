@@ -5,6 +5,7 @@
 #include "TaskNotification.h"
 #include "SpaceMonoVlw.h"
 #include "NotificationFonts.h"
+#include "WorkspacePalette.h"
 
 namespace task_notification {
 constexpr uint16_t kInk=0xF7DF,kDim=0x9CF3,kPanel=0x1082,kAmber=0xFD20,kGreen=0x47F2,kRed=0xFA8A;
@@ -87,14 +88,15 @@ template<class Surface> void footerButton(Surface& s,const FooterButton& b,const
   s.fillRoundRect(b.x,b.y,b.width,b.height,12,fill);
   label(s,text,b.x+b.width/2,b.y+b.height/2,ink,2.f);
 }
-// Keep the large disc quiet against Home's black background; the orange-red
-// count carries the contrast instead of a bright fill or outline.
-constexpr uint16_t kBadgeFill=0x10C5,kBadgeEdge=0x0863,kBadgeText=0xFB27;
+// Match DSH's upper directional control, retaining large native count digits.
+constexpr uint16_t kBadgeFill=workspace_palette::kInitialColors[0];
+constexpr uint16_t kBadgeEdge=workspace_palette::shade565(kBadgeFill,.55f);
+constexpr uint16_t kBadgeText=workspace_palette::controlInk(kBadgeFill);
 template<class Surface> void badge(Surface& s,const Controller& ui){
   if(!ui.card().count)return;
   char text[8];std::snprintf(text,sizeof(text),"%u",ui.card().count);
   s.fillSmoothCircle(kBadgeCenterX,kBadgeCenterY,kBadgeRadius,kBadgeEdge);
-  s.fillSmoothCircle(kBadgeCenterX,kBadgeCenterY,kBadgeRadius-1,kBadgeFill);
+  s.fillSmoothCircle(kBadgeCenterX,kBadgeCenterY,kBadgeRadius-3,kBadgeFill);
   label(s,text,kBadgeCenterX,kBadgeCenterY,kBadgeText,4.f);
 }
 inline const char* sourceName(const char* source){

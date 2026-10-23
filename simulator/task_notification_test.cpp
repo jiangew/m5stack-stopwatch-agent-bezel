@@ -22,6 +22,9 @@ int main() {
     struct Case {int x,y;ActionKind action;};
     for(const auto& check:{Case{148,368,ActionKind::Close},Case{318,368,ActionKind::Open},
         Case{70,336,ActionKind::Close},Case{240,336,ActionKind::Open},
+        Case{70,316,ActionKind::Close},Case{395,316,ActionKind::Open},
+        Case{148,315,ActionKind::None},Case{318,315,ActionKind::None},
+        Case{233,316,ActionKind::None},Case{69,316,ActionKind::None},
         Case{225,370,ActionKind::Close},Case{226,370,ActionKind::None},
         Case{239,370,ActionKind::None},Case{396,370,ActionKind::None},
         Case{233,368,ActionKind::None},Case{326,414,ActionKind::None},
@@ -49,6 +52,15 @@ int main() {
     assert(page.takeAction(a)&&a.action==ActionKind::Dismiss);n.id++;n.ack=a.seq;page.receive(n,280);
     page.press(148,368,290,true);page.release(228,368,300);
     assert(page.takeAction(a)&&a.action==ActionKind::Close&&!page.visible());
+    // The extra upper hit area locks its original button, but still yields to swipes.
+    Controller upper;upper.receive(n,300);upper.openInbox(301);ack(upper,n,302);upper.release(233,233,303);
+    upper.press(318,316,304,true);upper.release(318,330,305);
+    assert(upper.takeAction(a)&&a.action==ActionKind::Open&&upper.view()==View::Inbox);
+    n.ack=a.seq;upper.receive(n,306);
+    upper.press(318,316,307,true);upper.move(318,296,308);upper.release(318,316,309);
+    assert(!upper.takeAction(a));
+    upper.press(318,316,310,true);upper.release(318,264,311);
+    assert(upper.takeAction(a)&&a.action==ActionKind::Next);
     Controller toast;n.alert=1;n.ack=0;toast.receive(n,310);assert(toast.present(310,true));
     toast.press(233,233,320,true);toast.release(233,233,330);
     assert(toast.view()==View::Inbox&&toast.takeAction(a)&&a.action==ActionKind::Read);

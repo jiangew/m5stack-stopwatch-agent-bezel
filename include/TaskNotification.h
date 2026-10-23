@@ -10,10 +10,10 @@
 namespace task_notification {
 constexpr uint32_t kLeaseMs=15000, kToastMs=5000, kConfirmMs=800;
 constexpr std::size_t kMaximumBytes=512;
-constexpr int kBadgeCenterX=378,kBadgeCenterY=233,kBadgeRadius=40,kBadgeHitRadius=48;
+constexpr int kBadgeCenterX=388,kBadgeCenterY=232,kBadgeRadius=52,kBadgeHitRadius=60;
 struct FooterButton {
   int x,y,width,height;
-  bool hit(int px,int py)const{return px>=x-8&&px<x+width+8&&py>=y-8&&py<y+height+8;}
+  bool hit(int px,int py)const{return px>=x-8&&px<x+width+8&&py>=y-28&&py<y+height+8;}
 };
 constexpr FooterButton kReadOnlyBackButton{78,344,140,48},kReadOnlyOpenButton{248,344,140,48};
 

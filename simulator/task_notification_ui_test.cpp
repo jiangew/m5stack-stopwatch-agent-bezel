@@ -3,10 +3,11 @@
 #include <string>
 #include <vector>
 #include "TaskNotificationUi.h"
+#include "WorkspacePalette.h"
 struct Canvas {
-  struct Text {std::string value;int x,y;float size;textdatum_t datum;const std::uint8_t* font;};
+  struct Text {std::string value;int x,y;float size;textdatum_t datum;const std::uint8_t* font;unsigned color;};
   struct Rect {int x,y,w,h;unsigned color;};
-  struct Circle {int x,y,r;};
+  struct Circle {int x,y,r;unsigned color;};
   std::vector<Circle> circles;
   std::vector<std::string> strings;
   std::vector<Text> texts;
@@ -19,12 +20,13 @@ struct Canvas {
   float textSize=1;
   textdatum_t datum=middle_center;
   void fillScreen(unsigned){} void setTextFont(int){} void setTextSize(float size){textSize=size;}
-  void setTextDatum(textdatum_t value){datum=value;} void setTextColor(unsigned){}
+  unsigned textColor=0;
+  void setTextDatum(textdatum_t value){datum=value;} void setTextColor(unsigned color){textColor=color;}
   void fillRoundRect(int x,int y,int w,int h,int,unsigned color){rectangles.push_back({x,y,w,h,color});}
   void drawRoundRect(int,int,int,int,int,unsigned){}
   void fillRect(int,int,int,int,unsigned){}
-  void fillSmoothCircle(int x,int y,int r,unsigned){circles.push_back({x,y,r});}
-  void drawString(const char* s,int x,int y){strings.emplace_back(s);assert(font&&textSize>0);texts.push_back({s,x,y,textSize,datum,font});}
+  void fillSmoothCircle(int x,int y,int r,unsigned color){circles.push_back({x,y,r,color});}
+  void drawString(const char* s,int x,int y){strings.emplace_back(s);assert(font&&textSize>0);texts.push_back({s,x,y,textSize,datum,font,textColor});}
 };
 int main(){
   using namespace task_notification;
@@ -37,16 +39,18 @@ int main(){
     c.count=count;inbox.receive(c,100);
     Canvas badge;task_notification::badge(badge,inbox);
     assert(badge.texts.size()==1&&badge.texts[0].value==std::to_string(count));
-    assert(badge.texts[0].x==378&&badge.texts[0].y==233&&badge.texts[0].datum==middle_center);
-    assert(badge.circles.size()==2&&badge.circles[0].r==40&&badge.circles[1].r==39);
-    for(auto circle:badge.circles)assert(circle.x==378&&circle.y==233);
+    assert(badge.texts[0].x==388&&badge.texts[0].y==232&&badge.texts[0].datum==middle_center);
+    assert(badge.circles.size()==2&&badge.circles[0].r==52&&badge.circles[1].r==49);
+    for(auto circle:badge.circles)assert(circle.x==388&&circle.y==232);
+    assert(badge.circles[1].color==workspace_palette::kInitialColors[0]);
+    assert(badge.texts[0].color==0&&badge.texts[0].font==dashboard::font_data::kSpaceMono46Vlw);
   }
-  for(int x:{330,378,426})for(int y:{185,233,281}) {
+  for(int x:{328,388,448})for(int y:{172,232,292}) {
     assert(inbox.badge(x,y));
     assert((x-233)*(x-233)+(y-233)*(y-233)<233*233);
   }
-  assert(!inbox.badge(329,233)&&!inbox.badge(427,233));
-  assert(!inbox.badge(378,184)&&!inbox.badge(378,282));
+  assert(!inbox.badge(327,232)&&!inbox.badge(449,232));
+  assert(!inbox.badge(388,171)&&!inbox.badge(388,293));
   Controller empty;Canvas hidden;task_notification::badge(hidden,empty);
   assert(!empty.badge(378,233)&&hidden.texts.empty()&&hidden.circles.empty());
   for(bool toast:{false,true}){

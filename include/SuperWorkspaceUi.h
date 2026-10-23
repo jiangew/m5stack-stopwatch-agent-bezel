@@ -97,16 +97,11 @@ void drawText(Surface& surface, const char* text, int x, int y,
 }
 
 constexpr std::uint16_t shade565(std::uint16_t color, float factor) {
-  return (static_cast<unsigned>(((color >> 11) & 31) * factor) << 11)
-       | (static_cast<unsigned>(((color >> 5) & 63) * factor) << 5)
-       | static_cast<unsigned>((color & 31) * factor);
+  return workspace_palette::shade565(color,factor);
 }
 
 constexpr std::uint16_t controlInk(std::uint16_t color) {
-  const int r = ((color >> 11) & 31) * 255 / 31;
-  const int g = ((color >> 5) & 63) * 255 / 63;
-  const int b = (color & 31) * 255 / 31;
-  return (r * 299 + g * 587 + b * 114) / 1000 > 150 ? kBackground : kText;
+  return workspace_palette::controlInk(color);
 }
 
 template <typename Surface>
