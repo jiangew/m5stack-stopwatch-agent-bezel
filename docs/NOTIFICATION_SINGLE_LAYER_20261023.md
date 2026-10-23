@@ -41,5 +41,12 @@ service or application replacement occurred. The user reported a light RESET;
 normal USB microphone enumeration, HID device-status and IMU RPC passed. A short
 input-only capture yielded96256 frames, mono48kHz16-bit PCM,2.005333333 seconds;
 the WAV was deleted. This validates format/continuity rather than acoustic quality.
-Two synthetic single-layer notices were sent through the installed bridge. User
-acceptance of display/controls and OPEN ON MAC from a real task remains pending.
+Two synthetic single-layer notices were sent through the installed bridge. The
+user accepted body size/spacing, single-layer display, browsing/dismiss/Home exit,
+Home tilt and Agent controls. The user initially reported no response from OPEN and then clarified the watch
+returned Home. Read-only action observation captured CLOSE on a real Codex notice;
+subsequent upper-button taps produced OPEN dispatches, and the user confirmed the
+watch stayed on the page while Mac opened the correct task. This accepts the Codex
+route, not reliable footer targeting. The user requested separate filled BACK/OPEN
+buttons and two hint rows. DSH remains application activation only; exact-session
+navigation is outside this update. Overall footer acceptance awaits the revision.

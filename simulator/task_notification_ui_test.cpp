@@ -5,7 +5,7 @@
 #include "TaskNotificationUi.h"
 struct Canvas {
   struct Text {std::string value;int x,y;float size;textdatum_t datum;const std::uint8_t* font;};
-  struct Rect {int x,y,w,h;};
+  struct Rect {int x,y,w,h;unsigned color;};
   struct Circle {int x,y,r;};
   std::vector<Circle> circles;
   std::vector<std::string> strings;
@@ -20,7 +20,7 @@ struct Canvas {
   textdatum_t datum=middle_center;
   void fillScreen(unsigned){} void setTextFont(int){} void setTextSize(float size){textSize=size;}
   void setTextDatum(textdatum_t value){datum=value;} void setTextColor(unsigned){}
-  void fillRoundRect(int x,int y,int w,int h,int,unsigned){rectangles.push_back({x,y,w,h});}
+  void fillRoundRect(int x,int y,int w,int h,int,unsigned color){rectangles.push_back({x,y,w,h,color});}
   void drawRoundRect(int,int,int,int,int,unsigned){}
   void fillRect(int,int,int,int,unsigned){}
   void fillSmoothCircle(int x,int y,int r,unsigned){circles.push_back({x,y,r});}
@@ -76,17 +76,36 @@ int main(){
     assert(hint("UP/DOWN: BROWSE").y==hint("TAP: DETAILS").y);
     assert(hint("LEFT: DISMISS").y==hint("RIGHT: BACK").y);
   }
+  auto checkFooter=[](const Canvas& frame){
+    unsigned back=0,open=0,hints=0;int firstY=0,leftY=0,rightY=0;unsigned colors[2]={};
+    assert(frame.rectangles.size()==2);
+    for(unsigned i=0;i<2;++i){const auto& r=frame.rectangles[i];
+      assert(r.x==(i?248:78)&&r.y==344&&r.w==140&&r.h==48&&r.color!=0);colors[i]=r.color;
+      for(int x:{r.x,r.x+r.w})for(int y:{r.y,r.y+r.h})assert((x-233)*(x-233)+(y-233)*(y-233)<223*223);
+    }
+    assert(colors[0]!=colors[1]);
+    for(const auto& t:frame.texts){
+      assert(t.value!="MORE ON MAC"&&t.value!="OPEN ON MAC"&&t.value!="TAP: DETAILS");
+      if(t.value=="BACK"){++back;assert(t.x==148&&t.y==368&&t.font==font_data::kSpaceMono22Vlw);}
+      if(t.value=="OPEN"){++open;assert(t.x==318&&t.y==368&&t.font==font_data::kSpaceMono22Vlw);}
+      if(t.value=="UP/DOWN: BROWSE"||t.value=="LEFT: DISMISS"||t.value=="RIGHT: BACK"){
+        assert(t.font[8]==0&&t.font[9]==0&&t.font[10]==0&&t.font[11]==14&&t.size==1);++hints;
+        if(t.value=="UP/DOWN: BROWSE"){firstY=t.y;assert(t.x==233&&t.datum==middle_center);}
+        else {assert(t.datum==middle_left);if(t.value=="LEFT: DISMISS"){leftY=t.y;assert(t.x==125);}else{rightY=t.y;assert(t.x==253);}}
+      }
+    }
+    assert(back==1&&open==1&&hints==3&&firstY==408&&leftY==426&&rightY==426);
+  };
   Card readOnly=c;readOnly.decide=false;
   Controller detail;detail.receive(readOnly,100);detail.present(100,true);
   detail.press(233,233,110,true);detail.release(233,233,120);
-  Canvas largeDetail;task_notification::render(largeDetail,detail,130);
-  std::string readable;
-  for(const auto& text:largeDetail.texts){
-    readable+=text.value;
-    if(text.y>=201&&text.y<=339)assert(text.datum==middle_center&&text.x==233&&text.font==font_data::kSpaceMono22Vlw);
-    if(text.value=="OPEN ON MAC")assert(text.y==376&&text.font==font_data::kSpaceMono15Vlw);
+  Canvas largeDetail;task_notification::render(largeDetail,detail,130);checkFooter(largeDetail);
+  bool ellipsis=false;unsigned rows=0;
+  for(const auto& t:largeDetail.texts)if(t.y>=201&&t.y<=313){
+    assert(t.x==233&&t.datum==middle_center&&t.font==font_data::kSpaceMono22Vlw);
+    ++rows;ellipsis=ellipsis||t.value.find("...")!=std::string::npos;
   }
-  assert(readable.find(c.detail)!=std::string::npos);
+  assert(rows==5&&ellipsis); // read-only excerpt stays above buttons; native scope below remains complete
   Controller ui;ui.receive(c,100);ui.present(100,true);
   ui.press(233,233,110,true);ui.release(233,233,120);
   Action a;assert(ui.takeAction(a));c.ack=a.seq;c.alert=0;ui.receive(c,130);
@@ -118,15 +137,10 @@ int main(){
   std::strcpy(rich.kind,"done");std::strcpy(rich.title,"优化通知页布局");std::strcpy(rich.detail,"Result excerpt");std::strcpy(rich.project,"stopwatch");std::strcpy(rich.time,"14:32");
   Controller richUi;richUi.receive(rich,200);richUi.openInbox(210);Canvas richFrame;render(richFrame,richUi,220);
   assert(richFrame.strings[0]=="Codex   2/6");
-  // The actual read-only page exposes OPEN and keeps body clear of its footer.
-  assert(std::find(richFrame.strings.begin(),richFrame.strings.end(),"OPEN ON MAC")!=richFrame.strings.end());
-  bool nativeBody=false,openButton=false;
-  for(const auto& text:richFrame.texts){
-    if(text.value=="Result excerpt")nativeBody=text.font==font_data::kSpaceMono22Vlw&&text.size==1;
-    assert(text.value!="TAP: DETAILS");
-  }
-  for(const auto& rect:richFrame.rectangles)if(rect.x==256&&rect.y==360&&rect.w==140&&rect.h==32)openButton=true;
-  assert(nativeBody&&openButton);
+  checkFooter(richFrame);
+  bool nativeBody=false;
+  for(const auto& text:richFrame.texts)if(text.value=="Result excerpt")nativeBody=text.font==font_data::kSpaceMono22Vlw&&text.size==1;
+  assert(nativeBody);
   Card chinese=rich;std::string body;for(int i=0;i<60;++i)body+="中";
   std::strcpy(chinese.detail,body.c_str());
   Controller chineseUi;chineseUi.receive(chinese,200);chineseUi.openInbox(210);
@@ -137,12 +151,12 @@ int main(){
     assert(text.size>0.91f&&text.size<0.92f);
     if(lastY)assert(text.y-lastY==28);
     lastY=text.y;++bodyRows;
-    assert(text.y+11<340); // clear of MORE ON MAC and the OPEN button
+    assert(text.y+11<340); // clear of the button row
   }
   assert(bodyRows>1);
 
   assert(std::find(richFrame.strings.begin(),richFrame.strings.end(),"TURN ENDED")!=richFrame.strings.end());
-  assert(std::find(richFrame.strings.begin(),richFrame.strings.end(),"MORE ON MAC")!=richFrame.strings.end());
+  assert(std::find(richFrame.strings.begin(),richFrame.strings.end(),"MORE ON MAC")==richFrame.strings.end());
   assert(std::find(richFrame.strings.begin(),richFrame.strings.end(),"pending")==richFrame.strings.end());
   for(const auto& item:std::vector<std::pair<const char*,const char*>>{{"approval","WAITING ON MAC"},{"input","WAITING FOR INPUT"},{"done","TURN ENDED"}}){
     Card dsh=rich;std::strcpy(dsh.src,"deepseek");std::strcpy(dsh.kind,item.first);std::strcpy(dsh.state,"pending");

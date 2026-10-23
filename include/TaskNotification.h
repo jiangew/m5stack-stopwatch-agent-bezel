@@ -11,7 +11,11 @@ namespace task_notification {
 constexpr uint32_t kLeaseMs=15000, kToastMs=5000, kConfirmMs=800;
 constexpr std::size_t kMaximumBytes=512;
 constexpr int kBadgeCenterX=378,kBadgeCenterY=233,kBadgeRadius=40,kBadgeHitRadius=48;
-constexpr int kReadOnlyOpenX=256,kReadOnlyOpenY=360,kReadOnlyOpenWidth=140,kReadOnlyOpenHeight=32;
+struct FooterButton {
+  int x,y,width,height;
+  bool hit(int px,int py)const{return px>=x-8&&px<x+width+8&&py>=y-8&&py<y+height+8;}
+};
+constexpr FooterButton kReadOnlyBackButton{78,344,140,48},kReadOnlyOpenButton{248,344,140,48};
 
 struct Card {
   uint32_t g=0,id=0,r=0,ttl=0,ack=0;
@@ -176,12 +180,16 @@ class Controller {
   }
   void press(int x,int y,uint32_t now,bool awake){
     if(!awake||blocked_||!visible()){pressed_=false;return;}
-    pressed_=true;startX_=x;startY_=y;pressedAt_=now;
+    pressed_=true;startX_=x;startY_=y;pressedAt_=now;tapCancelled_=false;pressTarget_=ActionKind::None;
+    if(!card_.decide&&(view_==View::Inbox||view_==View::Toast)){
+      if(kReadOnlyBackButton.hit(x,y))pressTarget_=ActionKind::Close;
+      else if(kReadOnlyOpenButton.hit(x,y))pressTarget_=ActionKind::Open;
+    }
     held_=view_==View::Confirm&&x>=90&&x<=376&&y>=285&&y<=355&&canDecide(now);
   }
   void move(int x,int y,uint32_t){
     endX_=x;endY_=y;
-    if(std::abs(x-startX_)>=20||std::abs(y-startY_)>=20)held_=false;
+    if(std::abs(x-startX_)>=20||std::abs(y-startY_)>=20){held_=false;tapCancelled_=true;}
   }
   void release(int x,int y,uint32_t now){
     const bool accepted=pressed_&&!blocked_;
@@ -189,18 +197,18 @@ class Controller {
     if(!accepted)return;
     const int dx=x-startX_,dy=y-startY_;
     if(view_==View::Toast||view_==View::Inbox){
-      if(y>=412&&std::abs(dx)<20&&std::abs(dy)<20){close(now);return;}
+      if(card_.decide&&y>=412&&std::abs(dx)<20&&std::abs(dy)<20){close(now);return;}
       if(std::abs(dy)>=52&&std::abs(dy)>std::abs(dx))issue(dy<0?ActionKind::Next:ActionKind::Previous,now);
       else if(dx>52){close(now);return;}
       else if(dx < -52)issue(ActionKind::Dismiss,now);
       else if(std::abs(dx)<20&&std::abs(dy)<20){
         if(card_.decide){view_=View::Detail;issue(ActionKind::Read,now);}
-        else {
-          // A body tap pins a transient notice; only the visible button opens Mac.
+        else if(!tapCancelled_) {
+          if(pressTarget_==ActionKind::Close){close(now);return;}
+          // Lock the pressed button through small release drift; gaps/hints cannot arm it.
           const bool wasToast=view_==View::Toast;
           view_=View::Inbox;pendingToast_=false;
-          if(x>=kReadOnlyOpenX&&x<kReadOnlyOpenX+kReadOnlyOpenWidth&&
-             y>=kReadOnlyOpenY&&y<kReadOnlyOpenY+kReadOnlyOpenHeight)issue(ActionKind::Open,now);
+          if(pressTarget_==ActionKind::Open)issue(ActionKind::Open,now);
           else if(wasToast)issue(ActionKind::Read,now); // pin the host's selected notice
         }
       }
@@ -249,7 +257,8 @@ class Controller {
   uint8_t pendingAlert_=0;
   uint32_t receivedAt_=0,toastAt_=0,pressedAt_=0,actionAt_=0,seq_=0;
   int startX_=0,startY_=0,endX_=0,endY_=0;
-  ActionKind selected_=ActionKind::None;
+  ActionKind selected_=ActionKind::None,pressTarget_=ActionKind::None;
+  bool tapCancelled_=false;
   Action action_;
   Action latest_; // transport identity only; never replaces displayed/deciding context
 };

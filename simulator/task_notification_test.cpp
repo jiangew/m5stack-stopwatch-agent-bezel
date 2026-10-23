@@ -17,38 +17,43 @@ void ack(Controller& ui,Card& c,uint32_t now) {
   assert(ui.receive(c,now));
 }
 int main() {
-  // Read-only notices must not trap browsing behind a redundant Detail page.
+  // Footer targets must match the visible buttons, not a full-width bottom band.
   {
-    Card notice=approval();notice.decide=false;notice.alert=0;
-    Controller page;page.receive(notice,100);page.openInbox(110);ack(page,notice,120);
-    page.release(233,233,125);
-    page.press(233,233,130,true);page.release(233,233,140);
-    assert(page.view()==View::Inbox);
-    Action emitted;assert(!page.takeAction(emitted));
-    page.press(326,376,150,true);page.release(326,376,160);
-    assert(page.takeAction(emitted)&&emitted.action==ActionKind::Open);
-    notice.ack=emitted.seq;page.receive(notice,170);
-    // A tap outside the visible button must not open a task on Mac.
-    page.press(180,376,180,true);page.release(180,376,190);
-    assert(!page.takeAction(emitted));
-    page.press(326,376,200,true);page.release(326,300,210);
-    assert(page.takeAction(emitted)&&emitted.action==ActionKind::Next);
-    notice.id++;notice.ack=emitted.seq;page.receive(notice,220);
-    page.press(326,280,230,true);page.release(326,376,240);
-    assert(page.takeAction(emitted)&&emitted.action==ActionKind::Previous);
-    notice.id--;notice.ack=emitted.seq;page.receive(notice,250);
-    page.press(233,430,260,true);page.release(233,430,270);
-    assert(!page.visible());
-    assert(page.takeAction(emitted)&&emitted.action==ActionKind::Close);
-    Controller toast;notice.alert=1;notice.ack=0;toast.receive(notice,300);
-    assert(toast.present(300,true));
-    toast.press(233,233,310,true);toast.release(233,233,320);
-    assert(toast.view()==View::Inbox);
-    assert(toast.takeAction(emitted)&&emitted.action==ActionKind::Read); // pin host selection too
-    notice.ack=emitted.seq;toast.receive(notice,330);
-    toast.press(233,233,340,true);toast.release(233,233,350);
-    assert(!toast.takeAction(emitted));
-    toast.tick(6000);assert(toast.view()==View::Inbox);
+    struct Case {int x,y;ActionKind action;};
+    for(const auto& check:{Case{148,368,ActionKind::Close},Case{318,368,ActionKind::Open},
+        Case{70,336,ActionKind::Close},Case{240,336,ActionKind::Open},
+        Case{225,370,ActionKind::Close},Case{226,370,ActionKind::None},
+        Case{239,370,ActionKind::None},Case{396,370,ActionKind::None},
+        Case{233,368,ActionKind::None},Case{326,414,ActionKind::None},
+        Case{233,430,ActionKind::None},Case{125,426,ActionKind::None},Case{253,426,ActionKind::None}}){
+      Card n=approval();n.decide=false;n.alert=0;Controller page;
+      page.receive(n,100);page.openInbox(110);ack(page,n,120);page.release(233,233,125);
+      page.press(check.x,check.y,130,true);page.release(check.x,check.y,140);
+      Action a;const bool emitted=page.takeAction(a);
+      if(check.action==ActionKind::None)assert(!emitted&&page.view()==View::Inbox);
+      else {assert(emitted&&a.action==check.action);assert(page.visible()==(check.action!=ActionKind::Close));}
+    }
+    Card n=approval();n.decide=false;n.alert=0;Controller page;
+    page.receive(n,100);page.openInbox(110);ack(page,n,120);page.release(233,233,125);
+    page.press(318,395,130,true);page.release(318,412,140);
+    Action a;assert(page.takeAction(a)&&a.action==ActionKind::Open&&page.view()==View::Inbox);
+    n.ack=a.seq;page.receive(n,150);
+    page.press(233,368,160,true);page.release(243,368,170);assert(!page.takeAction(a)); // gap cannot arm OPEN
+    page.press(318,368,180,true);page.move(318,307,185);page.release(318,368,190);
+    assert(!page.takeAction(a)); // returning after a drag cannot become a click
+    page.press(318,368,200,true);page.release(318,290,210);
+    assert(page.takeAction(a)&&a.action==ActionKind::Next);n.id++;n.ack=a.seq;page.receive(n,220);
+    page.press(318,280,230,true);page.release(318,368,240);
+    assert(page.takeAction(a)&&a.action==ActionKind::Previous);n.id--;n.ack=a.seq;page.receive(n,250);
+    page.press(318,368,260,true);page.release(238,368,270);
+    assert(page.takeAction(a)&&a.action==ActionKind::Dismiss);n.id++;n.ack=a.seq;page.receive(n,280);
+    page.press(148,368,290,true);page.release(228,368,300);
+    assert(page.takeAction(a)&&a.action==ActionKind::Close&&!page.visible());
+    Controller toast;n.alert=1;n.ack=0;toast.receive(n,310);assert(toast.present(310,true));
+    toast.press(233,233,320,true);toast.release(233,233,330);
+    assert(toast.view()==View::Inbox&&toast.takeAction(a)&&a.action==ActionKind::Read);
+    n.ack=a.seq;toast.receive(n,340);toast.press(233,233,350,true);toast.release(233,233,360);
+    assert(!toast.takeAction(a));toast.tick(6000);assert(toast.view()==View::Inbox);
   }
   Card c=approval();
   StaticJsonDocument<1536> d;

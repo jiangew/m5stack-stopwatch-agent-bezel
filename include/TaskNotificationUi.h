@@ -14,7 +14,7 @@ template<class Surface> void selectFont(Surface& s,float size,bool cjk){
   else s.loadFont(size>=4 ? dashboard::font_data::kSpaceMono46Vlw
       : size>=2.5f ? font_data::kSpaceMono24Vlw
       : size>=2 ? font_data::kSpaceMono22Vlw
-      : size>=1.75f ? dashboard::font_data::kSpaceMono18Vlw : font_data::kSpaceMono15Vlw);
+      : size>=1.75f ? dashboard::font_data::kSpaceMono18Vlw : size>=1.5f ? font_data::kSpaceMono15Vlw : font_data::kSpaceMono14Vlw);
   s.setTextSize(1);
 }
 template<class Surface> void label(Surface& s,const char* text,int x,int y,uint16_t color=kInk,float size=2,textdatum_t datum=middle_center){
@@ -82,6 +82,10 @@ template<class Surface> void wrapped(Surface& s,const char* text,int y,unsigned 
 }
 template<class Surface> void button(Surface& s,const char* text,int x,int y,int w,uint16_t color,float size=2){
   s.fillRoundRect(x,y,w,32,9,kPanel);s.drawRoundRect(x,y,w,32,9,color);label(s,text,x+w/2,y+16,color,size);
+}
+template<class Surface> void footerButton(Surface& s,const FooterButton& b,const char* text,uint16_t fill,uint16_t ink){
+  s.fillRoundRect(b.x,b.y,b.width,b.height,12,fill);
+  label(s,text,b.x+b.width/2,b.y+b.height/2,ink,2.f);
 }
 // Keep the large disc quiet against Home's black background; the orange-red
 // count carries the contrast instead of a bright fill or outline.
@@ -154,11 +158,9 @@ template<class Surface> void render(Surface& s,const Controller& ui,uint32_t now
   if(!std::strcmp(c.state,"pending")&&c.decide&&!ui.canDecide(now)&&!ui.holdElapsed(now))state="WAITING / EXPIRED";
   if(c.rich&&ui.linked())state=richStatus(c);
   label(s,state,233,(c.rich?145:139)+offset,color,reading?2.f:1.5f);
-  // Read-only excerpts leave a dedicated footer; native decision scope stays complete.
-  if(c.rich){
-    const bool clipped=singleLayer?richWrapped(s,c.detail,171+offset,5,2.f,28):richWrapped(s,c.detail,171+offset,6);
-    if(c.excerpted||clipped)label(s,"MORE ON MAC",233,singleLayer?343:355,kDim,1.5f);
-  }else if(singleLayer)wrapped(s,c.detail,201,28,2.f,7,-1,23);
+  // Read-only text is an excerpt; keep all native decision scope on its existing path.
+  if(singleLayer)richWrapped(s,c.detail,171+offset,5,2.f,28);
+  else if(c.rich)richWrapped(s,c.detail,171+offset,6);
   else wrapped(s,c.detail,165+offset,reading?24:36,reading?2.5f:1.5f,reading?8:6,-1,browsing?23:0);
   if(ui.view()==View::Confirm){
     const char* selected=ui.selection();
@@ -178,10 +180,11 @@ template<class Surface> void render(Surface& s,const Controller& ui,uint32_t now
     }else if(!reading)label(s,!std::strcmp(c.state,"unknown")?"RESULT UNKNOWN":"Review on Mac",233,301,kDim);
     button(s,"OPEN ON MAC",100,376,266,kDim,reading?2.5f:2.f);
   }else if(singleLayer){
-    label(s,"UP/DOWN: BROWSE",88,376,kDim,1.5f,middle_left);
-    button(s,"OPEN ON MAC",kReadOnlyOpenX,kReadOnlyOpenY,kReadOnlyOpenWidth,kDim,1.5f);
-    label(s,"LEFT: DISMISS",88,402,kDim,1.5f,middle_left);
-    label(s,"RIGHT: BACK",256,402,kDim,1.5f,middle_left);
+    footerButton(s,kReadOnlyBackButton,"BACK",0x2146,0xDF3D);
+    footerButton(s,kReadOnlyOpenButton,"OPEN",0x122B,0x873F);
+    label(s,"UP/DOWN: BROWSE",233,408,kDim,1.4f);
+    label(s,"LEFT: DISMISS",125,426,kDim,1.4f,middle_left);
+    label(s,"RIGHT: BACK",253,426,kDim,1.4f,middle_left);
   }else{
     // Align each column independently while retaining the compact two-row footer.
     label(s,"UP/DOWN: BROWSE",88,378,kDim,1.5f,middle_left);
@@ -189,6 +192,6 @@ template<class Surface> void render(Surface& s,const Controller& ui,uint32_t now
     label(s,"TAP: DETAILS",264,378,kDim,1.5f,middle_left);
     label(s,"RIGHT: BACK",264,395,kDim,1.5f,middle_left);
   }
-  label(s,ui.view()==View::Confirm?"CANCEL":"BACK",233,430,kDim,reading?2.5f:2.f);
+  if(!singleLayer)label(s,ui.view()==View::Confirm?"CANCEL":"BACK",233,430,kDim,reading?2.5f:2.f);
 }
 } // namespace task_notification
