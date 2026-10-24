@@ -45,20 +45,6 @@
       "input": "attention only; ordinary question answer exists but content-minimized getter, runtime schema and request closure remain unvalidated",
       "open": "verified Chat UI binding or application fallback",
       "evidence": "ac45e7aa no-model ready/target_closed; current15aae8f8 help/static sources only, lifecycle not runtime verified"
-    },
-    "hermes": {
-      "pin": "desktop 0.17.6; source 74f726c17675642c2eff3033632e812f5f0e6614",
-      "events": [
-        "on_session_end",
-        "subagent_start",
-        "pre_approval_request",
-        "post_approval_response"
-      ],
-      "rootVerification": "native finalized-turn callback; observed child IDs excluded",
-      "approval": "observer-local identity; unique native session/turn/tool correlation; no accepted verdict",
-      "input": "unsupported",
-      "open": "stored session route request only",
-      "evidence": "source and fixtures; built artifact equivalence and plugin installation unvalidated"
     }
   }
 }

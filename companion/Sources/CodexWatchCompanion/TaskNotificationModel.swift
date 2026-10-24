@@ -41,8 +41,9 @@ struct TaskNotificationEvent: Codable, Equatable {
     var requiresCompleteScope: Bool { canDecide == true && (kind == "approval" || (kind == "input" && options != nil)) }
     var identity: [String] { [source, sessionId, runId, requestId] }
 
-    func validate() throws {
-        guard v == 1, ["codex", "deepseek", "super", "hermes"].contains(source),
+    func validate(allowRetiredSource: Bool = false) throws {
+        let supported = ["codex", "deepseek", "super"].contains(source)
+        guard v == 1, supported || (allowRetiredSource && source == "hermes"),
               ["done", "approval", "input", "failed"].contains(kind), ["pending", "resolved"].contains(state),
               revision > 0, createdAt >= 0, createdAt <= Int64.max - 120_000, leaseDeadline >= 0,
               [eventId, sessionId, runId, requestId].allSatisfy({ !$0.isEmpty && $0.utf8.count <= 256 && !$0.contains("\0") }),

@@ -18,7 +18,7 @@ _spec.loader.exec_module(bridge)
 SAFE_TARGET = re.compile(r'[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}\Z')
 SUPER_CLI = '/Applications/super.engineering.app/Contents/Resources/bin/sc-macos-aarch64'
 BUNDLES = {'codex': 'com.openai.codex', 'deepseek': 'com.deepseek.dsh',
-           'super': 'engineering.super.app', 'hermes': 'com.nousresearch.hermes'}
+           'super': 'engineering.super.app'}
 
 
 def target(value):
@@ -69,6 +69,21 @@ class RouteStore:
         # The persistent lock and in-progress atomic files never consume route capacity.
         return [name for name in os.listdir(fd) if re.fullmatch(r'[0-9a-f]{64}\.json', name)]
 
+    def _prune_retired(self, fd):
+        # Caller owns the exclusive inventory lock. Retired records must not
+        # consume capacity or block supported sources; never touch owner locks.
+        changed = False
+        for name in self._names(fd):
+            record = bridge._read(fd, name)
+            raw = record.get('event') if isinstance(record, dict) else None
+            if isinstance(raw, dict) and raw.get('source') == 'hermes':
+                try: matches = _key(raw) == name
+                except (KeyError, TypeError, ValueError): matches = False
+                if matches:
+                    os.unlink(name, dir_fd=fd)
+                    changed = True
+        if changed: os.fsync(fd)
+
     def save(self, event, stored_session=None):
         event = bridge.validate_event(event)
         if stored_session is not None: target(stored_session)
@@ -79,6 +94,7 @@ class RouteStore:
         fd = self._open(); name = _key(event); temporary = '.' + str(uuid.uuid4())
         try:
             with self._locked(fd, True):
+                self._prune_retired(fd)
                 if name not in self._names(fd) and len(self._names(fd)) >= 256:
                     raise ValueError('adapter route inventory full')
                 out = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600, dir_fd=fd)
@@ -113,6 +129,7 @@ class RouteStore:
         fd = self._open()
         try:
             with self._locked(fd, True):
+                self._prune_retired(fd)
                 if _key(event) not in self._names(fd) and len(self._names(fd)) >= 256:
                     raise ValueError('adapter route inventory full')
                 lock = self._owner_fd(fd, event)
@@ -165,6 +182,8 @@ class RouteStore:
                 for name in sorted(names):
                     record = bridge._read(fd, name)
                     if set(record) != {'event', 'storedSession'}: raise ValueError('invalid route record')
+                    if isinstance(record['event'], dict) and record['event'].get('source') == 'hermes':
+                        continue
                     event = bridge.validate_event(record['event'])
                     if _key(event) != name: raise ValueError('route identity mismatch')
                     records.append((event, record['storedSession']))
@@ -173,6 +192,7 @@ class RouteStore:
         yield from records
 
     def command(self, event, stored_session=None):
+        event = bridge.validate_event(event)
         source = event['source']
         if stored_session is None:
             for saved, native in self.records():
@@ -183,9 +203,6 @@ class RouteStore:
             return ['open', 'codex://threads/' + target(event['sessionId'])], 'exact-session-open-requested'
         if source == 'super' and stored_session:
             return [SUPER_CLI, 'chat', 'select', target(stored_session)], 'exact-session-open-requested'
-        if source == 'hermes' and stored_session:
-            from urllib.parse import quote
-            return ['open', 'hermes://open/' + quote(target(stored_session), safe='')], 'exact-session-open-requested'
         return ['open', '-b', BUNDLES[source]], 'application-activation-requested'
 
 

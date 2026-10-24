@@ -13,6 +13,27 @@ private func event(_ request: String = "request-a", revision: UInt32 = 1, at: In
 private func action(_ card: TaskNotificationCard, _ action: String) -> TaskNotificationAction {
     TaskNotificationAction(v: 1, g: card.g, id: card.id, r: card.r, action: action)
 }
+private func testRetiredHermesMigration() throws {
+    let root=URL(fileURLWithPath:"/private/tmp").appendingPathComponent("retired-source-\(UUID())")
+    defer {try? FileManager.default.removeItem(at:root)}
+    let store=try TaskNotificationStore(directory:root.path)
+    var retired=event("retired",decide:false,state:"resolved");retired.source="hermes"
+    let supported=["codex","deepseek","super"]
+    var records=[TaskNotificationRecord(id:1,event:retired,state:"resolved",firstSeen:1000)]
+    for (index,source) in supported.enumerated() {
+        var active=event("active-\(source)",decide:false);active.source=source
+        records.append(TaskNotificationRecord(id:UInt32(index+2),event:active,state:"pending",firstSeen:1000))
+    }
+    let snapshot=TaskNotificationSnapshot(nextID:5,records:records)
+    try store.save(snapshot)
+    let broker=try TaskNotificationBroker(store:store)
+    try check(broker.count==3,"retired Hermes must leave the visible queue")
+    let saved=try store.load()
+    try check(saved.records.map(\.event.source)==supported && saved.records.map(\.id)==[2,3,4] && saved.nextID==5,
+              "migration must preserve other sources and stable IDs")
+    do {try broker.ingest(retired,now:1001);throw NSError(domain:"retired ingress accepted",code:1)}
+    catch TaskNotificationError.invalid {}
+}
 @main struct TaskNotificationRegression {
     static func main() throws {
         if CommandLine.arguments.count == 3, CommandLine.arguments[1] == "--bridge" {
@@ -24,6 +45,7 @@ private func action(_ card: TaskNotificationCard, _ action: String) -> TaskNotif
             print(String(decoding: try JSONEncoder().encode(try broker.card(now: 1_001)), as: UTF8.self))
             return
         }
+        try testRetiredHermesMigration()
         let root = URL(fileURLWithPath: "/private/tmp").appendingPathComponent("notification-tests-\(UUID())")
         defer { try? FileManager.default.removeItem(at: root) }
         let store = try TaskNotificationStore(directory: root.path)

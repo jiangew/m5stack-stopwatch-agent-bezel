@@ -124,7 +124,7 @@ int main(){
   canvas.strings.clear();ui.disconnect();task_notification::render(canvas,ui,150);
   joined.clear();for(auto& s:canvas.strings)joined+=s;
   assert(joined.find("ALLOW ONCE")==std::string::npos);assert(joined.find("OFFLINE")!=std::string::npos);
-  for(const auto& item:std::vector<std::pair<const char*,const char*>>{{"codex","Codex"},{"deepseek","DSH"},{"super","Super"},{"hermes","Hermes"}}){
+  for(const auto& item:std::vector<std::pair<const char*,const char*>>{{"codex","Codex"},{"deepseek","DSH"},{"super","Super"}}){
     Card named=c;std::strcpy(named.src,item.first);std::strcpy(named.title,"SUPER task");
     Controller names;names.receive(named,100);names.openInbox(110);
     Canvas frame;render(frame,names,120);

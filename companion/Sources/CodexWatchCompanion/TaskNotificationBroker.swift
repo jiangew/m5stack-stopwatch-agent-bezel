@@ -23,6 +23,9 @@ final class TaskNotificationBroker {
         self.richContent = richContent
         self.muteLegacyCodex = muteLegacyCodex
         self.store = store; snapshot = try store.load()
+        // Retired-source migration runs before presentation/dispatch restoration.
+        // Preserve other records and nextID so old watch actions cannot reuse IDs.
+        snapshot.records.removeAll { $0.event.source == "hermes" }
         // Persisted dispatch is never retried, even if publication crashed. Native resolution must reconcile it.
         for i in snapshot.records.indices where snapshot.records[i].state == "submitting" { snapshot.records[i].state = "unknown" }
         for i in snapshot.records.indices where snapshot.records[i].completeScope == nil {

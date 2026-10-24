@@ -16,7 +16,7 @@ import time
 import uuid
 
 MAX_EVENT = 8192
-SOURCES = {'codex', 'deepseek', 'super', 'hermes'}
+SOURCES = {'codex', 'deepseek', 'super'}
 IDENTITY = ('source', 'sessionId', 'runId', 'requestId', 'revision')
 
 

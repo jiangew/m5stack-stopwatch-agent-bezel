@@ -8,8 +8,8 @@ remove the standalone Hermes desktop; improve left-swipe responsiveness.
 - Up chooses among BumblebeeFullbody, Optimus, Wheeljack, Hound, Ironhide,
   Ratchet. Down chooses among Megatron, Starscream, Shockwave, Thundercracker,
   Blitzwing, Astrotrain. Keep default Bumblebee and same-faction nonrepetition.
-- Cycle Home → Codex → DSH → Super → Home. Keep Hermes notification collection
-  and OPEN support. Preserve existing workspace protocol enum ordinals and
+- Cycle Home → Codex → DSH → Super → Home. Remove Hermes notification collection
+  and OPEN support as requested in the follow-up. Preserve existing workspace protocol enum ordinals and
   compatibility parsers; only remove Hermes from the selectable page sequence.
 - The HID decoder currently suppresses left swipes for 800ms. Verify with a
   deterministic released-gesture trace, then use a 200ms page-cycle cooldown.
@@ -37,8 +37,8 @@ remove the standalone Hermes desktop; improve left-swipe responsiveness.
   released-left tests. Run each against the current implementation.
 - [x] Reduce enum/art embedding/pose lists and selector pools; adjust affected
   native preview and regression fixtures. Keep surviving source pixels intact.
-- [x] Remove Hermes from workspace cycling, preserving legacy wire decoding
-  and notification paths. Ensure background Hermes cannot select a desktop.
+- [x] Remove Hermes from workspace cycling, preserving legacy workspace wire decoding.
+  Ensure background Hermes cannot select a desktop; retire notifications in the follow-up below.
 - [x] Change page-cycle cooldown to 200ms; retain duplicate press, release,
   stale-origin, non-page debounce, center-launch and disconnect guards.
 - [x] Run C++ selector/render/input regressions, Swift decoder/cycle/coordinator
@@ -46,3 +46,14 @@ remove the standalone Hermes desktop; improve left-swipe responsiveness.
   firmware and Companion without installing them.
 - [x] Produce a remaining-role native preview and record measured software
   results separately from pending physical acceptance.
+
+## Follow-up: retire Hermes notifications
+
+Supported notification sources are now Codex, DSH and Super. The Hermes collector
+plugin and OPEN routes are removed. New Hermes events are rejected by Python,
+Companion and firmware. Durable queue loading validates legacy Hermes records
+only for migration, removes them before presentation, preserves other sources
+and nextID, and saves the filtered queue. Old Hermes route records are skipped
+on read and safely retired under the exclusive inventory lock before publication
+or native owner acquisition, including a full inventory of 256 old routes.
+These changes are still candidate-only and are not installed.

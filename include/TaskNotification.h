@@ -34,6 +34,9 @@ inline bool ownsLegacyCodexCompletion(const Snapshot& snapshot,uint32_t now) {
 inline bool oneOf(const char* s,const char* a,const char* b,const char* c,const char* d) {
   return !std::strcmp(s,a)||!std::strcmp(s,b)||!std::strcmp(s,c)||!std::strcmp(s,d);
 }
+inline bool supportedSource(const char* source) {
+  return !std::strcmp(source,"codex") || !std::strcmp(source,"deepseek") || !std::strcmp(source,"super");
+}
 inline unsigned utf8Length(unsigned char c){return c<0x80?1:c>=0xc2&&c<=0xdf?2:c>=0xe0&&c<=0xef?3:c>=0xf0&&c<=0xf4?4:0;}
 inline bool validUtf8(const char* data,std::size_t length){
   for(std::size_t i=0;i<length;){
@@ -86,7 +89,7 @@ inline bool parse(JsonObjectConst value,Card& output) {
     const bool attention=!std::strcmp(c.kind,"approval")||!std::strcmp(c.kind,"input");
     if(value["layout"].as<unsigned>()!=(attention?3:2)||!utf8Text(value["title"],c.title)||!utf8Text(value["detail"],c.detail))return false;
   }else if(!text(value["title"],c.title)||std::strlen(c.title)>48||!text(value["detail"],c.detail))return false;
-  if(!oneOf(c.src,"codex","deepseek","super","hermes")||
+  if(!supportedSource(c.src)||
      !oneOf(c.kind,"done","approval","input","failed")||
      !(oneOf(c.state,"pending","submitting","resolved","unknown")||!std::strcmp(c.state,"expired")))return false;
   if(!value["outcome"].isNull()&&(!text(value["outcome"],c.outcome)||

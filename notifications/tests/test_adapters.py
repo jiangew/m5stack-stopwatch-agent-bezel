@@ -11,7 +11,6 @@ import time
 
 from notifications.adapters.runtime import Publisher, RouteStore, consume_open
 from notifications.adapters.codex_notify import handle_notify, metadata_root
-from notifications.adapters.hermes_plugin import Observer
 from notifications.adapters.super_collector import decode_event, UnsupportedContract, SuperObserver
 
 
@@ -132,57 +131,47 @@ for line in sys.stdin:
             handle_notify({'type': 'agent-turn-complete', 'thread-id': session, 'turn-id': 't'}, self.pub, {'a', 'b'})
         self.assertEqual({x['sessionId'] for x in self.records()}, {'a', 'b'})
 
-    def test_hermes_turn_hook_and_children(self):
-        observer = Observer(self.pub)
-        observer.subagent_start(child_session_id='child')
-        observer.on_session_end(session_id='child', turn_id='t', completed=True, failed=False, interrupted=False)
-        observer.on_session_end(session_id='root', turn_id='t', completed=True, failed=False, interrupted=False, model='model')
-        observer.on_session_end(session_id='root', turn_id='t2', completed=False, failed=True, interrupted=False)
-        observer.on_session_end(session_id='root2', turn_id='t', completed=False, failed=False, interrupted=True)
-        events = self.records()
-        self.assertEqual(len(events), 3)
-        self.assertEqual(sum(x['kind'] == 'done' for x in events), 1)
-        self.assertEqual(sum(x['detail'] == 'Turn interrupted' for x in events), 1)
-        self.assertEqual(sum(x['detail'] == 'Turn failed' for x in events), 1)
+    def test_retired_hermes_route_does_not_block_other_sources(self):
+        from notifications.adapters.runtime import _key
+        live = self.pub.publish('codex', 'live', 't', 'r', 'done', 'Done', 'Done')
+        retired = dict(live, source='hermes', eventId='retired')
+        path = self.directory / 'adapter-routes' / _key(retired)
+        path.write_text(json.dumps({'event': retired, 'storedSession': 'old'})); path.chmod(0o600)
+        records = list(RouteStore(self.directory).records())
+        self.assertEqual([event['source'] for event, _ in records], ['codex'])
+        self.pub.publish('super', 's', 't', 'r', 'done', 'Done', 'Done')
+        self.assertFalse(path.exists(), 'retired routes must not consume capacity')
+        self.assertEqual({event['source'] for event, _ in RouteStore(self.directory).records()}, {'codex', 'super'})
+        with self.assertRaises(ValueError):
+            RouteStore(self.directory).command(retired)
 
-    def test_hermes_observer_request_resolution_never_claims_accept(self):
-        observer = Observer(self.pub)
-        context = dict(session_id='root', session_key='routing', turn_id='turn', tool_call_id='call')
-        observer.pre_approval_request(**context, command='synthetic secret command')
-        observer.post_approval_response(**context, choice='once')
-        events = self.records()
-        self.assertEqual({x['state'] for x in events}, {'pending', 'resolved'})
-        self.assertEqual(len({x['requestId'] for x in events}), 1)
-        self.assertTrue(all(not x['canDecide'] and 'outcome' not in x for x in events))
-        self.assertNotIn('secret command', json.dumps(events))
+    def test_full_retired_inventory_cannot_block_native_owner_acquisition(self):
+        from notifications.adapters.runtime import _key
+        seed = self.pub.publish('codex', 'seed', 't', 'r', 'done', 'Done', 'Done')
+        directory = self.directory / 'adapter-routes'
+        (directory / _key(seed)).unlink()
+        for index in range(256):
+            old = dict(seed, source='hermes', requestId=f'old-{index}', eventId=f'old-{index}')
+            path = directory / _key(old)
+            path.write_text(json.dumps({'event': old, 'storedSession': None})); path.chmod(0o600)
+        native = dict(seed, source='deepseek', kind='approval', canDecide=True, requestId='native')
+        lock = RouteStore(self.directory).acquire_owner(native)
+        try:
+            self.assertEqual(list(directory.glob('[0-9a-f]' * 64 + '.json')), [])
+        finally:
+            os.close(lock)
 
-    def test_hermes_ambiguous_or_missing_correlation_fails_closed(self):
-        observer = Observer(self.pub)
-        observer.pre_approval_request(session_id='s', turn_id='t')
-        context = dict(session_id='s', turn_id='t', tool_call_id='c')
-        observer.pre_approval_request(**context)
-        observer.pre_approval_request(**context)
-        observer.post_approval_response(**context, choice='once')
-        self.assertEqual(len(self.records()), 2)
-        self.assertTrue(all(x['state'] == 'pending' for x in self.records()))
+    def test_retired_hermes_publication_is_rejected(self):
+        with self.assertRaises(ValueError):
+            self.pub.publish('hermes', 'retired', 't', 'r', 'done', 'Done', 'Done')
 
-    def test_hermes_exact_terminal_turn_clears_ambiguous_observers_without_verdict(self):
-        observer = Observer(self.pub)
-        context = dict(session_id='s', turn_id='t', tool_call_id='c')
-        observer.pre_approval_request(**context)
-        observer.pre_approval_request(**context)
-        observer.post_approval_response(**context, choice='once')
-        observer.on_session_end(session_id='s', turn_id='other', completed=True, failed=False, interrupted=False)
-        self.assertEqual(sum(x['state'] == 'resolved' for x in self.records()), 0)
-        observer.on_session_end(session_id='s', turn_id='t', completed=False, failed=False, interrupted=True)
-        cleared = [x for x in self.records() if x['state'] == 'resolved']
-        self.assertEqual(len(cleared), 2)
-        self.assertTrue(all('outcome' not in x for x in cleared))
-        self.assertEqual({x['requestId'] for x in cleared}, {x['requestId'] for x in self.records() if x['kind'] == 'approval'})
+
+
+
 
     def test_routes_open_exact_sessions_without_approving(self):
         calls = []
-        for source, session, target in [('codex', 'root', 'root'), ('super', 'chat', 'chat'), ('hermes', 'stored', 'stored')]:
+        for source, session, target in [('codex', 'root', 'root'), ('super', 'chat', 'chat')]:
             event = self.pub.publish(source, session, 't', 'r', 'done', 'Done', 'Turn completed', stored_session=target)
             decision = {'v': 1, 'decisionId': 'decision-' + source, 'source': source, 'sessionId': session,
                         'runId': 't', 'requestId': 'r', 'revision': 1, 'action': 'open',
@@ -190,10 +179,9 @@ for line in sys.stdin:
             (self.directory / 'decisions' / (source + '.json')).write_text(json.dumps(decision))
             (self.directory / 'decisions' / (source + '.json')).chmod(0o600)
         results = consume_open(self.directory, runner=lambda command: calls.append(command), now=1000)
-        self.assertEqual([x['status'] for x in results], ['exact-session-open-requested'] * 3)
-        self.assertEqual(len(calls), 3)
+        self.assertEqual([x['status'] for x in results], ['exact-session-open-requested'] * 2)
+        self.assertEqual(len(calls), 2)
         self.assertIn(['open', 'codex://threads/root'], calls)
-        self.assertIn(['open', 'hermes://open/stored'], calls)
         self.assertTrue(any(x[-3:] == ['chat', 'select', 'chat'] for x in calls))
         self.assertEqual(consume_open(self.directory, runner=lambda x: self.fail('replayed'), now=1001), [])
 
@@ -213,10 +201,10 @@ for line in sys.stdin:
     def test_unsafe_routes_and_missing_stored_id_do_not_open(self):
         self.assertRaises(ValueError, self.pub.publish, 'codex', 'bad/id', 't', 'r', 'done', 'Done', 'Done')
         calls = []
-        event = self.pub.publish('hermes', 'runtime', 't', 'r', 'done', 'Done', 'Done')
+        event = self.pub.publish('super', 'runtime', 't', 'r', 'done', 'Done', 'Done')
         command, status = RouteStore(self.directory).command(event)
         self.assertEqual(status, 'application-activation-requested')
-        self.assertNotIn('hermes://open/runtime', command)
+        self.assertEqual(command, ['open', '-b', 'engineering.super.app'])
 
     def test_open_native_failure_is_reported_without_resolving_request(self):
         import subprocess
@@ -257,10 +245,8 @@ for line in sys.stdin:
         self.assertRaises(OSError, list, RouteStore(self.directory).records())
 
     def test_native_resolution_timestamp_is_strictly_later(self):
-        observer = Observer(self.pub)
-        context = dict(session_id='s', turn_id='t', tool_call_id='c')
-        observer.pre_approval_request(**context)
-        observer.post_approval_response(**context, choice='deny')
+        self.pub.publish('super', 's', 't', 'r', 'approval', 'Attention', 'Native attention')
+        self.pub.publish('super', 's', 't', 'r', 'approval', 'Attention', 'Native attention', state='resolved')
         events = self.records()
         pending = next(x for x in events if x['state'] == 'pending')
         resolved = next(x for x in events if x['state'] == 'resolved')

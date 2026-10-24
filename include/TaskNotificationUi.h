@@ -106,7 +106,6 @@ inline const char* sourceName(const char* source){
   if(!std::strcmp(source,"codex"))return "Codex";
   if(!std::strcmp(source,"deepseek"))return "DSH";
   if(!std::strcmp(source,"super"))return "Super";
-  if(!std::strcmp(source,"hermes"))return "Hermes";
   return source;
 }
 // Only canonicalize known generated labels; task content remains verbatim.

@@ -84,6 +84,7 @@ int main() {
   d["ttl"]=15001;assert(!parse(d.as<JsonObjectConst>(),parsed));d["ttl"]=15000;
   d["title"]="\x01";assert(!parse(d.as<JsonObjectConst>(),parsed));d["title"]="Valid";
   d["decide"]="true";assert(!parse(d.as<JsonObjectConst>(),parsed));d["decide"]=true;
+  d["src"]="hermes";assert(!parse(d.as<JsonObjectConst>(),parsed));
   d["src"]="other";assert(!parse(d.as<JsonObjectConst>(),parsed));d["src"]="codex";
   d["kind"]="done";assert(!parse(d.as<JsonObjectConst>(),parsed));
   d["kind"]="input";assert(!parse(d.as<JsonObjectConst>(),parsed));

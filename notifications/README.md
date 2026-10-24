@@ -11,9 +11,8 @@ Installed stock native approval/choice support remains **false**. Default adapte
 | Codex | `notify` JSON argument, `agent-turn-complete` only | Exact thread + turn; exact read-only native metadata verifies roots, explicit allowlist fallback | `codex://threads/<thread-id>` | CLI 0.163.0-alpha.10.2 / desktop 26.1013.40934 source + fixtures; notify not installed or observed live. Failure, input and approval events unsupported. |
 | DeepSeek | Independent Host Cordis `session/event`; native userQuestions projection | Exact root Session + turn + approval audit UUID; `approval/decided` supplies allowed/declined/cancelled; input projection supplies cleared/answered | App activation only | 0.2.1-rc.2 rich content native-contract fixture; this content candidate is not installed/live tested. Default observer does not own approvals; explicit patched extension is separately module-tested. |
 | SUPER | Native `sc agent subscribe` for explicitly selected root stable target IDs | Native lifecycle sequence identifies observed attention; no native approval request ID; current ordinary-question API explicitly forbids approvals | `sc chat select` only with explicit verified Chat UI session binding; otherwise activation | ac45e7aa actual ready/target_closed envelopes captured using isolated no-model QA terminal. Other event variants are source-backed fixtures, not live model-run acceptance. |
-| Hermes | Agent plugin `on_session_end`, `subagent_start`, approval observer hooks | Completion session/turn; approval observer-local ID, matched only on unique native session/turn/tool-call tuple; cleared without an accepted verdict | `hermes://open/<stored-session-id>`; never infer a stored ID from runtime sid | Desktop 0.17.6, source 74f726c17675642c2eff3033632e812f5f0e6614 + fixtures; plugin not installed/live tested; built ASAR/source equality unproven. Gateway hooks do not cover Desktop. |
 
-The collector receives genuine native callbacks or native CLI streams; manually sending JSON to `relay.py` is only a developer ingress. Existing desktop sessions are covered only **after** the corresponding opt-in callback/plugin/collector is loaded. No transcript scanning, terminal-output guessing, keystroke approval, duplicate app-server, or replacement Hermes backend is used.
+The collector receives genuine native callbacks or native CLI streams; manually sending JSON to `relay.py` is only a developer ingress. Existing desktop sessions are covered only **after** the corresponding opt-in callback/plugin/collector is loaded. No transcript scanning, terminal-output guessing, keystroke approval, duplicate app-server, or replacement backend is used.
 
 ## Shared private runtime
 
@@ -27,7 +26,7 @@ python3 notifications/adapters/relay.py --directory /ABSOLUTE/PRIVATE/notificati
 
 Only identity-bound `open` decisions are consumed. Approval/choice decisions are never claimed by these notification-only adapters. Routing records live in private `adapter-routes/`, use the same no-follow owner/mode checks, and are bounded to 256 records. Full inventory causes a content-free error and stops publication; it never evicts a live native request. Stop adapters and companion before explicitly archiving/resetting an old runtime directory. Real events, routing IDs and logs must stay outside the repository.
 
-OPEN reports `exact-session-open-requested`, `application-activation-requested`, or `open-failed`. A successful OS/CLI dispatch is not proof that the user saw the session. DSH fallback and unbound SUPER/Hermes fallback **never** report exact-session navigation. Opening does not emit a resolved native approval.
+OPEN reports `exact-session-open-requested`, `application-activation-requested`, or `open-failed`. A successful OS/CLI dispatch is not proof that the user saw the session. DSH fallback and unbound SUPER fallback **never** report exact-session navigation. Opening does not emit a resolved native approval.
 
 ## Codex native notify
 
@@ -149,13 +148,13 @@ The validated ac45e7aa stream is a flat event with exactly `sequence`, `stable_t
 
 The collector starts live. If it disconnects, stop/reinspect native state and restart; it does not fabricate events missed while offline or treat idle as completion. The app must already run and native provider lifecycle hooks must support that target. The actual QA observed ready and target_closed from a temporary `sleep; true` terminal; no model task was submitted. `task_complete` and provider-specific approval/input coverage still need a synthetic native model-run acceptance test. See [native CLI automation](https://super.engineering/docs/cli-local-api/).
 
-## Hermes agent plugin
+## Retired Hermes source
 
-Use `adapters/hermes/` as a local agent plugin, not the gateway `hooks/` directory. Once installation is separately authorized, link the plugin directory into the active profile's plugins directory, enable only `agentbezel-notifications` through native plugin controls, and ensure `STOPWATCH_NOTIFICATIONS_DIR=/ABSOLUTE/PRIVATE/notifications` reaches the **existing Desktop owner backend**. The plugin symlink must continue pointing into this checkout; do not copy its `__init__.py` in isolation. No install/enable/restart is performed by these files.
-
-`on_session_end` is a native per-finalized-turn plugin callback, distinct from memory-provider session cleanup. It requires native session/turn IDs and explicit completed/failed/interrupted booleans. `subagent_start` records child IDs; child callbacks do not complete a parent. No tool or raw output hook is used to infer completion.
-
-Approval pre/post hooks do not carry the native queue request ID and cannot decide. An exact unique session/turn/tool-call tuple receives an explicitly observer-local card ID; its matching post callback clears that same ID without claiming allowed/declined. Duplicate ambiguous tuples remain unknown until an exact native finalized-turn callback clears all observed requests of that session/turn; they are never selected by FIFO or command text. These observations do not renew native decision leases. Secret commands and reason text are discarded. Arbitrary clarify input is unsupported. See [official hooks scope](https://hermes-agent.nousresearch.com/docs/user-guide/features/hooks).
+Hermes notifications are no longer supported. Its adapter/plugin entrypoints and
+OPEN routes have been removed. New Hermes events are rejected by the Python
+bridge, Companion ingress and firmware. Companion startup migrates old broker
+queues by removing Hermes records while retaining all other sources and IDs.
+Old Hermes route entries are ignored so they cannot block supported OPEN routes.
 
 ## Verification and release boundary
 

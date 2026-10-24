@@ -22,7 +22,7 @@ in `scripts/stopwatch_notify.py`. CLI accepts `--directory ABSOLUTE_PATH emit
 --record EVENT_JSON` (or `decisions`). Keep real JSON outside the repository.
 `now` and all timestamps are Unix milliseconds; default `now` is wall clock.
 
-Required event keys: `v:1`, `eventId:string`, `source:codex|deepseek|super|hermes`,
+Required event keys: `v:1`, `eventId:string`, `source:codex|deepseek|super`,
 `sessionId:string`, `runId:string`, `requestId:string`, `revision:uint32>0`,
 `createdAt:int64`, `leaseDeadline:int64`, `kind:done|approval|input|failed`,
 `title:string`, `model:string`, `detail:string`, `state:pending|resolved`.
@@ -223,3 +223,5 @@ Model is bounded to128 ASCII bytes at projection admission; wire32 bytes uses an
 explicit ellipsis for long versions. Omit Codex/DSH wire project to preserve model
 space. Pixel fitting reserves the time; configuration provenance does not add a UI prefix.
 Missing model uses 模型未提供; no global defaults or historical content scans.
+
+Hermes is retired. Legacy Hermes records are validated only during durable-store loading, then removed before broker presentation; new ingress rejects them.

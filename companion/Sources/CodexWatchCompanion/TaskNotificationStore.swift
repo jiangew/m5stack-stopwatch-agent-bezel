@@ -108,7 +108,7 @@ final class TaskNotificationStore {
         guard snapshot.v == 1, snapshot.records.count <= 64, snapshot.nextID > 0,
               Set(snapshot.records.map(\.id)).count == snapshot.records.count,
               snapshot.records.allSatisfy({ $0.firstSeen >= 0 && $0.firstSeen <= Int64.max - 120_000 && $0.id > 0 && $0.id < snapshot.nextID && ["pending", "submitting", "unknown", "resolved"].contains($0.state) }) else { throw TaskNotificationError.invalid }
-        for record in snapshot.records { try record.event.validate() }
+        for record in snapshot.records { try record.event.validate(allowRetiredSource: true) }
         return snapshot
     }
     func save(_ snapshot: TaskNotificationSnapshot) throws {
