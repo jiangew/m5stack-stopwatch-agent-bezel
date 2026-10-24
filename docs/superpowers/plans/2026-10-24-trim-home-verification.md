@@ -1,6 +1,10 @@
-# Home roster and desktop-cycle candidate verification
+# Home roster and desktop-cycle deployment acceptance
 
-Status: source/build candidate only; not installed or physically accepted.
+Status: installed and physically accepted on C152 on 2026-10-24.
+
+Firmware source: `6d27164`; paired Companion: 0.1.4 build19. The selected
+USB-mic/Home-IMU application is 3,381,136 bytes, SHA-256
+`8308e3537da854a353d1bfbce9eca2d99034ea4f83231af17890c244432d6703`.
 
 ## Behavior
 
@@ -10,7 +14,7 @@ Status: source/build candidate only; not installed or physically accepted.
   exactly 13 idle images and 14 response images.
 - Desktop cycle: Home → Codex → DSH → Super → Home. Hermes notifications are also retired by the follow-up;
   legacy workspace protocol parsing remains for compatibility; a Hermes foreground app cannot
-  replace the selected watch desktop. Companion candidate is 0.1.4 build19.
+  replace the selected watch desktop. The paired Companion is 0.1.4 build19.
 - The user's final reproduction was the last Agent → Home transition. Both
   the drawing tail and loop cleanup previously freed the entire idle bank.
   Awake page changes now release only action buffers, retaining the bounded
@@ -39,7 +43,8 @@ Status: source/build candidate only; not installed or physically accepted.
 - Standalone Swift decoder/cycle/coordinator regression passed, including
   released 250ms mixed native/dedicated swipes, rejected-press rearming,
   non-page cooldown, no automatic launch, Hermes isolation and stale timers.
-- Notification bridge: 15 tests; adapters: 45 Python and 32 Node tests passed.
+- Before the Hermes retirement follow-up: notification bridge 15 tests; adapters
+  45 Python and 32 Node tests passed.
   Native idle-art tests: 6 passed; action-art tests: 3 passed and 1 skipped
   because private raw image-generation originals are intentionally untracked.
 - Native preview, standard firmware, selected USB-mic/Home-IMU firmware and
@@ -49,13 +54,25 @@ Status: source/build candidate only; not installed or physically accepted.
   without XCTest. This is not counted as a passing test suite. Standalone
   regression compiles the same production components without XCTest.
 
-## Pending device acceptance
+## Device deployment and user acceptance
 
-Install the paired firmware and Companion candidates using the normal exact
-port, app-only backup/readback/protected-area gates. Confirm the four-page
-cycle, all remaining roles, Home-return speed, notification OPEN/BACK,
-Home tilt, Agent controls, USB microphone and reconnect behavior on C152.
-No measured physical latency improvement is claimed by these host regressions.
+- Read and verified the complete previous app0 and first 64 KiB. The previous
+  application matched the accepted baseline before writing only app0 at 0x10000.
+- Write hash and independent application readback matched the selected image;
+  bootloader, partition table, NVS and OTA metadata remained byte-identical.
+- Installed the paired build19 Companion, Codex/DSH/Super collectors and OPEN
+  relay; disabled the Hermes notification plugin. Old Hermes queue entries were
+  removed while supported sources and IDs were retained. App/config/queue and
+  firmware backups remain private and available for rollback.
+- After physical reset and permission renewal, HID and IMU status RPC passed,
+  quota writes resumed, and USB input enumerated. A 2.005333-second capture
+  verified 48 kHz, 16-bit, mono input; the temporary recording was deleted.
+- The user confirmed CONNECTED, the complete four-desktop cycle without Hermes,
+  Home role switching/tilt and Agent controls all matched expectations, including
+  the return from Super to Home. This is qualitative user acceptance; physical
+  latency, power consumption and long-duration stability were not measured.
+- The user confirmed Codex/DSH/Super synthetic notifications, up/down browsing,
+  real Codex exact-task OPEN and independent BACK all worked normally.
 
 ## Follow-up: retire Hermes notifications
 
@@ -66,7 +83,7 @@ only for migration, removes them before presentation, preserves other sources
 and nextID, and saves the filtered queue. Old Hermes route records are skipped
 on read and safely retired under the exclusive inventory lock before publication
 or native owner acquisition, including a full inventory of 256 old routes.
-These changes are still candidate-only and are not installed.
+The paired firmware and Mac update were installed and accepted as recorded above.
 
 Follow-up verification: 44 Python adapter tests and 32 Node tests passed;
 standalone Swift migration keeps Codex/DSH/Super IDs and nextID unchanged while
@@ -74,3 +91,14 @@ rejecting new Hermes ingress. Notification firmware regressions, native preview,
 standard and selected USB-mic/IMU firmware builds, and release Companion build
 passed. Focused review approved the full-inventory migration correction.
 The pinned external DSH native contract was not run (no DSH_NATIVE_MODULES supplied).
+
+## Publication closeout checks
+
+The accepted source passed a fresh closeout rerun: standalone workspace cycle,
+15 notification bridge tests, 44 Python adapter tests, 32 Node adapter tests,
+notification firmware regressions, and five C++ plus five actual-render/gesture
+Ruby checks. The latter cover the reduced roster, real portrait/cache policy,
+Home return, touch/IMU continuity, drawing and workspace launch. The direct
+C++ invocation initially lacked the installed M5GFX include path; rerunning with
+the native-preview headers/library passed without source changes. The final
+commit adds documentation and acceptance records only; no reflash is needed.

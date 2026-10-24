@@ -17,8 +17,9 @@ remove the standalone Hermes desktop; improve left-swipe responsiveness.
   navigation cooldowns. Do not replace host-authoritative screen selection with
   an optimistic local page change.
 - Source changes and native simulation cannot establish physical latency.
-  No installation, permission reset or firmware flashing in this implementation
-  step. Prepare builds/previews; retain exact-port and app-only deployment gates.
+  The original implementation step prepared builds/previews without installation.
+  The paired update was later deployed through the exact-port and app-only gates;
+  see [deployment acceptance](2026-10-24-trim-home-verification.md).
 
 - Follow-up physical observation narrowed the delay to the last Agent → Home
   transition. Both `drawScreen()` and loop cleanup discarded the idle bank.
@@ -56,4 +57,4 @@ only for migration, removes them before presentation, preserves other sources
 and nextID, and saves the filtered queue. Old Hermes route records are skipped
 on read and safely retired under the exclusive inventory lock before publication
 or native owner acquisition, including a full inventory of 256 old routes.
-These changes are still candidate-only and are not installed.
+The paired update was installed and accepted on C152 on 2026-10-24; see the deployment acceptance record.

@@ -2,226 +2,134 @@
 
 [简体中文](README.zh-CN.md)
 
-An explicitly selected [Home IMU pilot](docs/HOME_IMU_PILOT.md) explores pickup,
-tilt and settling via the `m5stack-stopwatch-home-imu` environment. It is disabled
-in normal release environments. Synthetic tests and native previews do not
-establish physical false-trigger rates, response latency or power consumption.
-The first pilot (`fe28100`, application hash prefix `5bdd3ed9026a`) was written to app0 on 2026-10-16 with verified application and
-protected-metadata checks. The user confirmed natural direction in the initial
-three cycles and normal feedback in a follow-up trial, then chose to stop before
-the 30-cycle protocol. Its exact action count is unconfirmed, so no hit rate is
-reported. A separate 600.80-second desk-still trial recorded zero unintended
-pickups and zero sensor-read errors. Interference scenarios, physical P95 latency
-and power remain unmeasured; this is a pilot, not full acceptance.
-The continuity version (`43d8e91`, application hash prefix `6cc50998db76`) was
-written to app0 on 2026-10-16 with verified application and protected-metadata
-checks, followed by a successful reboot, IMU diagnostics and a 3.008-second USB
-microphone check. The user confirmed that pickup-to-tilt tracking feels more
-responsive with noticeably less lag. A separate new-version 601.22-second
-desk-still trial, using only start/end diagnostics, recorded zero unintended
-pickups and zero new sensor-read errors.
-It uses a 60ms elapsed-time
-acceleration filter, IMU redraw cadence measured from render start, and 600ms
-Held-to-Resting stillness. Initial/recovery calibration remains 1500ms, with the
-accepted roll/pitch mapping and input guards preserved. More frequent redraws
-may increase power use. The automatic-wake duplicate-frame integration bug is
-also fixed. Fixed-count hit rate, interference scenarios, physical onset latency
-and power remain unmeasured; the first pilot's 600.80-second result is kept
-separate from this version's static trial.
-
-The swipe-resume version (`df5480c`, application hash prefix `c83363fcc22e`)
-was written to app0 on 2026-10-16 with application digest and protected-metadata
-checks passing. Reboot, calibrated IMU diagnostics and a 3.008-second USB
-microphone check passed. It preserves calibrated state only across successful
-Home up/down/right character swipes, retaining touch/haptic suppression and
-250ms quiet time. The user initially reported continuous tilt lag, then reported
-better behavior on the same firmware without another flash or parameter change.
-The user then explicitly accepted immediate tracking after up/down/right
-character swipes. Keep this firmware; no additional tuning was applied.
-The user chose to skip this version's static retest. Quantified false-trigger
-rate, physical onset latency and power remain unmeasured.
-
 **Stopwatch AgentBezel C152** is an independent, unofficial, open-source
-five-screen control surface for the **M5Stack StopWatch Dev Kit C152**:
-Codex Micro compatibility, DeepSeek Harness activation, super.engineering project controls, and Hermes
-Desktop session controls, plus an interactive robot Home, local quota dashboard
-and optional USB microphone.
+four-screen control surface for the **M5Stack StopWatch Dev Kit C152**:
+interactive robot Home, Codex Micro compatibility, DeepSeek Harness navigation
+and super.engineering project controls, with a local quota dashboard, optional
+USB microphone and opt-in task notifications.
 
-Codex Micro compatibility is experimental and undocumented. Runtime names,
-pairing identities, audio selection and the local Companion identity remain
-unchanged. The five-screen experience requires matching source-built USB-mic
-firmware and Companion. Validation covers one local setup, not every app version.
+Codex Micro compatibility is experimental and undocumented. The multi-screen
+experience requires matching source-built USB-mic firmware and Companion.
+Validation covers one local setup, not every desktop-app version.
 
 ## Current version at a glance
 
-Companion build14 unifies foreground handling for all four Agent pages. Left
-selects a page without activating a background app. A foreground target is ready
-immediately; a missing or background target waits for a center tap to launch or
-activate and reopen a closed last window. Mac foreground changes preserve the selected page. This Companion release
-originally used build9; the historical nine-image Home firmware and the locally
-deployed 17-page Home faction version are distinguished below. DSH, SUPER and Hermes
-check for an actual application window; closing the last window returns to
-**TAP TO OPEN** on the next one-second check. A slow reopen automatically becomes
-operational when its real foreground window is ready, including after a timeout.
-See the
-[control diagnosis and acceptance record](docs/CONTROL_AVAILABILITY.zh-CN.md).
+The [2026-10-24 deployment and acceptance record](docs/superpowers/plans/2026-10-24-trim-home-verification.md)
+covers firmware source `6d27164` and Companion **0.1.4 build19**. The explicitly
+selected USB-mic/Home-IMU application is **3,381,136 bytes**, SHA-256
+`8308e3537da854a353d1bfbce9eca2d99034ea4f83231af17890c244432d6703`.
 
-- Five screens: robot Home → Codex / ChatGPT → DSH → SUPER → HERMES → Home.
-- Current local clarity revision: `24676b8` / `298f1c7b3ef4` was flashed to
-  app0 on 2026-10-17, with independent ROM verification, unchanged protected
-  bytes, HID/IMU diagnostics and a short USB microphone capture passing. It
-  corrects Decepticon downsampling aliasing; the user confirmed noticeably
-  improved clarity and normal interaction. The earlier Home acceptance below
-  belongs to the prior image. Quantitative latency, static false-trigger rate
-  and power remain unmeasured for this revision.
-- Quiet haptics accepted on C152 on 2026-10-17: source `874bae1`, application
-  hash prefix `a33496b9da9b`. Home/ordinary touch and swipe use 176/255 for 30ms;
-  buttons use 176/255 for 24ms, wake 20ms and travel-off 24ms. Pending frames
-  wait for motor stop; Home's first response frame precedes its pulse, including
-  overlapping taps. Ordinary touch retains the 55ms host-key pulse and travel-off
-  retains the 550ms prompt wait.
-  App-only write, independent ROM verification, protected-area comparison,
-  HID/RPC, IMU and USB-audio enumeration passed. The user accepted feel, sound
-  and normal action feedback. Static startup completed IMU calibration with
-  about 0.35dps gyro output, following an earlier 6.5dps calibration block;
-  this is not an automatic bias-recovery firmware change. Noise level, physical
-  pulse width, quantified latency and power remain unmeasured. Accepted image
-  `298f1c7b3ef4` is preserved for rollback. Earlier trials are recorded in the
-  quiet-haptics design document.
-- Home: 17 pages (Bumblebee portrait, eight Autobots, eight Decepticons).
-  Up selects an Autobot; down selects a Decepticon; right returns to the portrait.
-  Same-faction random selection excludes the current role; cross-faction selection
-  includes all eight. Short taps retain the silent 600ms response, immediate 3%
-  compression and one 25ms haptic. Source `81f91fef`, application hash prefix
-  `0aaa4606a3c3`, was flashed to app0 on 2026-10-16; independent ROM verification,
-  unchanged protected bytes, HID/IMU diagnostics and USB microphone capture passed.
-  The user confirmed correct switching/tap responses and acceptable tilt tracking.
-  This is qualitative acceptance; static false triggers, physical latency and power
-  were not measured for this version. The historical nine-image USB-mic application from `4b1b6e9` was flashed
-  on 2026-10-14, app0 only. Application digest/protected metadata, reboot, USB
-  input-only audio, BLE HID status RPC and a short microphone capture passed;
-  the user confirmed its Home interactions normal. Subsequent IMU swipe-resume
-  acceptance above belongs to `df5480c` / `c83363fcc22e`. Quantified latency,
-  frame rate, motor timing and PSRAM headroom remain unmeasured.
-- DSH: the same four-circle layout as SUPER. Up/down navigate existing
-  threads in sidebar order across project boundaries; right switches Chat /
-  Trajectory. Requires the optional navigation plugin; center and physical
-  action buttons remain disabled when active. The title is exactly `DSH`
-  using the same font as SUPER/HERMES, fitted within the center panel.
-- When a harness is not running, left selects its waiting page without launching;
-  center explicitly launches/retries. Opening rejects repeated taps. Existing
-  active controls remain. CODEX always retains the original dashboard UI in all
-  states: no directional-circle replacement or new visual prompts, only the pending
-  center-launch behavior changes. All four pages use the same foreground/center activation policy.
-- Dedicated navigation retains 350ms release-gated cooldown; cycling/launch
-  retains 800ms protection and key sequences retain 30ms pacing.
+- Four-screen cycle: **Home → Codex → DSH → Super → Home**.
+- Home has **13 images**: default Bumblebee portrait, six Autobots and six
+  Decepticons. Jazz, Hot Rod, Soundwave and Skywarp are retired from the live
+  roster; historical source images remain preserved.
+- Hermes workspace, notification collection and OPEN routes are retired.
+  Supported notification sources are **Codex, DSH and Super**. See the
+  [retirement note](#retired-hermes-integration).
+- The current notification UI retains its **90px Home badge**, single reading
+  layer and separate filled **BACK / OPEN** buttons. Codex/DSH model display
+  prefers the last reply's model, falls back to session configuration, and
+  displays no configuration prefix.
+- App-only deployment, independent application readback and an unchanged first
+  **64 KiB** protected region passed. HID/IMU checks and a **2.005333-second,
+  48 kHz, 16-bit mono** USB input capture passed; the temporary recording was deleted.
+- The user accepted the complete cycle, Home switching/tilt, Agent controls,
+  supported-source synthetic notifications, browsing, independent BACK and real
+  Codex exact-task OPEN. Return-to-Home speed meets the user's expectation;
+  physical latency, power and long-duration stability were not measured.
 
-See [change details and validation](docs/DEEPSEEK_BLINK.md).
-**The DSH label update was flashed on 2026-10-12; the user confirmed the title and up/down/right controls normal.** Historical
-[Home acceptance](docs/superpowers/plans/2026-09-21-home-equal-spacing-half-volume.md)
-and [navigation acceptance](docs/superpowers/plans/2026-09-12-paced-navigation-verification.md)
-cover earlier images; the current change record documents the DSH acceptance scope.
+Foreground handling preserves the selected watch page. A foreground app is
+ready immediately; a missing or background app waits for a center tap to launch
+or activate. Closing the last DSH/Super window returns to **TAP TO OPEN**;
+a slowly reopened window becomes operational when ready. CODEX retains its
+original dashboard in every state. Released page swipes use a 200ms cooldown;
+existing release gating, dedicated navigation and launch protections remain.
 
-## Robot Home and four workspaces
+The separately selected [Home IMU pilot](docs/HOME_IMU_PILOT.md) uses
+`m5stack-stopwatch-home-imu`; normal release environments do not enable it.
+Earlier static trials, image hashes and touch/haptic acceptance belong to their
+recorded versions. The [Home interaction history](docs/HOME_HERO_INTERACTION.md),
+[foreground-control diagnosis](docs/CONTROL_AVAILABILITY.zh-CN.md) and
+[paced-navigation history](docs/superpowers/plans/2026-09-12-paced-navigation-verification.md)
+are historical evidence, not complete retests of this image.
 
-Home requires matching source-built Companion and USB-mic firmware. Boot,
-reconnect and Companion startup select Home without activating a Mac app.
-Home stays selected even when the Mac foreground changes. The 17-page Home includes
-Bumblebee portrait (default); eight Autobots (Bumblebee full body, Optimus Prime,
-Jazz, Hot Rod, Wheeljack, Hound, Ironhide, Ratchet); and eight Decepticons (Megatron,
-Starscream, Soundwave, Shockwave, Thundercracker, Skywarp, Blitzwing, Astrotrain). Touch down inside
-x=64..402/y=64..398 for immediate 3% compression; release within
-500ms without a swipe to play a silent 600ms character response and one 30ms haptic
-in the accepted quiet-haptics build (25ms in the earlier rollback). New taps
-interrupt the current reaction instead of being ignored. Moving outside the
-portrait area or reaching the 52px swipe threshold cancels the tap.
-Swipe up to select uniformly among the eight Autobots, or down among the eight
-Decepticons. Within the same faction the current role is excluded; from the
-portrait or opposite faction all eight are eligible. Right selects the Bumblebee
-portrait with no random draw. Each valid selection retains the 320ms transition
-and one 30ms haptic (40ms in the earlier rollback), even
-offline. Held motion cannot repeat. Left retains the workspace cycle. The first
-sleeping-screen touch only wakes the display. Leaving Home, sleep or power
-confirmation cancels the reaction; existing long-hold power controls remain.
-All portraits remain without a decorative boundary circle. The firmware caches
-seventeen idle RGB565 sprites and at most two response sprites for the current
-role in PSRAM (at most 19 slots / 3,420,000 pixel bytes, excluding other memory).
-Role switches evict the old response bank; repeated taps on the same role reuse
-it. New Decepticons use one response pose for 600ms with a small native transform;
-existing Autobot motion remains unchanged.
-The idle bank can use one reusable buffer; action allocation failure preserves
-the idle figure and motion without per-frame decoding. Home
-redraws only for animation or state changes. The same cached renderer drives
-native previews; build/preview results do not establish C152 response latency.
-The locally deployed 17-page version (`81f91fef` / `0aaa4606a3c3`) passed the
-user's switching, tap and continuous IMU-follow trial. Asset/cache size and native
-pixels do not measure latency or power. Earlier IMU/static results remain attached
-to their historical versions; no new static trial was performed.
-No speech or Mac action is requested by portrait interaction. USB microphone and
-Codex completion chime behavior are unchanged. See
-[Home hero interaction and validation](docs/HOME_HERO_INTERACTION.md).
-[Historical native preview of the nine deployed responses](artifacts/robot-home-responses.png).
-An awake Home left swipe with a ready Companion link gives the same single
-vibration as other workspace swipes; offline left remains silent. This is gesture
-feedback, not confirmation of Mac activation.
-Status and battery are real device inputs, not the preview's sample values.
+## Robot Home and three workspaces
+
+Boot, reconnect and Companion startup select Home without activating a Mac app.
+Mac foreground changes preserve Home. The live roster is:
+
+| Group | Images |
+| --- | --- |
+| Default | Bumblebee portrait |
+| Autobots (six) | Bumblebee full body, Optimus Prime, Wheeljack, Hound, Ironhide, Ratchet |
+| Decepticons (six) | Megatron, Starscream, Shockwave, Thundercracker, Blitzwing, Astrotrain |
+
+Swipe up for a uniformly selected Autobot or down for a Decepticon. Within the
+same faction, the current role is excluded; from the portrait or opposite
+faction, all six are eligible. Right returns to the Bumblebee portrait. Valid
+selections retain the 320ms transition and one short haptic, including offline.
+Held motion cannot repeat. Leaving Home resets the next visit to Bumblebee.
+
+Touch inside x=64..402/y=64..398 gives immediate 3% compression. Release within
+500ms without a swipe plays a silent 600ms character response and one 30ms
+haptic. New taps interrupt the current response. Leaving the portrait area or
+reaching the 52px swipe threshold cancels the tap. The first sleeping-screen
+touch only wakes it; leaving Home, sleep or power confirmation cancels animation.
+Existing long-hold power controls and accepted quiet haptics remain.
+
+The renderer retains the bounded idle-image cache across awake Agent/Home
+returns and releases response buffers. Cold boot or an evicted sleep cache still
+requires decoding. This improves the return path without establishing a physical
+latency measurement. Portrait interactions request no speech or Mac action;
+USB microphone and Codex completion chime behavior remain unchanged. An awake,
+online Home left swipe gives one gesture haptic; offline left remains silent.
+Status and battery are real device inputs.
+
+The public gallery shows four selected previews; the full roster is listed
+above. These are native framebuffer previews, not hardware photographs.
 
 <table>
-  <tr><th>Bumblebee portrait (default)</th><th>Bumblebee full body</th><th>Optimus Prime</th><th>Jazz</th></tr>
+  <tr><th>Bumblebee portrait (default)</th><th>Optimus Prime</th><th>Megatron</th><th>Starscream</th></tr>
   <tr>
     <td width="25%"><img src="artifacts/robot-home-bumblebee.png" alt="Home Bumblebee portrait"></td>
-    <td width="25%"><img src="artifacts/robot-home-bumblebeefullbody.png" alt="Home Bumblebee full body"></td>
-    <td width="25%"><img src="artifacts/robot-home-optimus.png" alt="Home Optimus Prime full body"></td>
-    <td width="25%"><img src="artifacts/robot-home-jazz.png" alt="Home Jazz full body"></td>
+    <td width="25%"><img src="artifacts/robot-home-optimus.png" alt="Home Optimus Prime"></td>
+    <td width="25%"><img src="artifacts/robot-home-megatron.png" alt="Home Megatron"></td>
+    <td width="25%"><img src="artifacts/robot-home-starscream.png" alt="Home Starscream"></td>
   </tr>
-  <tr><th>Hot Rod</th><th>Wheeljack</th><th>Hound</th><th>Ironhide</th></tr>
-  <tr>
-    <td width="25%"><img src="artifacts/robot-home-hotrod.png" alt="Home Hot Rod full body"></td>
-    <td width="25%"><img src="artifacts/robot-home-wheeljack.png" alt="Home Wheeljack full body"></td>
-    <td width="25%"><img src="artifacts/robot-home-hound.png" alt="Home Hound full body"></td>
-    <td width="25%"><img src="artifacts/robot-home-ironhide.png" alt="Home Ironhide full body"></td>
-  </tr>
-  <tr><th>Ratchet</th><th></th><th></th><th></th></tr>
-  <tr><td width="25%"><img src="artifacts/robot-home-ratchet.png" alt="Home Ratchet full body"></td><td width="25%"></td><td width="25%"></td><td width="25%"></td></tr>
 </table>
 
-The preserved portrait and eight built-in imagegen full-body illustrations are
-unofficial fan artwork embedded in firmware as baseline JPEG assets. They are
-not official licensed artwork or network-fetched media.
-Leaving Home resets the next visit to Bumblebee.
+Built-in illustrations are unofficial fan artwork embedded as JPEG assets,
+not official licensed artwork or network-fetched media. Retired source artwork
+is retained for provenance and is not part of the current live roster.
 
 <table>
-  <tr><th>Codex Micro</th><th>DSH</th><th>super.engineering</th><th>Hermes Desktop</th></tr>
+  <tr><th>Codex Micro</th><th>DSH</th><th>super.engineering</th></tr>
   <tr>
-    <td width="25%"><img src="artifacts/dashboard-preview-v2-round.png" alt="Codex Micro dashboard with six controls, quota and battery"></td>
-    <td width="25%"><img src="artifacts/deepseek-workspace-preview.png" alt="DSH with CYCLE, PREV, NEXT and VIEW"></td>
-    <td width="25%"><img src="artifacts/super-workspace-preview.png" alt="SUPER with four colored circles and a thin status dial"></td>
-    <td width="25%"><img src="artifacts/hermes-workspace-preview.png" alt="HERMES with CYCLE, PREV, NEXT and OPEN controls"></td>
+    <td width="33%"><img src="artifacts/dashboard-preview-v2-round.png" alt="Codex Micro dashboard with controls, quota and battery"></td>
+    <td width="33%"><img src="artifacts/deepseek-workspace-preview.png" alt="DSH CYCLE, PREV, NEXT and VIEW controls"></td>
+    <td width="33%"><img src="artifacts/super-workspace-preview.png" alt="SUPER four-circle controls and status ring"></td>
   </tr>
 </table>
 
-These are native framebuffer design previews, not hardware photographs.
+**Swipe left to cycle: Home → Codex / ChatGPT → DSH → Super → Home.**
+The Codex / ChatGPT entry uses `com.openai.codex` and counts as one target.
+Left selects a page; center launches or activates a waiting app. Returning Home
+leaves the Mac foreground unchanged. Failed targets are not skipped: center
+retries, while left continues the cycle.
 
-**Swipe left to cycle: Home → Codex / ChatGPT → DSH → SUPER → HERMES → Home.**
-The current Codex / ChatGPT entry uses `com.openai.codex`; it is one target,
-not two. Left selects Codex; if absent, only center launches it. A foreground target is ready immediately; a running background target
-waits for a center tap to activate. Returning Home leaves the Mac unchanged. Missing or rejected
-targets show their waiting/error page; center retries, left continues the cycle. The former “return to previous
-app” behavior is replaced by this fixed cycle.
-
-| Input | Robot Home | Codex Micro | DSH | SUPER | HERMES |
-| --- | --- | --- | --- | --- | --- |
-| Left physical / right physical | No action¹ | Push to talk / Voice Chat | No action¹ | No action¹ | No action¹ |
-| Center tap | Press compression / character response + short haptic | Launch/retry when waiting; Send when active | Launch/retry when waiting; no action when active | Launch/retry when waiting; no action when active | Launch/retry when waiting; no action when active |
-| Swipe left | Select Codex | Select DSH | Select SUPER | Select HERMES | Enter Home |
-| Swipe up | Random Autobot (exclude current in faction) | Existing app mapping | Previous thread | Previous project | Browse previous session |
-| Swipe down | Random Decepticon (exclude current in faction) | Existing app mapping | Next thread | Next project | Browse next session |
-| Swipe right | Fixed Bumblebee portrait | Existing app mapping | Chat / Trajectory | Next session Tab | Open owned selection; otherwise no action |
-| Power controls | Desk sleep / Travel Mode | Same | Same | Same | Same |
+| Input | Robot Home | Codex Micro | DSH | Super |
+| --- | --- | --- | --- | --- |
+| Left physical / right physical | No action¹ | Push to talk / Voice Chat | No action¹ | No action¹ |
+| Center tap | Compression / character response + short haptic | Launch/retry when waiting; Send when active | Launch/retry when waiting; no action when active | Launch/retry when waiting; no action when active |
+| Swipe left | Select Codex | Select DSH | Select Super | Enter Home |
+| Swipe up | Random Autobot (exclude current in faction) | Existing app mapping | Previous thread | Previous project |
+| Swipe down | Random Decepticon (exclude current in faction) | Existing app mapping | Next thread | Next project |
+| Swipe right | Bumblebee portrait | Existing app mapping | Chat / Trajectory | Next session Tab |
+| Power controls | Desk sleep / Travel Mode | Same | Same | Same |
 
 ¹ Directional screens and device-side isolation require the explicitly chosen
 matching `usb-mic` firmware. The default wireless image remains a Codex panel.
-Companion direction handling requires a real `--watch` process.
+Companion directions require a real `--watch` process.
 
 ## Codex Micro workspace
 
@@ -267,15 +175,15 @@ Install the optional [DeepSeek navigation plugin](deepseek-plugin/README.md)
 only after reviewing its compatibility and privacy limits. The installed Harness
 has no native commands for these operations. Companion sends fixed
 `Control-Option-Up/Down/Right` only to its revalidated foreground process; the
-plugin registers those shortcuts. Neither firmware nor Companion reads session
-content. The browser plugin uses structural row IDs locally, never titles,
+plugin registers those shortcuts. This navigation path does not read session
+content; optional notification collectors have a separate content boundary. The browser plugin uses structural row IDs locally, never titles,
 message text, drafts or credentials. It opens only existing threads, never
 creates one. Trajectory must already be available; ambiguous or unsupported
-UI state fails closed. Plugin 0.1.1 with build8 passed the preceding user-observed
-physical navigation acceptance; never install deprecated 0.1.0. The deployed
-random swipes and the new Home character responses were accepted by the user.
+UI state fails closed. Use plugin 0.1.1; deprecated 0.1.0 must not be installed.
+Earlier navigation acceptance belongs to the historical versions in the
+[DSH change record](docs/DEEPSEEK_BLINK.md).
 
- App activation failure does not skip to another target.
+App activation failure does not skip to another target.
 It shares the 5-second heartbeat and 15-second lease/fallback with other work
 pages, and requires the matching new Companion. Quota still belongs to Codex;
 no DeepSeek credentials or session content are read.
@@ -287,83 +195,26 @@ bundle `com.zarifpour.superconductor`; Companion launches the current bundle.
 Configure these app
 shortcuts: Previous Project = `Control-Option-Up`, Next Project =
 `Control-Option-Down`, Next Tab = `Control-Option-Right`.
-Up/down/right are sent only to that exact foreground process. Left advances to
-Hermes; it does not return to an arbitrary previous app.
+Up/down/right are sent only to that exact foreground process. Left returns to
+Home without changing the Mac foreground.
 
-## Hermes Desktop workspace
+## Retired Hermes integration
 
-Use the **Companion built from this revision** with matching five-screen USB-mic firmware.
-Dedicated SUPER/HERMES events use `host.workspace_navigation`, not Codex's
-native radial events; keep Codex up/down/right bindings and verify no background
-Codex action. Install/roll back compatible components together. Build/commit
-metadata and opt-in diagnostics are described in the [Companion guide](companion/README.md).
-
-Left from SUPER selects HERMES. If already foreground, navigation is ready;
-otherwise **TAP TO OPEN** waits without launching or activating Hermes. Tap inside the center square to open the
-exact Desktop app. **OPENING** permits one outstanding request; actual Hermes
-foreground confirmation enables the existing directions below. Rejection or a
-3-second timeout shows **TAP TO RETRY**, with no automatic open request. A later
-live check of the selected foreground window clears the retry state when ready.
-Up/down/right
-are ignored while waiting, opening or retrying; left always exits to Home.
-Dock/Command-Tab switching preserves the selected page; a background target
-returns to its center-to-activate state. Reconnect and Companion restart select Home. All work pages, including Codex, renew
-every 5 seconds and fall back to Home after a 15-second lease expires. A Home
-acknowledgment is required before stale work-page heartbeats can be accepted.
-Mode changes never wake the display. Install and roll back the matched pair;
-see the [Home verification record](docs/superpowers/plans/2026-09-15-robot-home-verification.md).
-
-A tap must start and end inside the square, last less than 500ms and never
-cross the swipe threshold. It shares the 800ms host cooldown with directions.
-The first sleeping-screen tap only wakes; a second tap may open Hermes. Active
-Hermes center taps do nothing. Long-hold power controls remain available.
-
-Desktop auto-launch and display heartbeat are separate: the Companion's
-5-second HID heartbeat never launches an app. A separately installed
-`ai.hermes.desktop` LaunchAgent with `KeepAlive` may repeatedly relaunch the
-client after exit. On the approved local setup that job was backed up, unloaded
-and disabled, retaining its plist for recovery. Gateway/dashboard were left
-unchanged. Do not disable other services or assume this job exists on every Mac.
-See [deployment and rollback](companion/README.md#hermes-desktop-launch-policy).
-
-Central launch uses `NSWorkspace.openApplication` even when Hermes is already
-running, with activation enabled and new-instance creation disabled. For the
-exact foreground Hermes process, Accessibility requests focus on its focused/
-main window without reading content or titles. The three dedicated Agent pages
-also check bounded AX application window handles and roles locally. This addresses
-the case where the process was foreground but navigation required a title-bar
-click. The user confirmed restored interactions; API success alone is not proof
-of a visible/focused window on another installation.
-
-<table><tr><th>Selected</th><th>Request pending</th><th>Retry on tap</th></tr><tr>
-<td><img src="artifacts/hermes-idle-preview.png" alt="HERMES TAP TO OPEN"></td>
-<td><img src="artifacts/hermes-opening-preview.png" alt="HERMES OPENING"></td>
-<td><img src="artifacts/hermes-error-preview.png" alt="HERMES TAP TO RETRY"></td>
-</tr></table>
-
-Use the exact native app bundle `com.nousresearch.hermes`, not a CLI, web
-dashboard or installer. Up sends `Control-Shift-Tab`, down sends
-`Control-Tab`, retaining the [native Desktop browsing shortcuts](https://hermes-agent.nousresearch.com/docs/user-guide/desktop#windows-tabs--panes).
-When the central session picker is visible, browse with up/down and swipe right
-to open the highlighted session. The Companion retains its own Control press
-across up/down gestures; right releases it with no modifier flags. Without an
-owned selection, right is a no-op. The tested Hermes 0.17.0 picker commits on
-Control release; no Return or Command-T is sent, so right is not New Tab.
-Verify the behavior with a physical keyboard on your Hermes version before
-installation. Native browsing can depend on the focused Tab region; it is not
-project-tree-order navigation. No Hermes plugin or source extension is required.
-The Companion does not inspect the picker, read/change Hermes settings or
-session data, or retry confirmation. Both the keyboard action and physical
-browse/open gestures were confirmed on the tested installation, including
-repeat-right and no-picker checks without new sessions, sent drafts or a stuck
-Control modifier. Repeat acceptance after changing Hermes versions.
+Hermes Desktop is no longer a selectable workspace or notification source.
+Its collector and OPEN routes are removed; old Hermes queue entries are migrated
+out without changing supported-source IDs. Legacy workspace parsing remains for
+compatibility and cannot make Hermes replace the selected page.
+The [original Hermes acceptance](docs/superpowers/plans/2026-09-04-hermes-open-physical-acceptance.md)
+is historical documentation only; follow the
+[current deployment record](docs/superpowers/plans/2026-10-24-trim-home-verification.md)
+for the supported roster and cycle.
 
 ## Shared workspace setup and screen behavior
 
-1. Install the four target desktop apps. Assign each to a normal macOS Space
+1. Install the three target desktop apps. Assign each to a normal macOS Space
    manually using **Dock → Options → Assign To → This Desktop** if desired.
-   The Companion activates apps and restores focus to Hermes's focused/main
-   window; it does not create/enumerate Spaces or choose among window contents.
+   The Companion activates the selected target; it does not create/enumerate
+   Spaces or choose windows by content.
 2. Enable Input Monitoring and Accessibility for the installed
    `CodexWatchCompanion.app`; retain Bluetooth permission for quota sync.
 3. Leave **Analog stick left** unbound in ChatGPT's controller settings.
@@ -372,7 +223,7 @@ Control modifier. Repeat acceptance after changing Hermes versions.
 4. Install matching Companion and explicitly chosen USB-mic firmware only
    after source validation, backups and exact-port flash confirmation.
 
-DSH/SUPER/HERMES share four solid circular indicators and a thin central status
+DSH/SUPER share four solid circular indicators and a thin central status
 ring, using the Codex black background and Space Mono font family. The ring
 shows connectivity, not quota or progress. Pending launch pages dim up/down/right
 while retaining left navigation and the existing center input region.
@@ -385,10 +236,9 @@ Palette feedback has its own 800ms cooldown; redraw, heartbeat, quota updates
 and Dock/Command-Tab changes do not recolor. This is local input feedback, not
 proof that the Mac accepted a shortcut.
 
-Notification counts and text also use native-size antialiased Space Mono fonts.
-Source names display as Codex, DSH, Super and Hermes; empty model metadata stays
-hidden. Notification content remains centered, and browsing preserves all 192
-ASCII context bytes. This UI update does not add native model capture.
+Notification counts and text use antialiased Space Mono. Supported source
+labels are Codex, DSH and Super. See [task notifications](#optional-task-notifications)
+for the single-layer display, model provenance and privacy boundary.
 
 All pages preserve the selection made on the watch. Foreground loss puts the
 selected Agent into its center-to-activate state. Mode heartbeats run every
@@ -398,7 +248,7 @@ screen. Disabled short taps/physical controls do not wake directional screens;
 a genuine swipe wakes without also issuing an unseen action. Center long-hold
 and red-button power behavior remain available.
 
-SUPER/HERMES block Agent, Send and ChatGPT microphone/voice button actions;
+DSH/SUPER block Agent, Send and ChatGPT microphone/voice button actions;
 mode transitions release held controls and suppress stale completion notices.
 The USB microphone endpoint remains available. MainActor routing revalidates
 the exact foreground PID/bundle before fixed process-targeted key delivery;
@@ -406,21 +256,17 @@ no global key injection or application-content reading is used.
 
 ### Validation status and checks for your installation
 
-The [latest Home record](docs/superpowers/plans/2026-09-21-home-equal-spacing-half-volume.md)
-covers the user-observed final layout, lower central voice, character selection
-and four-screen controls. The [paced-navigation record](docs/superpowers/plans/2026-09-12-paced-navigation-verification.md)
-covers earlier navigation, background-window restoration and microphone checks;
-the [original three-workspace record](docs/superpowers/plans/2026-09-04-hermes-open-physical-acceptance.md)
-remains historical. Do not interpret them as a complete rerun on every later image.
-The latest follow-up did not repeat microphone recording or long-duration soak tests.
-Full XCTest remains unavailable on the development host because its Command
-Line Tools lack XCTest; the Swift harness is not a complete XCTest run.
+The [current acceptance record](docs/superpowers/plans/2026-10-24-trim-home-verification.md)
+separates automated checks, device readback and user-observed behavior. Full
+SwiftPM XCTest was unavailable on the validation host; standalone Swift
+regressions are not a complete XCTest run. Earlier linked records apply to their
+own images.
 
-For each new installation, verify one full left-swipe cycle, cold app launch, failure/no-skip, assigned
-Spaces, all app-specific directions, 350ms navigation/800ms cycle-launch gating, random colors, sleep/wake,
-input isolation, no background ChatGPT actions, 15-second fallback, reconnect,
-USB microphone capture, quota updates and original automatic startup.
-Builds and native previews alone do not establish C152 hardware success.
+For each new installation, verify the full four-screen cycle, cold app launch,
+failure/no-skip, app-specific directions, assigned Spaces, sleep/wake, input
+isolation, no background ChatGPT actions, lease fallback, reconnect, USB input,
+quota and automatic startup. Verify notifications separately if enabled. Builds
+and native previews alone do not establish C152 hardware success.
 
 ## Recommended installation
 
@@ -436,18 +282,22 @@ Choose the intended experience before building:
 
 | Experience | Firmware | What you get |
 | --- | --- | --- |
-| Five-screen AgentBezel described above | Explicitly choose `pio run -d usb-mic` + matching source-built Companion | Interactive hero Home, Codex, DSH, SUPER, HERMES, input-only USB microphone |
+| Four-screen AgentBezel described above | Explicitly choose `pio run -d usb-mic` + matching source-built Companion | Interactive hero Home, Codex, DSH, SUPER, input-only USB microphone |
 | Basic Codex-only compatibility | `pio run -e m5stack-stopwatch` | Codex dashboard and BLE controls, Mac-selected microphone; no multi-screen Home/selector |
 
-The following prompt **explicitly selects the five-screen USB-mic variant**.
+The physically accepted tilt-enabled variant additionally requires explicit
+selection of `m5stack-stopwatch-home-imu` in the isolated `usb-mic` project; see
+the [IMU guide](docs/HOME_IMU_PILOT.md). The normal USB-mic target omits IMU.
+
+The following prompt **explicitly selects the four-screen USB-mic variant**.
 For Codex-only installation, use the basic target in the manual section instead;
 do not mix the two variants' startup checks. Connect the C152, never guess its
 serial port, and paste this into Codex:
 
 ```text
-Install the five-screen AgentBezel experience on my M5Stack StopWatch Dev Kit C152.
+Install the four-screen AgentBezel experience on my M5Stack StopWatch Dev Kit C152.
 I choose the isolated USB-mic firmware and matching Companion, including Home,
-Codex, DSH, SUPER and HERMES. Home taps play silent character responses with short haptics.
+Codex, DSH and SUPER. Home taps play silent character responses with short haptics.
 
 Read AGENTS.md and README.md completely before acting. Work through the setup
 autonomously, but follow these safety rules:
@@ -474,8 +324,8 @@ autonomously, but follow these safety rules:
 10. Guide me through Companion Input Monitoring/Accessibility, SUPER shortcuts
     and optional manual Space assignment. Do not silently change permissions or
     app settings. Keep any existing LaunchAgent configuration and private binding.
-11. Verify five-screen cycling, character selection, Hermes central launch and
-    navigation, SUPER controls, Codex controls, input isolation, sleep/reconnect,
+11. Verify four-screen cycling, character selection, DSH/SUPER launch and
+    navigation, Codex controls, input isolation, sleep/reconnect,
     quota and a short local microphone recording. Delete that recording afterward.
 12. Keep public builds silent unless I supply authorized local audio. Never upload
     private speech. Record only physically observed results as passed, and preserve
@@ -494,7 +344,7 @@ allows **ChatGPT** in **System Settings > Privacy & Security > Input
 Monitoring** before quitting and reopening ChatGPT. Configure the actions in
 **ChatGPT Desktop > Settings > Codex Micro**. The base installation needs
 Bluetooth access for the locally built companion; the optional
-SUPER/HERMES phase additionally needs Input Monitoring and Accessibility
+DSH/SUPER phase additionally needs Input Monitoring and Accessibility
 for `CodexWatchCompanion.app`.
 
 Build the quota companion from source, run demo discovery, and bind real writes
@@ -532,32 +382,32 @@ not commit recordings, device identifiers, or local paths.
 
 ## Privacy and architecture
 
-The Swift `CodexWatchCompanion` starts a local Codex App Server with the
-user's existing signed-in context and reads `account/rateLimits/read`. It sends
-only remaining percentage and reset countdown over the project-owned quota
-GATT service to the explicitly bound watch. The compatible HID interface does
-not include account rate limits.
+Swift `CodexWatchCompanion` uses the user's existing local signed-in context to
+start a local Codex App Server and read `account/rateLimits/read`. Only quota
+percentage and reset countdown travel over the private quota GATT service to
+the explicitly bound watch; authentication stays on the Mac.
 
-In a real `--watch` run, the optional workspace integration additionally sends
-only fixed `home`/`codex`/`deepseek`/`super`/`hermes` display modes and optional Hermes
-`idle`/`opening`/`error` state over
-vendor HID Report ID 6; the watch's center action is the fixed `open_hermes` enum.
-Dedicated directions carry only fixed workspace/direction/phase enums on that
-same HID transport, not project or session data.
-It does not send API keys, tokens, account identifiers, prompts, task text,
-audio, project/session/window/Space metadata, or user content. It does not
-scrape UI, use a cloud relay, inspect keyboard text, invoke shell commands or
-AppleScript, use private Space APIs, or inspect super.engineering or Hermes settings.
-Hermes central launch has one narrow Accessibility exception: focused/main
-window handles and focus state are used locally to raise/focus the exact process's
-window. No window title, content or window list is read or sent to the watch.
+In a real `--watch` run, workspace control sends fixed `home`, `codex`, `deepseek`
+and `super` display modes and fixed launch/navigation enums over vendor HID
+Report ID 6. Foreground PID/bundle and limited Accessibility window handles/roles
+are checked locally; workspace navigation does not read titles, task text,
+window contents or application settings. It does not use global key injection,
+private Space APIs, shell commands or AppleScript for navigation.
 
-Device MAC addresses, CoreBluetooth UUIDs, usernames, home-directory paths,
-and logs are local installation data and must never be committed. BLE pairing
-uses the platform's Just Works flow without passkey authentication: use the
-project in a trusted environment and remove stale pairings when a Mac or watch
-changes owner. See [the companion documentation](companion/README.md) and the
-[GATT contract](docs/COMPANION_PROTOCOL.md).
+Opt-in [task notifications](#optional-task-notifications) have a separate content
+boundary: local adapters may read native task/session metadata and bounded reply
+excerpts and send the selected title, model, time and excerpt to the watch.
+Exact OPEN routing retains native identifiers on the Mac. Notification content
+is user data; real events, route inventories, logs and task text must stay outside
+Git. No API key, token, account credential or microphone audio belongs in the
+firmware or BLE payloads. No cloud relay is used by this integration.
+
+Device identifiers, usernames, home-directory paths and logs remain local and
+must never be committed. BLE uses platform Just Works pairing without a passkey;
+use a trusted environment and remove stale pairing when ownership changes.
+See the [companion documentation](companion/README.md),
+[GATT contract](docs/COMPANION_PROTOCOL.md) and
+[private notification bridge](companion/TASK_NOTIFICATIONS.md).
 
 ## Manual build and flash
 
@@ -615,26 +465,36 @@ swift build -c release
 
 ## Optional task notifications
 
-The [native notification adapters](notifications/README.md) add opt-in completion and navigation-only approval/input alerts through the [private companion bridge](companion/TASK_NOTIFICATIONS.md). Codex notify, a separate DeepSeek Host observer, SUPER lifecycle CLI and a Hermes agent plugin have source-backed entry points and deterministic tests. They are not installed automatically; source/fixture coverage is separate from live app and physical C152 acceptance.
+The [native adapters](notifications/README.md) connect opt-in completion and
+navigation-only approval/input alerts through the
+[private Companion bridge](companion/TASK_NOTIFICATIONS.md). Supported entry
+points are Codex notify, the separate DeepSeek Host observer and SUPER lifecycle
+CLI. They require explicit installation or execution; Hermes is retired.
 
-All current native adapters set `canDecide:false`. Read, dismiss and OPEN ON MAC never approve or answer a native request. Exact navigation is available only for verified source session routes; other routes request application activation. Keep real events/IDs outside the repository and follow the per-harness opt-in setup and limitations in the adapter guide.
+Home retains the 90px notification badge. Read-only notices use one reading
+layer with independent filled **BACK** and **OPEN** buttons; body taps do not
+open a redundant detail page. Up/down browse notices. BACK returns independently
+of OPEN; OPEN requests navigation on the Mac and does not answer the request.
+Codex/DSH model/time uses the last reply's model first, then session configuration,
+with no configuration prefix. Missing model information is not invented.
 
-The [2026-10-20 integration record](docs/TASK_NOTIFICATIONS_RELEASE_20261020.md)
-summarizes the final Home badge, centered notification text, regression checks
-and separately recorded physical acceptance.
+All current native adapters use `canDecide:false`. Reading, dismissing and OPEN
+never approve, reject or answer a native request. Only a verified native route
+requests exact task navigation; otherwise OPEN activates the app. Current
+physical acceptance includes supported-source synthetic notices and a real
+Codex exact-task OPEN; it does not establish exact DSH/Super task routing.
+Real events, IDs, logs and reply excerpts must remain outside the repository.
 
-The [notification content V2 update](docs/NOTIFICATION_CONTENT_V2_UPDATE_20261022.md)
-adds opt-in native Codex task names (including Chinese), position, project/time
-and bounded last-reply excerpts. It requires coordinated firmware, Companion and
-hook updates; it is not automatically installed. The update record distinguishes
-physical synthetic acceptance from separately observed genuine callback ingestion.
-
-The [DSH content parity candidate](docs/DSH_NOTIFICATION_CONTENT_20261023.md)
-adds opt-in native Chinese task names, project and reply excerpts for DSH, plus
-shared read-only approval/input presentation. Confirmation remains on Mac. It was
-included in the subsequently installed [reply-model release](docs/NOTIFICATION_REPLY_MODEL_UPDATE_20261023.md);
-observer reload, synthetic physical acceptance and fresh native callback evidence
-are recorded separately.
+The [2026-10-24 acceptance](docs/superpowers/plans/2026-10-24-trim-home-verification.md)
+is the current baseline. Earlier records document their own versions:
+[initial integration](docs/TASK_NOTIFICATIONS_RELEASE_20261020.md),
+[content V2](docs/NOTIFICATION_CONTENT_V2_UPDATE_20261022.md),
+[DSH content parity](docs/DSH_NOTIFICATION_CONTENT_20261023.md),
+[reply-model priority](docs/NOTIFICATION_REPLY_MODEL_20261023.md),
+[build18 deployment](docs/NOTIFICATION_REPLY_MODEL_UPDATE_20261023.md) and
+[first single-layer revision](docs/NOTIFICATION_SINGLE_LAYER_20261023.md).
+Their intermediate candidate/deployment status does not describe the current
+build19 acceptance.
 
 ## Troubleshooting
 
@@ -675,19 +535,19 @@ button sends `ACT09`, not `ACT11`.
 
 ### Optional workspace navigation does not work
 
-- Confirm the SUPER foreground bundle is `engineering.super.app` or legacy
-  `com.zarifpour.superconductor`, HERMES is `com.nousresearch.hermes`, the corresponding
-  fixed shortcuts work from the physical keyboard, and Accessibility is enabled
-  for `CodexWatchCompanion.app`.
-- Input Monitoring is required to receive radial gestures. If Accessibility is
-  missing, only project/tab navigation is disabled; left cycling, quota,
-  and USB microphone input remain available.
-- For Hermes, enter its waiting page, tap the center and wait for the operating
-  page. Down/down/up should move selection; right releases it to open. Right
-  without a selection owned by the Companion deliberately does nothing.
-- If physical Control-Tab also fails until clicking the title bar, check window
-  focus and the installed Companion 0.1.4 identity/permissions. Do not treat app
-  foreground status as proof of window focus or replace delivery with global keys.
+- Check DSH bundle `com.deepseek.dsh` and SUPER bundle `engineering.super.app`
+  (legacy `com.zarifpour.superconductor`), physical-keyboard shortcuts and the
+  optional [DSH navigation plugin](deepseek-plugin/README.md).
+- Confirm Input Monitoring, Accessibility and the installed Companion
+  **0.1.4 build19** identity. A running app does not prove its window is ready;
+  select its page and tap center when waiting.
+- Match Companion and firmware. The supported cycle has four pages and returns
+  from Super to Home; Hermes must not appear. Use the
+  [current acceptance record](docs/superpowers/plans/2026-10-24-trim-home-verification.md)
+  when diagnosing a mixed-version installation.
+- For notification OPEN, check the selected source's adapter and route. Only
+  verified routes open an exact task; fallback app activation is expected.
+  BACK is a separate control and must not dispatch OPEN.
 
 ## Acknowledgements, license, and trademarks
 
@@ -702,9 +562,9 @@ This repository belongs to an open-source implementation lineage:
    the StopWatch UI, power behavior, quota companion, and optional USB
    microphone. It is the direct codebase on which this repository builds.
 3. **Stopwatch AgentBezel C152** continues the StopWatch codebase with Codex Micro,
-   super.engineering and Hermes Desktop workspaces, including foreground
-   Companion integration and dedicated directional displays, plus four-character
-   robot Home, local speech support and USB microphone priority handling.
+   DSH and super.engineering workspaces, foreground Companion integration,
+   dedicated directional displays, robot Home, optional task notifications and
+   USB microphone priority handling. Historical releases also included Hermes.
 
 This is an implementation lineage, not a claim that the repositories are
 runtime package dependencies or officially affiliated projects. Each later
@@ -727,16 +587,3 @@ local client interface used by the companion is documented under
 
 Names and marks are used only to identify compatibility. See [NOTICE.md](NOTICE.md)
 for attribution, protocol, security, warranty, and trademark notices.
-
-The [model/time row follow-up](docs/NOTIFICATION_MODEL_ROW_20261023.md) replaces
-Codex/DSH project labels with model versions, using exact Codex thread configuration when no reply model is available. This historical candidate was superseded by the installed reply-model release.
-
-The [reply-model priority update](docs/NOTIFICATION_REPLY_MODEL_20261023.md)
-prefers the latest assistant result, falls back to session configuration and
-displays only the model version. The [deployment record](docs/NOTIFICATION_REPLY_MODEL_UPDATE_20261023.md)
-records build18 installation and user acceptance of model display and controls.
-
-The [single-layer notification candidate](docs/NOTIFICATION_SINGLE_LAYER_20261023.md)
-removes the redundant read-only Detail page, exposes a separate OPEN ON MAC button
-and adjusts body typography. Native preview was accepted; physical deployment and
-acceptance are separate gates.
