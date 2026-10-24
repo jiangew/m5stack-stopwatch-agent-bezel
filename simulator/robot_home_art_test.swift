@@ -7,8 +7,8 @@ let actions = CommandLine.arguments.contains("--actions")
 let root = CommandLine.arguments.count > 1 && CommandLine.arguments[1] != "--actions"
     ? CommandLine.arguments[1] : (actions ? "assets/robot-home/actions" : "assets/robot-home/generated")
 let names = actions
-    ? ["bumblebeefullbody-1", "bumblebeefullbody-2", "optimus-1", "optimus-2", "jazz-1", "hotrod-1", "wheeljack-1", "hound-1", "ironhide-1", "ratchet-1", "megatron-1", "starscream-1", "soundwave-1", "shockwave-1", "thundercracker-1", "skywarp-1", "blitzwing-1", "astrotrain-1"]
-    : ["bumblebee", "bumblebeefullbody", "optimus", "jazz", "hotrod", "wheeljack", "hound", "ironhide", "ratchet", "megatron", "starscream", "soundwave", "shockwave", "thundercracker", "skywarp", "blitzwing", "astrotrain"]
+    ? ["bumblebeefullbody-1", "bumblebeefullbody-2", "optimus-1", "optimus-2", "wheeljack-1", "hound-1", "ironhide-1", "ratchet-1", "megatron-1", "starscream-1", "shockwave-1", "thundercracker-1", "blitzwing-1", "astrotrain-1"]
+    : ["bumblebee", "bumblebeefullbody", "optimus", "wheeljack", "hound", "ironhide", "ratchet", "megatron", "starscream", "shockwave", "thundercracker", "blitzwing", "astrotrain"]
 let margin = actions ? 8 : 18
 var portraits = [[UInt8]]()
 var failures = 0

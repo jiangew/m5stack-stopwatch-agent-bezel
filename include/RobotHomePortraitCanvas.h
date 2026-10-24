@@ -23,9 +23,14 @@ class PortraitCanvas : public Base {
     actions_.prepare(actions,count,false);
     current_=current;actionsPrepared_=true; // remember failures too; no frame retries
   }
-  void clearPortraits() {
-    actions_.clear();cache_.clear();
+  // Agent desktops keep the idle bank warm for the next Home frame. Only
+  // role-specific response images are disposable during an awake page cycle.
+  void clearActions() {
+    actions_.clear();
     current_=Character::Bumblebee;actionsPrepared_=false;
+  }
+  void clearPortraits() {
+    clearActions();cache_.clear();
   }
   void drawPortrait(const std::uint8_t* bytes,std::uint32_t size,float cx,float cy,float scale,float angle,bool notificationBadgeVisible=false) {
     std::int32_t x,y,w,h;

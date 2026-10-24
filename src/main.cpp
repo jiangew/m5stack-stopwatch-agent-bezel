@@ -762,7 +762,8 @@ void drawScreen() {
     }
 #endif
   } else {
-    canvas.clearPortraits();
+    // Keep the Home idle bank warm through the actual Agent draw path too.
+    canvas.clearActions();
     robotFrames.due(lastDrawMs, false, false, false);
   }
 #endif
@@ -868,7 +869,8 @@ void beginTouchGesture(int x, int y) {
       robotTouchX=x;robotTouchY=y;
       robotAnimation.press(millis());
       robotInputDirty=true;
-      drawScreen(); // first press frame bypasses animation cadence
+      // Classify the raw movement before the first press repaint. The dirty
+      // press frame still renders in this loop when the contact remains a tap.
     }
     if (dashboard::sendAtPoint(x, y) && workspace_input::allowed(
             state.workspaceMode,
@@ -911,8 +913,9 @@ void updateTouchGesture(int x, int y) {
   robotTap.move(x,y,kSwipeThresholdPx);
   if (state.workspaceMode == workspace_mode::Mode::Home &&
       !robotTap.eligible() && robotAnimation.mood(millis()) == robot_home::Mood::Press) {
+    // stopRobotReaction marks the frame dirty; do not block a newly recognized
+    // swipe behind a full Home repaint before sending it to the host.
     stopRobotReaction();
-    drawScreen();
   }
 #endif
   if (!touchTracking || touchPowerHoldConsumed ||
@@ -1761,7 +1764,8 @@ void loop() {
       powerOverlay==dashboard::PowerOverlay::None);
   const uint32_t robotNow=millis();
   const bool homeVisible=!deskSleeping && state.workspaceMode==workspace_mode::Mode::Home &&
-      powerOverlay==dashboard::PowerOverlay::None;
+      powerOverlay==dashboard::PowerOverlay::None &&
+      !(activeSwipe==touch_gesture::Direction::Left && state.workspaceHostReady); // pending host switch only
   bool imuFrameDue=false;
 #if defined(CODEX_STOPWATCH_HOME_IMU)
   imuFrameDue=robotFrames.motionDue(robotNow,imuPoseChanged(robotImuPose,robotImuRenderedPose));
@@ -1776,8 +1780,13 @@ void loop() {
   if(deskSleeping&&robotImuWakeAllowed&&state.workspaceMode==workspace_mode::Mode::Home)
     discardRobotPortraits=false;
 #endif
-  if (!homeVisible && discardRobotPortraits)
-    canvas.clearPortraits();
+  if (!homeVisible && discardRobotPortraits) {
+    // Returning from an Agent desktop must not synchronously re-decode the
+    // entire idle roster. Keep its bounded PSRAM bank while awake, but free
+    // the role-specific action bank. Preserve full eviction for actual sleep.
+    if (deskSleeping) canvas.clearPortraits();
+    else canvas.clearActions();
+  }
   if(state.workspaceMode==workspace_mode::Mode::Home &&
      powerOverlay==dashboard::PowerOverlay::None) {
     shouldRedraw=robotFrame;derivedStateChanged=false;

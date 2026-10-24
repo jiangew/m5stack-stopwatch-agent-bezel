@@ -12,34 +12,27 @@ enum class Character : std::uint8_t {
   Bumblebee,
   BumblebeeFullbody,
   Optimus,
-  Jazz,
-  Hotrod,
   Wheeljack,
   Hound,
   Ironhide,
   Ratchet,
   Megatron,
   Starscream,
-  Soundwave,
   Shockwave,
   Thundercracker,
-  Skywarp,
   Blitzwing,
   Astrotrain,
 };
 
-inline constexpr std::uint8_t kCharacterCount = 17;
-inline constexpr std::uint8_t kAutobotCount = 8;
-inline constexpr std::uint8_t kDecepticonCount = 8;
-inline constexpr std::uint8_t kFullbodyCount = 16;
-inline constexpr std::array<Character, 8> kAutobots{
-    Character::BumblebeeFullbody, Character::Optimus, Character::Jazz,
-    Character::Hotrod, Character::Wheeljack, Character::Hound,
+inline constexpr std::uint8_t kCharacterCount = 13;
+inline constexpr std::uint8_t kAutobotCount = 6;
+inline constexpr std::uint8_t kDecepticonCount = 6;
+inline constexpr std::uint8_t kFullbodyCount = 12;
+inline constexpr std::array<Character, 6> kAutobots{
+    Character::BumblebeeFullbody, Character::Optimus, Character::Wheeljack, Character::Hound,
     Character::Ironhide, Character::Ratchet};
-inline constexpr std::array<Character, 8> kDecepticons{
-    Character::Megatron, Character::Starscream, Character::Soundwave,
-    Character::Shockwave, Character::Thundercracker, Character::Skywarp,
-    Character::Blitzwing, Character::Astrotrain};
+inline constexpr std::array<Character, 6> kDecepticons{
+    Character::Megatron, Character::Starscream, Character::Shockwave, Character::Thundercracker, Character::Blitzwing, Character::Astrotrain};
 
 class CharacterSelector {
  public:

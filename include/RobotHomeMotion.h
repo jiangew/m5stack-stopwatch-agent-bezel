@@ -33,17 +33,6 @@ inline Motion motionFor(Character character, Mood mood, std::uint32_t elapsed) {
       motion.pose=elapsed<133?1:elapsed<400?2:elapsed<533?1:0;
       motion.offsetY=-1.5f*envelope;
       break;
-    case Character::Jazz:
-      motion.pose=elapsed<500?1:0;
-      motion.angle=-2*envelope;
-      motion.offsetY=-2*envelope;
-      break;
-    case Character::Hotrod:
-      motion.pose=elapsed<500?1:0;
-      motion.scale+=.025f*envelope;
-      motion.angle=-2*envelope;
-      motion.offsetY=-3*envelope;
-      break;
     case Character::Wheeljack:
       motion.pose=elapsed<500?1:0;
       motion.angle=1.5f*envelope;
@@ -63,11 +52,9 @@ inline Motion motionFor(Character character, Mood mood, std::uint32_t elapsed) {
       motion.offsetY=-1.5f*envelope;
       break;
     case Character::Starscream:
-    case Character::Skywarp:
       motion.pose=1;
       motion.angle=2*envelope;
       break;
-    case Character::Soundwave:
     case Character::Thundercracker:
       motion.pose=1;
       motion.angle=-1.5f*envelope;

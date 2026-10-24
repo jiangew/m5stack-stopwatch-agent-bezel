@@ -12,7 +12,7 @@ struct Surface {
   void drawLine(float,float,float,float,int) {}
 };
 struct Sprite {
-  inline static int live=0,peak=0,decodes=0,allocations=0,budget=19;
+  inline static int live=0,peak=0,decodes=0,allocations=0,budget=15;
   inline static const std::uint8_t* badImage=nullptr;
   inline static const std::uint8_t* drawn=nullptr;
   inline static float angle=0,scale=0,centerY=0,centerX=0;
@@ -39,7 +39,7 @@ struct Sprite {
 };
 using Canvas=robot_home::PortraitCanvas<Surface,Sprite>;
 using namespace robot_home;
-void reset(int budget=19) {
+void reset(int budget=15) {
   assert(Sprite::live==0);
   Sprite::peak=Sprite::decodes=Sprite::allocations=0;Sprite::budget=budget;
   Sprite::badImage=Sprite::drawn=nullptr;
@@ -60,9 +60,9 @@ int main() {
   {
     Canvas canvas;
     canvas.preparePortraits();
-    // Default portrait has no action assets: seventeen idles, no unrelated actions.
-    assert(Sprite::live==17&&Sprite::decodes==17);
-    for(int i=0;i<17;++i) {
+    // Default portrait has no action assets: thirteen idles, no unrelated actions.
+    assert(Sprite::live==13&&Sprite::decodes==13);
+    for(int i=0;i<13;++i) {
       const auto idle=character_art::assetFor(static_cast<Character>(i));
       draw(canvas,idle);assert(Sprite::drawn==idle.bytes);
     }
@@ -85,9 +85,9 @@ int main() {
     canvas.setClipRect(0,0,466,466);
     draw(canvas,image);
     assert(Sprite::centerX==233&&Sprite::clipRight==403);
-    assert(Sprite::decodes==17);
+    assert(Sprite::decodes==13);
     canvas.preparePortraits(Character::BumblebeeFullbody);
-    assert(Sprite::live==19&&Sprite::decodes==19);
+    assert(Sprite::live==15&&Sprite::decodes==15);
     const auto oldAction=character_art::actionFor(Character::BumblebeeFullbody,2);
     draw(canvas,oldAction);assert(Sprite::drawn==oldAction.bytes);
     const int decoded=Sprite::decodes,allocated=Sprite::allocations;
@@ -97,12 +97,12 @@ int main() {
     }
     assert(Sprite::decodes==decoded&&Sprite::allocations==allocated);
     canvas.preparePortraits(Character::Megatron);
-    assert(Sprite::live==18&&Sprite::decodes==20);
+    assert(Sprite::live==14&&Sprite::decodes==16);
     draw(canvas,character_art::actionFor(Character::Megatron,1));
     assert(Sprite::drawn==character_art::actionFor(Character::Megatron,1).bytes);
     draw(canvas,oldAction); // old action pixels were evicted; its idle remains correct
     assert(Sprite::drawn==character_art::assetFor(Character::BumblebeeFullbody).bytes);
-    for(int i=0;i<17;++i) {
+    for(int i=0;i<13;++i) {
       const auto role=static_cast<Character>(i);
       canvas.preparePortraits(role);
       const int before=Sprite::decodes;
@@ -111,23 +111,23 @@ int main() {
         const auto image=character_art::actionFor(role,motionFor(role,Mood::Skill,frame*10).pose);
         draw(canvas,image);assert(Sprite::drawn==image.bytes);
       }
-      assert(Sprite::decodes==before&&Sprite::live<=19);
+      assert(Sprite::decodes==before&&Sprite::live<=15);
     }
-    assert(Sprite::peak==19);
+    assert(Sprite::peak==15);
     canvas.clearPortraits();assert(Sprite::live==0);
     const int before=Sprite::decodes;
     canvas.preparePortraits(Character::Astrotrain);
-    assert(Sprite::live==18&&Sprite::decodes==before+18);
+    assert(Sprite::live==14&&Sprite::decodes==before+14);
     draw(canvas,character_art::actionFor(Character::Astrotrain,1));
     assert(Sprite::drawn==character_art::actionFor(Character::Astrotrain,1).bytes);
   }
   // Failure of either first or second action allocation releases the partial
   // bank, preserves all idles and never retries allocation/decode each frame.
-  for(int budget:{17,18}) {
+  for(int budget:{13,14}) {
     reset(budget);
     Canvas canvas;
     canvas.preparePortraits(Character::BumblebeeFullbody);
-    assert(Sprite::live==17);
+    assert(Sprite::live==13);
     const int decoded=Sprite::decodes,allocated=Sprite::allocations;
     for(int i=0;i<60;++i) {
       canvas.preparePortraits(Character::BumblebeeFullbody);
@@ -135,7 +135,7 @@ int main() {
       assert(Sprite::drawn==character_art::assetFor(Character::BumblebeeFullbody).bytes);
     }
     assert(Sprite::decodes==decoded&&Sprite::allocations==allocated);
-    Sprite::budget=17;canvas.preparePortraits(Character::Megatron);
+    Sprite::budget=13;canvas.preparePortraits(Character::Megatron);
     const int failedDecodes=Sprite::decodes,failedAllocations=Sprite::allocations;
     for(int i=0;i<60;++i) {canvas.preparePortraits(Character::Megatron);correctFallback(canvas,Character::Megatron);}
     assert(Sprite::decodes==failedDecodes&&Sprite::allocations==failedAllocations);
@@ -143,15 +143,15 @@ int main() {
   reset();
   {
     Canvas canvas;
-    Sprite::badImage=character_art::actionFor(Character::Skywarp,1).bytes;
-    canvas.preparePortraits(Character::Skywarp);
+    Sprite::badImage=character_art::actionFor(Character::Starscream,1).bytes;
+    canvas.preparePortraits(Character::Starscream);
     const int decoded=Sprite::decodes;
-    for(int i=0;i<60;++i) {canvas.preparePortraits(Character::Skywarp);correctFallback(canvas,Character::Skywarp);}
+    for(int i=0;i<60;++i) {canvas.preparePortraits(Character::Starscream);correctFallback(canvas,Character::Starscream);}
     assert(Sprite::decodes==decoded);
     canvas.clearPortraits();assert(Sprite::live==0);
-    Sprite::badImage=nullptr;canvas.preparePortraits(Character::Skywarp);
-    draw(canvas,character_art::actionFor(Character::Skywarp,1));
-    assert(Sprite::drawn==character_art::actionFor(Character::Skywarp,1).bytes);
+    Sprite::badImage=nullptr;canvas.preparePortraits(Character::Starscream);
+    draw(canvas,character_art::actionFor(Character::Starscream,1));
+    assert(Sprite::drawn==character_art::actionFor(Character::Starscream,1).bytes);
   }
   reset(1);
   {
@@ -169,5 +169,6 @@ int main() {
     assert(canvas.neutral==60&&Sprite::decodes==0&&Sprite::allocations==0);
   }
   assert(Sprite::live==0);
-  std::puts("PASS real PortraitCanvas: 17 idles + 2 current actions, peak19, reuse, switch, clear, allocation/decode fallback");
+  std::puts("PASS real PortraitCanvas: 13 idles + 2 current actions, peak15, reuse, switch, clear, allocation/decode fallback");
+  return 0;
 }

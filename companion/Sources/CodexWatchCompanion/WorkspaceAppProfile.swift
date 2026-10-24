@@ -3,6 +3,10 @@ import Foundation
 enum WorkspaceAppProfile: CaseIterable {
     case codex, deepseek, `super`, hermes
 
+    // Notification/profile compatibility still includes Hermes; the watch's
+    // independently selectable desktops are deliberately narrower.
+    static let selectableDesktops: [Self] = [.codex, .deepseek, .super]
+
     /// The bundle identifier used to launch a missing application.
     /// SUPER moved from its legacy identifier in the 2026-09 release.
     var bundleIdentifier: String {

@@ -175,15 +175,15 @@ fixture=<<~CPP
     feed(positive,240);sample(positive,9);assert(robotImuTelemetry.samples==quietSamples);
     sample(positive,1);assert(robotImuTelemetry.samples==quietSamples+1&&robotImuTelemetry.phase==Phase::Held);
 
-    // All local directions preserve Held for portrait and all 16 faction roles.
+    // All local directions preserve Held for portrait and all 12 faction roles.
     for(auto direction:{Direction::Up,Direction::Down,Direction::Right}){
-      for(unsigned role=0;role<17;++role){
+      for(unsigned role=0;role<13;++role){
         reset();calibrate();
-        if(role){entropy=(role-1)%8;selectedPause(role<=8?Direction::Up:Direction::Down);quietResume();assert(static_cast<unsigned>(robotCharacters.character())==role);}
+        if(role){entropy=(role-1)%6;selectedPause(role<=6?Direction::Up:Direction::Down);quietResume();assert(static_cast<unsigned>(robotCharacters.character())==role);}
         entropy=0;entropyCalls=0;
         const auto pickups=robotImuTelemetry.pickups,samples=robotImuTelemetry.samples;
         selectedPause(direction);assert(robotImuTelemetry.samples==samples);quietResume();
-        const unsigned want=direction==Direction::Right?0:direction==Direction::Up?(role==1?2:1):(role==9?10:9);
+        const unsigned want=direction==Direction::Right?0:direction==Direction::Up?(role==1?2:1):(role==7?8:7);
         assert(static_cast<unsigned>(robotCharacters.character())==want);
         assert(entropyCalls==(direction==Direction::Right?0u:1u)&&sent==0);
         assert(robotImuTelemetry.phase==Phase::Held&&robotImuTelemetry.pickups==pickups);
@@ -317,4 +317,4 @@ Dir.mktmpdir('home-imu-swipe-','/private/tmp') do |dir|
   system('clang++','-std=c++17','-fsanitize=address,undefined','-I'+File.join(repo,'include'),'-I'+File.join(repo,'usb-mic/.pio/libdeps/m5stack-stopwatch-usb-mic/ArduinoJson/src'),file,'-o',binary) or abort 'compile failed'
   system(binary) or abort 'actual touch/IMU swipe resume regression failed'
 end
-puts 'PASS actual touch/IMU swipe resume: U/D/R, all 17 roles, repeated/chained swipes, physical touch/haptic quiet, Held +/- tilt, Resting motion qualification, neutral/timer reset, startup/tap/left, actual workspace/power edges, button/overlay/disable/unavailable/sleep, bad samples, single-use/long gaps, 65ms render bookkeeping'
+puts 'PASS actual touch/IMU swipe resume: U/D/R, all 13 roles, repeated/chained swipes, physical touch/haptic quiet, Held +/- tilt, Resting motion qualification, neutral/timer reset, startup/tap/left, actual workspace/power edges, button/overlay/disable/unavailable/sleep, bad samples, single-use/long gaps, 65ms render bookkeeping'

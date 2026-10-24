@@ -71,6 +71,8 @@ struct HIDShortcutDecoder {
     private var lastCooldown: TimeInterval = Self.cooldown
 
     private static func cooldown(for event: CompanionShortcutEvent) -> TimeInterval {
+        if event == .left { return 0.2 }
+        if case .navigation(_, .left) = event { return 0.2 }
         if case let .navigation(origin, direction) = event,
            origin != .home, direction != .left { return 0.35 }
         return cooldown

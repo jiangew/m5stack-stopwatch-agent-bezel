@@ -30,14 +30,14 @@ struct Surface {
 };
 int main(){
   using namespace robot_home;
-  assert(kCharacterCount==17&&kAutobotCount==8&&kDecepticonCount==8&&kFullbodyCount==16);
+  assert(kCharacterCount==13&&kAutobotCount==6&&kDecepticonCount==6&&kFullbodyCount==12);
   // Selection behavior and rendering cover both complete faction pools.
   CharacterSelector selector;
-  assert(selector.select(touch_gesture::Direction::Up,0,[]{return 7u;})==Character::Ratchet);
-  assert(selector.select(touch_gesture::Direction::Down,10,[]{return 7u;})==Character::Astrotrain);
+  assert(selector.select(touch_gesture::Direction::Up,0,[]{return 5u;})==Character::Ratchet);
+  assert(selector.select(touch_gesture::Direction::Down,10,[]{return 5u;})==Character::Astrotrain);
   assert(selector.select(touch_gesture::Direction::Right,20,[]{assert(false);return 0u;})==Character::Bumblebee);
   std::vector<const std::uint8_t*> identities;
-  for(int i=0;i<17;++i) {
+  for(int i=0;i<13;++i) {
     const auto c=static_cast<Character>(i);
     State state;state.character=c;state.connected=true;state.batteryPercent=82;
     Surface idle;render(idle,state);
@@ -68,7 +68,7 @@ int main(){
     state.mood=Mood::Idle;state.transitionProgress=0;
     Surface arrival;render(arrival,state);assert(arrival.portraits[0].scale<portrait.scale);
   }
-  assert(identities.size()==17);
+  assert(identities.size()==13);
   State notified;notified.notificationBadgeVisible=true;
   Surface withBadge;render(withBadge,notified);
   assert(withBadge.portraits[0].badge);
@@ -87,7 +87,7 @@ int main(){
   tilted.mood=Mood::Press;
   Surface pressing;render(pressing,tilted);
   assert(pressing.portraits[0].x==233&&pressing.portraits[0].angle==0);
-  for(int i=1;i<17;++i) {
+  for(int i=1;i<13;++i) {
     auto hero=static_cast<Character>(i);
     for(unsigned pose=1;pose<=(i<=2?2u:1u);++pose) {
       auto action=character_art::actionFor(hero,pose);

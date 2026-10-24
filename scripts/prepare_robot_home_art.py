@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Serialize the seventeen idle portraits as deterministic baseline JPEGs.
+"""Serialize the thirteen idle portraits as deterministic baseline JPEGs.
 
 Requires Pillow and numpy. Preserve the existing accepted ring-free Bumblebee crop;
-the sixteen full-body sources are fitted, black-backed 300px PNGs.
+the twelve full-body sources are fitted, black-backed 300px PNGs.
 No blink frames are produced or embedded.
 """
 import argparse
@@ -18,8 +18,9 @@ from PIL import Image, ImageOps
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / 'assets/robot-home'
 OUTPUT = SOURCE / 'generated'
-HEROES = ('bumblebee', 'bumblebeefullbody', 'optimus', 'jazz', 'hotrod', 'wheeljack', 'hound', 'ironhide', 'ratchet', 'megatron', 'starscream', 'soundwave', 'shockwave', 'thundercracker', 'skywarp', 'blitzwing', 'astrotrain')
-DECEPTICONS = HEROES[9:]
+HEROES = ('bumblebee', 'bumblebeefullbody', 'optimus', 'wheeljack', 'hound', 'ironhide', 'ratchet', 'megatron', 'starscream', 'shockwave', 'thundercracker', 'blitzwing', 'astrotrain')
+# Includes archived sources for reproducible historical provenance.
+DECEPTICONS = ('megatron', 'starscream', 'soundwave', 'shockwave', 'thundercracker', 'skywarp', 'blitzwing', 'astrotrain')
 # Keep the accepted radial crop exactly: the original files remain untouched.
 CENTERS = {'bumblebee': (150, 148.3)}
 

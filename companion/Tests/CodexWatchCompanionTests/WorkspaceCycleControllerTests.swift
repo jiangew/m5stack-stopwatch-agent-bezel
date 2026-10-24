@@ -33,6 +33,18 @@ private final class CycleScheduler: WorkspaceModeScheduling {
 
 @MainActor
 final class WorkspaceCycleControllerTests: XCTestCase {
+    func testSelectableCycleOmitsHermesAndReturnsHomeAfterSuper() {
+        let ws=WorkspaceStub(), observer=CycleObserver(), scheduler=CycleScheduler()
+        let controller=WorkspaceCycleController(workspace:ws,observer:observer,scheduler:scheduler,log:{_ in})
+        controller.start()
+        for expected: StopwatchWorkspaceMode in [.codexIdle,.deepseekIdle,.superIdle,.home,.codexIdle] {
+            controller.cycle()
+            XCTAssertEqual(controller.displayMode,expected)
+        }
+        XCTAssertTrue(ws.launchRequests.isEmpty)
+        XCTAssertTrue(ws.activations.isEmpty)
+    }
+
     private func fixture() -> (WorkspaceStub, CycleObserver, CycleScheduler, WorkspaceCycleController) {
         let ws = WorkspaceStub(), observer = CycleObserver(), scheduler = CycleScheduler()
         let controller = WorkspaceCycleController(workspace: ws, observer: observer, scheduler: scheduler, log: { _ in })
@@ -41,7 +53,7 @@ final class WorkspaceCycleControllerTests: XCTestCase {
     }
 
     func testClosedDedicatedAgentWindowImmediatelyBlocksNavigationAndNextPollShowsOpen() {
-        for profile in [WorkspaceAppProfile.deepseek, .super, .hermes] {
+        for profile in [WorkspaceAppProfile.deepseek, .super] {
             let (ws, _, scheduler, controller) = fixture()
             let target = ApplicationIdentity(processIdentifier: 92, bundleIdentifier: profile.bundleIdentifier)
             ws.runningByBundleID[target.bundleIdentifier] = target; ws.frontmost = target
@@ -59,7 +71,7 @@ final class WorkspaceCycleControllerTests: XCTestCase {
     }
 
     func testDedicatedAgentUnknownWindowStateNeverEnablesNavigation() {
-        for profile in [WorkspaceAppProfile.deepseek, .hermes] {
+        for profile in [WorkspaceAppProfile.deepseek, .super] {
             let (ws, _, scheduler, controller) = fixture()
             ws.frontmost = ApplicationIdentity(processIdentifier: 93, bundleIdentifier: profile.bundleIdentifier)
             ws.presence = .unknown
@@ -71,28 +83,7 @@ final class WorkspaceCycleControllerTests: XCTestCase {
         }
     }
 
-    func testHermesWindowBecomingReadyAfterTimeoutNeedsNoSecondCentralTap() {
-        let (ws, observer, scheduler, controller) = fixture()
-        let target = ApplicationIdentity(processIdentifier: 94, bundleIdentifier: WorkspaceAppProfile.hermes.bundleIdentifier)
-        ws.runningByBundleID[target.bundleIdentifier] = target
-        ws.windowFocusSucceeds = false
-        for _ in 0..<4 { controller.cycle() }
-        controller.openSelectedWorkspace()
-        ws.frontmost = target; observer.change(target.bundleIdentifier)
-        XCTAssertEqual(controller.displayMode, .hermesOpening)
-        let staleCompletion = ws.launchCompletion
-        scheduler.tasks.last?.fire()
-        XCTAssertEqual(controller.displayMode, .hermesError)
-        staleCompletion?(true)
-        XCTAssertEqual(controller.displayMode, .hermesError)
-        // Real foreground/window readiness, rather than a late callback, recovers.
-        ws.windowFocusSucceeds = true; scheduler.monitors.last?.fire()
-        XCTAssertEqual(controller.displayMode, .hermes)
-        XCTAssertTrue(controller.allowsNavigation)
-        XCTAssertEqual(ws.launchRequests.count, 1)
-        controller.showHome(); scheduler.monitors.last?.fire(); staleCompletion?(true)
-        XCTAssertEqual(controller.displayMode, .home)
-    }
+
     func testHomePinsForegroundWithoutLaunching() {
         let ws=WorkspaceStub(), observer=CycleObserver(), scheduler=CycleScheduler()
         let controller=WorkspaceCycleController(workspace:ws,observer:observer,scheduler:scheduler,log:{_ in})
@@ -102,7 +93,6 @@ final class WorkspaceCycleControllerTests: XCTestCase {
         XCTAssertFalse(controller.allowsNavigation)
         XCTAssertTrue(ws.launchRequests.isEmpty)
     }
-    private let ids = ["com.openai.codex", "engineering.super.app", "com.nousresearch.hermes"]
 
     func testCurrentSuperEngineeringBundleActivatesFromCodex() {
         let ws = WorkspaceStub(), observer = CycleObserver(), scheduler = CycleScheduler()
@@ -208,7 +198,7 @@ final class WorkspaceCycleControllerTests: XCTestCase {
     }
 
     func testCenterRestoresEveryWindowlessRunningAgentBeforeEnablingNavigation() {
-        for (index, profile) in WorkspaceAppProfile.allCases.enumerated() {
+        for (index, profile) in WorkspaceAppProfile.selectableDesktops.enumerated() {
             let (ws, observer, scheduler, controller) = fixture()
             let target = ApplicationIdentity(processIdentifier: 90, bundleIdentifier: profile.bundleIdentifier)
             ws.runningByBundleID[target.bundleIdentifier] = target; ws.activatable.insert(target)
@@ -235,7 +225,7 @@ final class WorkspaceCycleControllerTests: XCTestCase {
     }
 
     func testEveryBackgroundSelectionWaitsForCenterWithoutStealingForeground() {
-        for (index, profile) in WorkspaceAppProfile.allCases.enumerated() {
+        for (index, profile) in WorkspaceAppProfile.selectableDesktops.enumerated() {
             let (ws, observer, _, controller) = fixture()
             let target = ApplicationIdentity(processIdentifier: 71, bundleIdentifier: profile.bundleIdentifier)
             let other = ApplicationIdentity(processIdentifier: 72, bundleIdentifier: "com.apple.finder")
@@ -258,7 +248,7 @@ final class WorkspaceCycleControllerTests: XCTestCase {
     }
 
     func testEveryForegroundSelectionIsReadyWithoutLaunchOrActivation() {
-        for (index, profile) in WorkspaceAppProfile.allCases.enumerated() {
+        for (index, profile) in WorkspaceAppProfile.selectableDesktops.enumerated() {
             let (ws, _, _, controller) = fixture()
             let target = ApplicationIdentity(processIdentifier: 73, bundleIdentifier: profile.bundleIdentifier)
             ws.runningByBundleID[target.bundleIdentifier] = target; ws.frontmost = target
@@ -270,13 +260,13 @@ final class WorkspaceCycleControllerTests: XCTestCase {
     }
 
     func testEverySelectedPageSurvivesForegroundLossAndCenterRestoresIt() {
-        for (index, profile) in WorkspaceAppProfile.allCases.enumerated() {
+        for (index, profile) in WorkspaceAppProfile.selectableDesktops.enumerated() {
             let (ws, observer, _, controller) = fixture()
             let target = ApplicationIdentity(processIdentifier: 74, bundleIdentifier: profile.bundleIdentifier)
             ws.runningByBundleID[target.bundleIdentifier] = target; ws.frontmost = target
             ws.activatable.insert(target)
             for _ in 0...index { controller.cycle() }
-            ws.frontmost = ApplicationIdentity(processIdentifier: 75, bundleIdentifier: WorkspaceAppProfile.allCases[(index + 1) % 4].bundleIdentifier)
+            ws.frontmost = ApplicationIdentity(processIdentifier: 75, bundleIdentifier: WorkspaceAppProfile.selectableDesktops[(index + 1) % 3].bundleIdentifier)
             observer.change(ws.frontmost?.bundleIdentifier)
             XCTAssertEqual(controller.selectedProfile, profile)
             XCTAssertEqual(controller.displayMode, .waiting(profile))
@@ -289,19 +279,10 @@ final class WorkspaceCycleControllerTests: XCTestCase {
         }
     }
 
-    func testActiveHermesPollingDoesNotRepeatedlyRaiseTheWindow() {
-        let (ws, _, scheduler, controller) = fixture()
-        let target = ApplicationIdentity(processIdentifier: 80, bundleIdentifier: WorkspaceAppProfile.hermes.bundleIdentifier)
-        ws.runningByBundleID[target.bundleIdentifier] = target; ws.frontmost = target
-        for _ in 0..<4 { controller.cycle() }
-        XCTAssertEqual(ws.focusedWindows.count, 1)
-        for _ in 0..<5 { scheduler.monitors.last?.fire() }
-        XCTAssertEqual(ws.focusedWindows.count, 1)
-        XCTAssertTrue(controller.allowsNavigation)
-    }
+
 
     func testForegroundRaceRejectsNavigationBeforeNotificationThenCenterRestoresSelection() {
-        for (index, profile) in WorkspaceAppProfile.allCases.enumerated() {
+        for (index, profile) in WorkspaceAppProfile.selectableDesktops.enumerated() {
             let (ws, _, _, controller) = fixture()
             let target = ApplicationIdentity(processIdentifier: 81, bundleIdentifier: profile.bundleIdentifier)
             ws.runningByBundleID[target.bundleIdentifier] = target; ws.frontmost = target; ws.activatable.insert(target)
@@ -316,7 +297,7 @@ final class WorkspaceCycleControllerTests: XCTestCase {
     }
 
     func testPollingDetectsQuitAndCenterColdLaunchesOnlySelectedAgent() {
-        for (index, profile) in WorkspaceAppProfile.allCases.enumerated() {
+        for (index, profile) in WorkspaceAppProfile.selectableDesktops.enumerated() {
             let (ws, _, scheduler, controller) = fixture()
             let target = ApplicationIdentity(processIdentifier: 83, bundleIdentifier: profile.bundleIdentifier)
             ws.runningByBundleID[target.bundleIdentifier] = target; ws.frontmost = target
@@ -332,7 +313,7 @@ final class WorkspaceCycleControllerTests: XCTestCase {
 
     func testAllAbsentAppsCycleWithoutAnyLaunchAndIgnoreUnrelatedForeground() {
         let (ws, observer, scheduler, controller) = fixture()
-        for profile in WorkspaceAppProfile.allCases {
+        for profile in WorkspaceAppProfile.selectableDesktops {
             controller.cycle()
             XCTAssertEqual(controller.displayMode, .waiting(profile))
             XCTAssertEqual(controller.selectedProfile, profile)
@@ -350,7 +331,7 @@ final class WorkspaceCycleControllerTests: XCTestCase {
     }
 
     func testEveryCentralLaunchRequiresRealForegroundNotSubmissionOrNotificationAlone() {
-        for (index, profile) in WorkspaceAppProfile.allCases.enumerated() {
+        for (index, profile) in WorkspaceAppProfile.selectableDesktops.enumerated() {
             let (ws, observer, _, controller) = fixture()
             for _ in 0...index { controller.cycle() }
             controller.openSelectedWorkspace(); controller.openSelectedWorkspace()
@@ -372,7 +353,7 @@ final class WorkspaceCycleControllerTests: XCTestCase {
     }
 
     func testEveryCentralFailureAndTimeoutNeedsExplicitRetry() {
-        for (index, profile) in WorkspaceAppProfile.allCases.enumerated() {
+        for (index, profile) in WorkspaceAppProfile.selectableDesktops.enumerated() {
             let (ws, _, scheduler, controller) = fixture()
             for _ in 0...index { controller.cycle() }
             controller.openSelectedWorkspace()
@@ -402,7 +383,7 @@ final class WorkspaceCycleControllerTests: XCTestCase {
             controller.cycle()
             let expected = controller.displayMode
             completion?(false); task.fire()
-            ws.frontmost = ApplicationIdentity(processIdentifier: 1, bundleIdentifier: WorkspaceAppProfile.allCases[index].bundleIdentifier)
+            ws.frontmost = ApplicationIdentity(processIdentifier: 1, bundleIdentifier: WorkspaceAppProfile.selectableDesktops[index].bundleIdentifier)
             observer.change(ws.frontmost?.bundleIdentifier)
             XCTAssertEqual(controller.displayMode, expected)
             controller.showHome(); completion?(true); task.fire()
@@ -412,7 +393,7 @@ final class WorkspaceCycleControllerTests: XCTestCase {
     }
 
     func testRunningAppsReopenSingleInstanceAndRequireSamePIDAndLaunchDate() {
-        for (index, profile) in WorkspaceAppProfile.allCases.enumerated() {
+        for (index, profile) in WorkspaceAppProfile.selectableDesktops.enumerated() {
             let (ws, observer, _, controller) = fixture()
             let target = ApplicationIdentity(processIdentifier: 7, bundleIdentifier: profile.bundleIdentifier, launchDate: Date(timeIntervalSince1970: 1))
             ws.runningByBundleID[target.bundleIdentifier] = target
@@ -464,29 +445,7 @@ final class WorkspaceCycleControllerTests: XCTestCase {
         XCTAssertEqual(controller.displayMode, .super)
     }
 
-    func testHermesRetainsIdleThenReopenAndWindowFocus() {
-        let (ws, observer, _, controller) = fixture()
-        let target = ApplicationIdentity(processIdentifier: 3, bundleIdentifier: WorkspaceAppProfile.hermes.bundleIdentifier)
-        ws.runningByBundleID[target.bundleIdentifier] = target
-        ws.activatable.insert(target)
-        for _ in 0..<4 { controller.cycle() }
-        XCTAssertEqual(controller.displayMode, .hermesIdle)
-        XCTAssertTrue(ws.launchRequests.isEmpty)
-        XCTAssertTrue(ws.activations.isEmpty)
-        controller.openHermes(); controller.openHermes()
-        XCTAssertEqual(ws.launchRequests, [target.bundleIdentifier])
-        XCTAssertTrue(ws.activations.isEmpty)
-        ws.frontmost = target; ws.windowFocusSucceeds = false
-        observer.change(target.bundleIdentifier)
-        XCTAssertEqual(controller.displayMode, .hermesOpening)
-        ws.windowFocusSucceeds = true; observer.change(target.bundleIdentifier)
-        XCTAssertEqual(controller.displayMode, .hermes)
-        controller.cycle()
-        let focusCount = ws.focusedWindows.count
-        ws.launchCompletion?(true); observer.change(target.bundleIdentifier)
-        XCTAssertEqual(ws.focusedWindows.count, focusCount)
-        XCTAssertEqual(controller.displayMode, .home)
-    }
+
 
     func testLegacyHermesActionCannotLaunchOtherSelections() {
         let (ws, _, _, controller) = fixture()
@@ -594,7 +553,7 @@ final class WorkspaceCycleControllerTests: XCTestCase {
         controller.cycle(); controller.cycle(); controller.cycle()
         let old = scheduler.monitors.last!
         controller.cycle(); ws.presence = .none; old.fire()
-        XCTAssertTrue(old.cancelled); XCTAssertEqual(controller.displayMode, .hermesIdle)
+        XCTAssertTrue(old.cancelled); XCTAssertEqual(controller.displayMode, .home)
         controller.showHome(); controller.cycle(); controller.cycle(); controller.cycle()
         let current = scheduler.monitors.last!
         controller.stop(); current.fire(); old.fire()

@@ -108,9 +108,9 @@ fixture = <<~CPP
   void tap(int x=233,int y=233){touchDown(x,y);now+=100;finishTouchGesture(x,y);}
   int main(){
     reset(Mode::Home);touchDown(233,233);
-    assert(robotAnimation.mood(now)==robot_home::Mood::Press&&draws==1&&haptics==0);
+    assert(robotAnimation.mood(now)==robot_home::Mood::Press&&draws==0&&robotInputDirty&&haptics==0);
     assert(messages.empty());now+=100;finishTouchGesture(233,233);
-    assert(robotAnimation.mood(now)==robot_home::Mood::Skill&&draws==2);
+    assert(robotAnimation.mood(now)==robot_home::Mood::Skill&&draws==1);
     assert(haptics==1&&lastHapticMs==kHomeTapHapticDurationMs&&messages.empty());
     now+=30;touchDown(233,233);assert(robotAnimation.mood(now)==robot_home::Mood::Press);
     now+=30;finishTouchGesture(233,233);assert(robotAnimation.elapsed(now)==0&&haptics==2);

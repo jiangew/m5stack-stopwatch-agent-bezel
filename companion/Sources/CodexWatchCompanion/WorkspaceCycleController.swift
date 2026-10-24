@@ -72,8 +72,15 @@ final class WorkspaceCycleController: WorkspaceCycling {
 
     func cycle() {
         guard started else { return }
-        guard selectedProfile != .hermes else { showHome(); return }
-        let target = selectedProfile?.next ?? .codex
+        let desktops = WorkspaceAppProfile.selectableDesktops
+        let target: WorkspaceAppProfile
+        if let selectedProfile {
+            guard let index = desktops.firstIndex(of: selectedProfile),
+                  index + 1 < desktops.count else { showHome(); return }
+            target = desktops[index + 1]
+        } else {
+            target = desktops[0]
+        }
         generation &+= 1
         clearPending()
         // Swiping selects a page; only a central tap may launch or activate.
@@ -102,7 +109,8 @@ final class WorkspaceCycleController: WorkspaceCycling {
     func resetToForeground() {
         generation &+= 1
         clearPending()
-        setMode(.foreground(workspace.frontmost?.bundleIdentifier))
+        let mode = StopwatchWorkspaceMode.foreground(workspace.frontmost?.bundleIdentifier)
+        setMode(mode.profile.map { WorkspaceAppProfile.selectableDesktops.contains($0) } == true ? mode : .home)
     }
 
     func showHome() {

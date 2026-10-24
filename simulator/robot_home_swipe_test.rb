@@ -27,9 +27,10 @@ fixture = <<~CPP
   constexpr int kButtonHapticIntensity=11,kWakeHapticDurationMs=22;
   int sent=0,haptics=0,intensity=0,duration=0;
   int speech=0,cancels=0;
+  unsigned now=100, sentAt=0;
   void requestRobotReaction(){++speech;robotAnimation.press(100);robotAnimation.release(100);}
-  void stopRobotReaction(){++cancels;}
-  unsigned millis(){return 100;}
+  void stopRobotReaction(){++cancels;robotAnimation.cancel();robotTap.cancel();}
+  unsigned millis(){return now;}
   unsigned entropy=0,entropyCalls=0;
   unsigned esp_random(){++entropyCalls;return entropy;}
   bool directionalWorkspaceActive(){return state.workspaceMode!=workspace_mode::Mode::Codex;}
@@ -43,15 +44,19 @@ fixture = <<~CPP
   }
   bool noteActivity(){bool was=awake;awake=true;return was;}
   void clearTouchCandidate(){robotTap.cancel();}
-  void sendSwipePress(Direction d){assert(d!=Direction::None);++sent;}
+  void sendSwipePress(Direction d){assert(d!=Direction::None);++sent;sentAt=now;}
   void startHaptic(int i,int d){++haptics;intensity=i;duration=d;}
-  void drawScreen(){}
+  void drawScreen(){now+=65;}
   int recolors=0;
   struct {template<class F>void acceptSwipe(unsigned,F){++recolors;}} workspacePalette;
   struct {template<class... A>void printf(const char*,A...){}} Serial;
   #{function}
-  void reset(bool resetCharacter=true){sent=haptics=speech=cancels=entropyCalls=0;touchTracking=true;awake=true;activeSwipe=Direction::None;state.workspaceHostReady=true;if(resetCharacter)robotCharacters.reset();}
+  void reset(bool resetCharacter=true){sent=haptics=speech=cancels=entropyCalls=0;now=100;sentAt=0;robotAnimation.cancel();robotTap.cancel();touchTracking=true;awake=true;activeSwipe=Direction::None;state.workspaceHostReady=true;if(resetCharacter)robotCharacters.reset();}
   int main(){
+    reset();robotTap.begin(200,200,100,true);robotAnimation.press(100);
+    updateTouchGesture(140,200);
+    assert(sent==1&&sentAt==100); // send before any synchronous cancellation repaint
+
     reset();updateTouchGesture(140,200);
     assert(sent==1&&haptics==1&&speech==0&&cancels==1);
     assert(intensity==kSwipeHapticIntensity&&duration==kSwipeHapticDurationMs);
@@ -60,7 +65,7 @@ fixture = <<~CPP
     assert(sent==0&&haptics==0&&robotAnimation.mood(100)==robot_home::Mood::Connect);
     // Literal outcomes catch wrong faction routing and accidental right entropy.
     const std::pair<int,int> local[]{ {200,140},{200,260},{260,200} };
-    const unsigned first[]{1,9,0}, repeated[]{2,10,0};
+    const unsigned first[]{1,7,0}, repeated[]{2,8,0};
     for(unsigned direction=0;direction<3;++direction){
       const auto xy=local[direction];
       for(bool ready:{false,true}){
@@ -80,11 +85,11 @@ fixture = <<~CPP
       }
     }
     // Exercise every pool member through actual updateTouchGesture, then return
-    // each of the 16 bodies to the portrait with one tick and no host/entropy.
+    // each of the 12 bodies to the portrait with one tick and no host/entropy.
     for(unsigned direction=0;direction<2;++direction){
-      for(unsigned sample=0;sample<8;++sample){
+      for(unsigned sample=0;sample<6;++sample){
         reset();entropy=sample;updateTouchGesture(local[direction].first,local[direction].second);
-        assert(static_cast<unsigned>(robotCharacters.character())==sample+(direction==0?1:9));
+        assert(static_cast<unsigned>(robotCharacters.character())==sample+(direction==0?1:7));
         assert(sent==0&&speech==0&&haptics==1&&entropyCalls==1);
         reset(false);updateTouchGesture(260,200);
         assert(robotCharacters.character()==robot_home::Character::Bumblebee);

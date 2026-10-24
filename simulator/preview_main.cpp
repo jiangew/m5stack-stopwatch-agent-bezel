@@ -119,9 +119,9 @@ super_workspace::State superPreviewState(const char* scenario) {
 bool validScenario(const char* scenario) {
   if(std::strncmp(scenario,"notification-",13)==0)return true;
   for (const char* base : {"home","home-bumblebee","home-bumblebeefullbody",
-                           "home-optimus","home-jazz","home-hotrod","home-wheeljack","home-hound",
+                           "home-optimus","home-wheeljack","home-hound",
                            "home-ironhide","home-ratchet","home-megatron","home-starscream",
-                           "home-soundwave","home-shockwave","home-thundercracker","home-skywarp",
+                           "home-shockwave","home-thundercracker",
                            "home-blitzwing","home-astrotrain"})
     for (const char* suffix : {"","-press","-skill","-transition"})
       if (std::string(scenario)==std::string(base)+suffix) return true;
@@ -183,7 +183,7 @@ bool writeHomeSequence(const char* directory) {
   frame.setColorDepth(16);
   if(!frame.createSprite(466,466))return false;
   frame.setTextWrap(false);
-  const char* names[]={"bumblebee","bumblebeefullbody","optimus","jazz","hotrod","wheeljack","hound","ironhide","ratchet","megatron","starscream","soundwave","shockwave","thundercracker","skywarp","blitzwing","astrotrain"};
+  const char* names[]={"bumblebee","bumblebeefullbody","optimus","wheeljack","hound","ironhide","ratchet","megatron","starscream","shockwave","thundercracker","blitzwing","astrotrain"};
   for(int hero=0;hero<robot_home::kCharacterCount;++hero)for(int i=0;i<54;++i) {
     robot_home::State state;state.character=static_cast<robot_home::Character>(hero);
     state.connected=true;state.batteryPercent=82;
@@ -318,7 +318,7 @@ int main(int argc, char** argv) {
     if(badge){
       robot_home::State state;state.batteryPercent=82;state.connected=true;
       state.notificationBadgeVisible=true;
-      const char* roles[]={"bumblebee","bumblebeefullbody","optimus","jazz","hotrod","wheeljack","hound","ironhide","ratchet","megatron","starscream","soundwave","shockwave","thundercracker","skywarp","blitzwing","astrotrain"};
+      const char* roles[]={"bumblebee","bumblebeefullbody","optimus","wheeljack","hound","ironhide","ratchet","megatron","starscream","shockwave","thundercracker","blitzwing","astrotrain"};
       for(int i=0;i<robot_home::kCharacterCount;++i)
         if(std::string(scenario).find(std::string("notification-badge-")+roles[i])==0)
           state.character=static_cast<robot_home::Character>(i);
@@ -335,18 +335,14 @@ int main(int argc, char** argv) {
     robot_home::State state;state.batteryPercent=82;state.connected=true;
     if(std::strncmp(scenario,"home-bumblebeefullbody",22)==0)state.character=robot_home::Character::BumblebeeFullbody;
     if(std::strncmp(scenario,"home-optimus",12)==0)state.character=robot_home::Character::Optimus;
-    if(std::strncmp(scenario,"home-jazz",9)==0)state.character=robot_home::Character::Jazz;
-    if(std::strncmp(scenario,"home-hotrod",11)==0)state.character=robot_home::Character::Hotrod;
     if(std::strncmp(scenario,"home-wheeljack",14)==0)state.character=robot_home::Character::Wheeljack;
     if(std::strncmp(scenario,"home-hound",10)==0)state.character=robot_home::Character::Hound;
     if(std::strncmp(scenario,"home-ironhide",13)==0)state.character=robot_home::Character::Ironhide;
     if(std::strncmp(scenario,"home-ratchet",12)==0)state.character=robot_home::Character::Ratchet;
     if(std::strncmp(scenario,"home-megatron",13)==0)state.character=robot_home::Character::Megatron;
     if(std::strncmp(scenario,"home-starscream",15)==0)state.character=robot_home::Character::Starscream;
-    if(std::strncmp(scenario,"home-soundwave",14)==0)state.character=robot_home::Character::Soundwave;
     if(std::strncmp(scenario,"home-shockwave",14)==0)state.character=robot_home::Character::Shockwave;
     if(std::strncmp(scenario,"home-thundercracker",19)==0)state.character=robot_home::Character::Thundercracker;
-    if(std::strncmp(scenario,"home-skywarp",12)==0)state.character=robot_home::Character::Skywarp;
     if(std::strncmp(scenario,"home-blitzwing",14)==0)state.character=robot_home::Character::Blitzwing;
     if(std::strncmp(scenario,"home-astrotrain",15)==0)state.character=robot_home::Character::Astrotrain;
     if(std::strstr(scenario,"-transition")!=nullptr)state.transitionProgress=0.5f;

@@ -85,7 +85,13 @@ fixture = <<~CPP
   dashboard::State fixtureState;
   dashboard::State dashboardState() { return fixtureState; }
   // Only the physical panel transfer is a no-op; all rasterization is real.
-  struct Canvas : robot_home::PortraitCanvas<lgfx::LGFX_Sprite> { void pushSprite(int, int) {
+  struct CountingPortrait : lgfx::LGFX_Sprite {
+    inline static unsigned decodes=0;
+    bool drawJpg(const std::uint8_t* bytes,std::uint32_t size,int x,int y) {
+      ++decodes;return lgfx::LGFX_Sprite::drawJpg(bytes,size,x,y);
+    }
+  };
+  struct Canvas : robot_home::PortraitCanvas<lgfx::LGFX_Sprite,CountingPortrait> { void pushSprite(int, int) {
     events.push_back({"push",now,motorLevel});++pushes;now+=advanceAfterPush;
   } } canvas;
   #{extract_draw_function(source, 'void drawScreen() {')}
@@ -98,6 +104,14 @@ fixture = <<~CPP
     #if defined(CODEX_STOPWATCH_USB_MIC)
     // Crossing expiry during physical transfer must still schedule resting pixels.
     canvas.setColorDepth(16);assert(canvas.createSprite(466,466));
+    state.workspaceMode=Mode::Home;drawScreen();
+    const unsigned warmDecodes=CountingPortrait::decodes;
+    for(auto page:{Mode::CodexIdle,Mode::DeepseekIdle,Mode::SuperIdle}) {
+      state.workspaceMode=page;drawScreen();
+      state.workspaceMode=Mode::Home;drawScreen();
+      assert(CountingPortrait::decodes==warmDecodes); // real drawScreen must retain idle pixels
+    }
+
     state.workspaceMode=Mode::Home;now=100;robotAnimation.press(now);robotAnimation.release(now);
     advanceAfterPush=20;drawScreen();
     assert(!robotFrames.due(133,true,true,false));
@@ -194,10 +208,10 @@ fixture = <<~CPP
     robot_home::PortraitCanvas<lgfx::LGFX_Sprite> homeReference;
     homeReference.setColorDepth(16);assert(homeReference.createSprite(466,466));
     homeReference.setTextWrap(false);
-    for(int role=0;role<17;++role) {
+    for(int role=0;role<13;++role) {
       robotCharacters.reset();now=2000;
-      if(role>0)robotCharacters.select(role<9?touch_gesture::Direction::Up:touch_gesture::Direction::Down,
-          now-320,[role]{return static_cast<unsigned>(role<9?role-1:role-9);});
+      if(role>0)robotCharacters.select(role<7?touch_gesture::Direction::Up:touch_gesture::Direction::Down,
+          now-320,[role]{return static_cast<unsigned>(role<7?role-1:role-7);});
       assert(static_cast<int>(robotCharacters.character())==role);
       for(bool skill:{false,true}) {
         robotAnimation.cancel();
@@ -243,4 +257,4 @@ Dir.mktmpdir('codex-dashboard-', '/private/tmp') do |dir|
   end
   abort 'Codex pending preview differs from installed dashboard fixture' unless frames.all? { |frame| frame == frames.first }
 end
-puts 'PASS actual drawScreen: default + USB-mic haptic gate/65ms transfer/pending pixel restore; Codex active/idle/opening/error equality; directional UIs; 17 Home roles/skills/sleep/clear; preview equality'
+puts 'PASS actual drawScreen: default + USB-mic haptic gate/65ms transfer/pending pixel restore; Codex active/idle/opening/error equality; directional UIs; 13 Home roles/skills/sleep/clear; preview equality'

@@ -20,6 +20,28 @@ private final class ListenerOutputDeviceStub: StopwatchHIDOutputDevice {
 
 @MainActor
 final class HIDShortcutDecoderTests: XCTestCase {
+    func testReleasedLeftSwipesCycleEveryQuarterSecondAcrossNativeAndDedicatedReports() {
+        var decoder = HIDShortcutDecoder()
+        func send(_ line: String, _ time: Double) -> [CompanionShortcutEvent] {
+            WorkspaceModeHIDReportFramer.reports(payloadBytes: Array((line+"\n").utf8)).flatMap {
+                decoder.consume(reportID: 6, bytes: $0, now: time)
+            }
+        }
+        let origins = ["home", "codex", "deepseek", "super"]
+        for (index, origin) in origins.enumerated() {
+            let time = 1.0 + Double(index)*0.25
+            let native = origin == "codex"
+            let press = native ? #"{"method":"v.oai.rad","params":{"a":0.5,"d":1}}"# :
+                "{\"method\":\"host.workspace_navigation\",\"params\":{\"workspace\":\"\(origin)\",\"direction\":\"left\",\"phase\":\"press\"}}"
+            let expected: CompanionShortcutEvent = native ? .left : .navigation(WorkspaceNavigationOrigin(rawValue: origin)!, .left)
+            XCTAssertEqual(send(press, time), [expected], origin)
+            XCTAssertEqual(send(press, time+0.01), [], "held press must not repeat")
+            let release = native ? press.replacingOccurrences(of: "\"d\":1", with: "\"d\":0") :
+                press.replacingOccurrences(of: "press", with: "release")
+            XCTAssertEqual(send(release, time+0.05), [])
+        }
+    }
+
     func testGenericCenterIsStrictAndSharesCooldownAndReleaseGate() {
         var decoder = HIDShortcutDecoder()
         func consume(_ text: String, _ now: Double) -> [CompanionShortcutEvent] {
@@ -65,11 +87,11 @@ final class HIDShortcutDecoderTests: XCTestCase {
         _ = consume("deepseek", "left", "release", 2)
         XCTAssertEqual(consume("super", "up", "press", 2), [.navigation(.super, .up)])
         _ = consume("super", "up", "release", 2.1)
-        XCTAssertEqual(consume("deepseek", "left", "press", 2.4), [])
+        XCTAssertEqual(consume("deepseek", "left", "press", 2.2), [])
         _ = consume("deepseek", "left", "release", 2.5)
         XCTAssertEqual(consume("deepseek", "left", "press", 2.9), [.navigation(.deepseek, .left)])
         _ = consume("deepseek", "left", "release", 3)
-        XCTAssertEqual(consume("super", "down", "press", 3.3), [])
+        XCTAssertEqual(consume("super", "down", "press", 3.1), [])
     }
 
     func testDeepseekDirectionsAndRepeatedRightRemainDedicatedAndReleaseGated() {
@@ -106,11 +128,11 @@ final class HIDShortcutDecoderTests: XCTestCase {
             _ = consume("down", "release", 1.5)
             XCTAssertEqual(consume("up", "press", 1.8).count, 1)
             _ = consume("up", "release", 1.9)
-            XCTAssertEqual(consume("left", "press", 2.2).count, 0)
+            XCTAssertEqual(consume("left", "press", 2.0).count, 0)
             _ = consume("left", "release", 2.3)
             XCTAssertEqual(consume("left", "press", 2.7).count, 1)
             _ = consume("left", "release", 2.8)
-            XCTAssertEqual(consume("down", "press", 3.1).count, 0)
+            XCTAssertEqual(consume("down", "press", 2.9).count, 0)
         }
     }
     func testHomeResyncBypassesUserCooldownButRejectsExtraFields() {
@@ -338,10 +360,10 @@ final class HIDShortcutDecoderTests: XCTestCase {
         let release = report(#"{"method":"v.oai.rad","params":{"a":0.5,"d":0.0}}"# + "\n")
         XCTAssertEqual(decoder.consume(reportID: 6, bytes: press, now: 1), [.left])
         XCTAssertEqual(decoder.consume(reportID: 6, bytes: press, now: 1.1), [])
-        XCTAssertEqual(decoder.consume(reportID: 6, bytes: release, now: 1.2), [])
-        XCTAssertEqual(decoder.consume(reportID: 6, bytes: press, now: 1.3), [])
-        XCTAssertEqual(decoder.consume(reportID: 6, bytes: release, now: 1.4), [])
-        XCTAssertEqual(decoder.consume(reportID: 6, bytes: press, now: 1.81), [.left])
+        XCTAssertEqual(decoder.consume(reportID: 6, bytes: release, now: 1.12), [])
+        XCTAssertEqual(decoder.consume(reportID: 6, bytes: press, now: 1.15), [])
+        XCTAssertEqual(decoder.consume(reportID: 6, bytes: release, now: 1.16), [])
+        XCTAssertEqual(decoder.consume(reportID: 6, bytes: press, now: 1.25), [.left])
     }
 
     func testPressRejectedByCooldownStillRequiresReleaseBeforeAnotherDirectionCanFire() {
